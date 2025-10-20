@@ -1,5 +1,12 @@
 CXX := g++
-CXXFLAGS := -std=c++23 -g -Wall -Wextra -I./include -c
+MODE ?= debug
+
+ifeq ($(MODE), release)
+	CXXFLAGS := -std=c++23 -O3 -DNDEBUG -Wall -Wextra -I./include -c
+else
+	CXXFLAGS := -std=c++23 -g -O0 -Wall -Wextra -I./include -c
+endif
+
 LDFLAGS :=
 
 INPUT ?=
@@ -82,4 +89,8 @@ help:
 	@echo "  rebuild   - Clean and rebuild"
 	@echo "  clean     - Remove build directory"
 	@echo "  help      - Show this help message"
+	@echo ""
+	@echo "Build mode (default: debug):"
+	@echo "  make MODE=debug       - Debug build (-g -O0)"
+	@echo "  make MODE=release     - Release build (-O3 -DNDEBUG)"
 
