@@ -6,6 +6,11 @@
 #include "Node/Node.hpp"
 #include "Token.hpp"
 
+namespace {
+    constexpr size_t POINTER_SIZE = 8;
+    constexpr size_t STACK_ALIGNMENT = 16;
+}
+
 namespace yoctocc {
 
 std::vector<std::string> Generator::run(const std::shared_ptr<Function>& func) {
@@ -29,11 +34,11 @@ void Generator::assignLocalVariableOffsets(const std::shared_ptr<Function>& func
 
     int offset = 0;
     for (auto obj = func->locals; obj; obj = obj->next) {
-        offset += 8;
+        offset += POINTER_SIZE;
         obj->offset = -offset;
     }
 
-    func->stackSize = alignTo(offset, 16);
+    func->stackSize = alignTo(offset, STACK_ALIGNMENT);
 }
 
 void Generator::generateAddress(const std::shared_ptr<Node>& node) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -14,7 +15,7 @@ public:
     std::vector<std::string> run(const std::shared_ptr<Function>& func);
 
 private:
-    static constexpr int alignTo(int n, int align) {
+    static constexpr size_t alignTo(size_t n, size_t align) {
         return (n + align - 1) / align * align;
     }
     void assignLocalVariableOffsets(const std::shared_ptr<Function>& func);
