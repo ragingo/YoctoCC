@@ -1,6 +1,6 @@
 #pragma once
 #include <string_view>
-#include <tuple>
+#include <unordered_map>
 
 namespace yoctocc {
 
@@ -12,12 +12,12 @@ namespace yoctocc {
         WHILE,
     };
 
-    inline constexpr std::tuple<Keyword, std::string_view> keywords[] = {
-        { Keyword::RETURN, "return" },
-        { Keyword::IF, "if" },
-        { Keyword::ELSE, "else" },
-        { Keyword::FOR, "for" },
-        { Keyword::WHILE, "while" },
+    static const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
+        { "return", Keyword::RETURN },
+        { "if", Keyword::IF },
+        { "else", Keyword::ELSE },
+        { "for", Keyword::FOR },
+        { "while", Keyword::WHILE },
     };
 
 } // namespace yoctocc
