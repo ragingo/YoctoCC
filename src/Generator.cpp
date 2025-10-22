@@ -15,9 +15,6 @@ namespace yoctocc {
 
 std::vector<std::string> Generator::run(const std::shared_ptr<Function>& func) {
     assert(func);
-    if (!func) {
-        return {};
-    }
 
     assignLocalVariableOffsets(func);
     generateStatement(func->body);
@@ -28,9 +25,6 @@ std::vector<std::string> Generator::run(const std::shared_ptr<Function>& func) {
 
 void Generator::assignLocalVariableOffsets(const std::shared_ptr<Function>& func) {
     assert(func);
-    if (!func) {
-        return;
-    }
 
     int offset = 0;
     for (auto obj = func->locals; obj; obj = obj->next) {
@@ -43,9 +37,6 @@ void Generator::assignLocalVariableOffsets(const std::shared_ptr<Function>& func
 
 void Generator::generateAddress(const std::shared_ptr<Node>& node) {
     assert(node);
-    if (!node) {
-        return;
-    }
     if (node->nodeType == NodeType::VARIABLE) {
         int offset = node->variable->offset;
         lines.emplace_back(lea(Register::RAX, Address<Register>{Register::RBP, offset}));
@@ -61,9 +52,6 @@ void Generator::generateAddress(const std::shared_ptr<Node>& node) {
 
 void Generator::generateStatement(const std::shared_ptr<Node>& node) {
     assert(node);
-    if (!node) {
-        return;
-    }
     if (node->nodeType == NodeType::IF) {
         uint64_t count = labelCount++;
         auto elseLabel = makeElseLabel(count);
@@ -132,9 +120,6 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
     using enum Register;
 
     assert(node);
-    if (!node) {
-        return;
-    }
 
     switch (node->nodeType) {
         case NodeType::NUMBER:

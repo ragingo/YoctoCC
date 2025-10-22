@@ -10,9 +10,6 @@ namespace yoctocc {
 
 std::shared_ptr<Function> Parser::parse(std::shared_ptr<Token>& token) {
     assert(token);
-    if (!token) {
-        return nullptr;
-    }
 
     token = token::skipIf(token, "{");
 
