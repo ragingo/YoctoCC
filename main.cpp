@@ -7,6 +7,7 @@
 #include <vector>
 #include "Assembly/Assembly.hpp"
 #include "Generator.hpp"
+#include "Logger.hpp"
 #include "Node/Node.hpp"
 #include "Token.hpp"
 #include "Tokenizer.hpp"
@@ -21,16 +22,19 @@ using enum SystemCall;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        return 1;
+        Log::error("Source file not specified");
+        return EXIT_FAILURE;
     }
     std::string source_file = argv[1];
     std::ifstream ifs(source_file);
     if (!ifs) {
-        return 1;
+        Log::error("Failed to open source file");
+        return EXIT_FAILURE;
     }
     std::ofstream ofs("build/program.asm");
     if (!ofs) {
-        return 1;
+        Log::error("Failed to open output file");
+        return EXIT_FAILURE;
     }
 
     AssemblyWriter writer{};
@@ -64,5 +68,5 @@ int main(int argc, char* argv[]) {
     }
     ofs.close();
 
-    return 0;
+    return EXIT_SUCCESS;
 }
