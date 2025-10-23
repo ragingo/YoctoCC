@@ -1,5 +1,6 @@
 CXX := g++
 MODE ?= debug
+PROFILE ?= 0
 
 ifeq ($(MODE), release)
 	CXXFLAGS := -std=c++23 -O3 -DNDEBUG -Wall -Wextra -I./include -c
@@ -7,7 +8,10 @@ else
 	CXXFLAGS := -std=c++23 -g -O0 -Wall -Wextra -I./include -c
 endif
 
-LDFLAGS :=
+ifeq ($(PROFILE), 1)
+	CXXFLAGS += -pg
+	LDFLAGS := $(LDFLAGS) -pg
+endif
 
 INPUT ?=
 
@@ -80,12 +84,19 @@ test:
 rebuild: clean all
 	@echo "Rebuild complete"
 
+profile: clean
+	$(MAKE) PROFILE=1
+	@rm -f gmon.out
+	./$(COMPILER) test/test1.txt
+	@gprof ./$(COMPILER) gmon.out | tee profile.log
+
 help:
 	@echo "Available targets:"
 	@echo "  all       - Build the compiler (default)"
 	@echo "  compile   - Compile input file to assembly (INPUT=filename.txt)"
 	@echo "  run       - Run the compiler"
 	@echo "  test      - Run test suite"
+	@echo "  profile   - Profile compiler with gprof"
 	@echo "  rebuild   - Clean and rebuild"
 	@echo "  clean     - Remove build directory"
 	@echo "  help      - Show this help message"
