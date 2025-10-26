@@ -4,6 +4,7 @@
 namespace yoctocc {
 
 struct Node;
+struct Token;
 
 enum class TypeKind {
     INT,
@@ -13,6 +14,7 @@ enum class TypeKind {
 struct Type {
     TypeKind kind;
     std::shared_ptr<Type> base;
+    std::shared_ptr<Token> name;
 
     Type(TypeKind kind): kind(kind), base(nullptr) {}
 };

@@ -6,6 +6,45 @@
 #include "Token.hpp"
 #include "Type.hpp"
 
+namespace {
+    using namespace yoctocc;
+
+    bool consumeToken(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::string_view value) {
+        if (token::is(token, value)) {
+            result = token->next;
+            return true;
+        }
+        result = token;
+        return false;
+    }
+
+    const std::string& getIdentifier(const std::shared_ptr<Token>& token) {
+        assert(token && token->type == TokenType::IDENTIFIER);
+        return token->originalValue;
+    }
+
+    const std::shared_ptr<Type> declSpec(std::shared_ptr<Token>& result, const std::shared_ptr<Token>& token) {
+        result = token::skipIf(token, "int");
+        return std::make_shared<Type>(TypeKind::INT);
+    }
+
+    const std::shared_ptr<Type> declarator(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
+        while (consumeToken(result, token, "*")) {
+            type = type::pointerTo(type);
+        }
+
+        if (result->type == TokenType::IDENTIFIER) {
+            type->name = token;
+            result = token->next;
+        } else {
+            using namespace std::literals;
+            Log::error(token->location, "Expected an identifier"sv);
+        }
+
+        return type;
+    }
+}
+
 namespace yoctocc {
 
 std::shared_ptr<Function> Parser::parse(std::shared_ptr<Token>& token) {
@@ -28,6 +67,45 @@ std::shared_ptr<Object> Parser::findLocalVariable(std::shared_ptr<Token>& token)
         }
     }
     return nullptr;
+}
+
+std::shared_ptr<Object> Parser::createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type) {
+    auto var = std::make_shared<Object>();
+    var->name = name;
+    var->type = type;
+    var->next = _locals;
+    _locals = var;
+    return var;
+}
+
+std::shared_ptr<Node> Parser::declaration(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
+    auto type = declSpec(token, token);
+    auto head = std::make_shared<Node>();
+    auto current = head;
+
+    int i = 0;
+
+    while (!token::is(token, ";")) {
+        if (i++ > 0) {
+            token = token::skipIf(token, ",");
+        }
+        auto varType = declarator(token, token, type);
+        auto varName = getIdentifier(type->name);
+        auto var = createLocalVariable(varName, varType);
+
+        if (!token::is(token, "=")) {
+            continue;
+        }
+
+        auto lhs = createVariableNode(token, var);
+        auto rhs = parseAssignment(token, token->next);
+        auto node = createBinaryNode(NodeType::ASSIGN, token, lhs, rhs);
+        current = current->next = createUnaryNode(NodeType::EXPRESSION_STATEMENT, token, node);
+    }
+
+    auto node = createBlockNode(token, head->next);
+    result = token->next;
+    return node;
 }
 
 std::shared_ptr<Node> Parser::parseExpression(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
@@ -107,7 +185,11 @@ std::shared_ptr<Node> Parser::parseCompoundStatement(std::shared_ptr<Token>& res
     auto head = std::make_shared<Node>();
     auto current = head;
     while (token->type != TokenType::TERMINATOR && !token::is(token, "}")) {
-        current = current->next = parseStatement(token, token);
+        if (token::is(token, "int")) {
+            current = current->next = declaration(token, token);
+        } else {
+            current = current->next = parseStatement(token, token);
+        }
         type::addType(current);
     }
     result = token->next;
@@ -228,10 +310,8 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
     if (token->type == TokenType::IDENTIFIER) {
         auto var = findLocalVariable(token);
         if (!var) {
-            var = std::make_shared<Object>();
-            var->name = token->originalValue;
-            var->next = _locals;
-            _locals = var;
+            Log::error(token->location, std::format("Undefined variable: {}", token->originalValue));
+            return nullptr;
         }
         result = token->next;
 

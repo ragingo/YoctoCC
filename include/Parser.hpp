@@ -3,10 +3,11 @@
 
 namespace yoctocc {
 
-struct Token;
-struct Node;
 struct Function;
+struct Node;
 struct Object;
+struct Token;
+struct Type;
 
 class Parser final {
 public:
@@ -14,6 +15,8 @@ public:
 
 private:
     std::shared_ptr<Object> findLocalVariable(std::shared_ptr<Token>& token);
+    std::shared_ptr<Object> createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type);
+    std::shared_ptr<Node> declaration(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseExpression(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseAssignment(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);

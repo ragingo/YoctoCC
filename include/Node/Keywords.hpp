@@ -10,6 +10,7 @@ namespace yoctocc {
         ELSE,
         FOR,
         WHILE,
+        INT,
     };
 
     static const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
@@ -18,6 +19,7 @@ namespace yoctocc {
         { "else", Keyword::ELSE },
         { "for", Keyword::FOR },
         { "while", Keyword::WHILE },
+        { "int", Keyword::INT },
     };
 
 } // namespace yoctocc

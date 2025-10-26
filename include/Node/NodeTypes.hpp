@@ -34,6 +34,7 @@ namespace yoctocc {
     struct Object {
         int offset;
         std::string name;
+        std::shared_ptr<Type> type;
         std::shared_ptr<Object> next;
     };
 

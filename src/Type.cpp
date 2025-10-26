@@ -2,6 +2,7 @@
 
 #include "Logger.hpp"
 #include "Node/Node.hpp"
+#include "Token.hpp"
 
 namespace yoctocc::type {
 
@@ -43,19 +44,22 @@ namespace yoctocc::type {
             case NodeType::LESS_EQUAL:
             case NodeType::GREATER:
             case NodeType::GREATER_EQUAL:
-            case NodeType::VARIABLE:
             case NodeType::NUMBER:
                 node->type = std::make_shared<Type>(TypeKind::INT);
+                return;
+            case NodeType::VARIABLE:
+                node->type = node->variable->type;
                 return;
             case NodeType::ADDRESS:
                 node->type = pointerTo(node->left->type);
                 return;
             case NodeType::DEREFERENCE:
-                if (node->left->type->kind == TypeKind::POINTER) {
-                    node->type = node->left->type->base;
-                } else {
-                    node->type = std::make_shared<Type>(TypeKind::INT);
+                if (node->left->type->kind != TypeKind::POINTER) {
+                    using namespace std::literals;
+                    Log::error(node->token->location, "Invalid pointer dereference"sv);
+                    return;
                 }
+                node->type = node->left->type->base;
                 return;
             case NodeType::BLOCK:
             case NodeType::IF:
