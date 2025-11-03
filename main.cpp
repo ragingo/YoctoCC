@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
         Log::error("Failed to open source file");
         return EXIT_FAILURE;
     }
-    std::ofstream ofs("build/program.asm");
+    std::ofstream ofs("build/program.s");
     if (!ofs) {
         Log::error("Failed to open output file");
         return EXIT_FAILURE;

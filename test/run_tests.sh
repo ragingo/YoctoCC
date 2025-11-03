@@ -66,7 +66,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     echo "$TEST_CODE" > "$TEST_FILE"
 
     # 古いアセンブリファイルを削除 (依存関係を正しく処理するため)
-    rm -f "$PROJECT_ROOT/build/program.asm" "$PROJECT_ROOT/build/program.o" "$PROJECT_ROOT/build/program"
+    rm -f "$PROJECT_ROOT/build/program.s" "$PROJECT_ROOT/build/program.o" "$PROJECT_ROOT/build/program"
 
     # コンパイラ実行
     ERROR_LOG=$(mktemp)

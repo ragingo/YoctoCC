@@ -21,8 +21,8 @@ struct std::formatter<yoctocc::LinkerDirective> {
         using enum yoctocc::LinkerDirective;
         std::string_view name;
         switch (dir) {
-            case EXTERN: name = "extern"; break;
-            case GLOBAL: name = "global"; break;
+            case EXTERN: name = ".extern"; break;
+            case GLOBAL: name = ".globl"; break;
         }
         return std::format_to(ctx.out(), "{}", name);
     }

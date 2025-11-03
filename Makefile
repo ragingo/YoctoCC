@@ -18,9 +18,13 @@ INPUT ?=
 BUILD_DIR := build
 SRC_DIR := .
 COMPILER := $(BUILD_DIR)/yoctocc
-ASM := $(BUILD_DIR)/program.asm
+ASM := $(BUILD_DIR)/program.s
 OBJ := $(BUILD_DIR)/program.o
 BIN := $(BUILD_DIR)/program
+
+# テスト用オブジェクト
+TEST_HELPER_C := test/test_helper.c
+TEST_HELPER_O := $(BUILD_DIR)/test_helper.o
 
 # C++ ソースファイル (サブディレクトリも含む)
 SRCS := $(shell find $(SRC_DIR) -name "*.cpp" -type f)
@@ -30,10 +34,6 @@ HEADERS := $(wildcard include/*.hpp include/**/*.hpp)
 OBJS := $(SRCS:%.cpp=$(BUILD_DIR)/%.o)
 # 依存関係ファイル
 DEPS := $(OBJS:.o=.d)
-
-NASM := nasm
-NASM_FMT := elf64
-LD := ld
 
 .PHONY: all clean run compile test help
 
@@ -46,6 +46,10 @@ $(BUILD_DIR):
 $(BUILD_DIR)/%.o: %.cpp | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -MMD -MP -o $@ $<
+
+# テスト用ヘルパーのコンパイル (C 言語、C23/C2X 対応)
+$(TEST_HELPER_O): $(TEST_HELPER_C) | $(BUILD_DIR)
+	gcc -std=c2x -O2 -c -o $@ $<
 
 # コンパイラ実行ファイルのリンク
 $(COMPILER): $(OBJS) | $(BUILD_DIR)
@@ -60,11 +64,13 @@ $(ASM): $(COMPILER)
 	./$(COMPILER) $(INPUT)
 	@echo "Generated assembly file: $(ASM)"
 
+# GCC でアセンブル（GNU as を使用、Intel 構文）
 $(OBJ): $(ASM)
-	$(NASM) -f $(NASM_FMT) -o $@ $<
+	gcc -c -o $@ $<
 
-$(BIN): $(OBJ)
-	$(LD) -o $@ $^
+# yoctocc が生成したコード + テストヘルパーをリンク（nostdlib で独自の _start を使用）
+$(BIN): $(OBJ) $(TEST_HELPER_O)
+	gcc -nostdlib -no-pie -o $@ $^
 
 # 依存関係ファイルのインクルード
 -include $(DEPS)
