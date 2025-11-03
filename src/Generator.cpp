@@ -147,6 +147,10 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
             lines.emplace_back(pop(RDI));
             lines.emplace_back(mov(Address<Register>{RDI}, RAX));
             return;
+        case NodeType::FUNCTION_CALL:
+            lines.emplace_back(mov(RAX, 0));
+            lines.emplace_back(call(node->functionName));
+            return;
         default:
             break;
     }

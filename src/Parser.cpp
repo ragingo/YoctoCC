@@ -308,6 +308,16 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
     }
 
     if (token->type == TokenType::IDENTIFIER) {
+        // function
+        if (token::is(token->next, "(")) {
+            auto node = std::make_shared<Node>(NodeType::FUNCTION_CALL);
+            node->token = token;
+            node->functionName = getIdentifier(token);
+            result = token::skipIf(token->next->next, ")");
+            return node;
+        }
+
+        // variable
         auto var = findLocalVariable(token);
         if (!var) {
             Log::error(token->location, std::format("Undefined variable: {}", token->originalValue));

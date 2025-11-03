@@ -131,4 +131,8 @@ namespace yoctocc {
         return std::format("{} {}", OpCode::JE, label);
     }
 
+    inline constexpr std::string call(const std::string& label) {
+        return std::format("{} {}", OpCode::CALL, label);
+    }
+
 } // namespace yoctocc

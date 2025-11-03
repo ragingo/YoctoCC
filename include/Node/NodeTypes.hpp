@@ -26,6 +26,7 @@ namespace yoctocc {
         IF,            // if
         FOR,           // for or while
         BLOCK,         // { ... }
+        FUNCTION_CALL,
         VARIABLE,
         EXPRESSION_STATEMENT,
         NUMBER,
@@ -55,6 +56,8 @@ namespace yoctocc {
         // block
         std::shared_ptr<Node> body;
         std::shared_ptr<Object> variable;
+        // function call
+        std::string functionName;
 
         Node(NodeType type = NodeType::UNKNOWN): nodeType(type), value(0) {}
     };

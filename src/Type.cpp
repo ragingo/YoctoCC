@@ -45,6 +45,7 @@ namespace yoctocc::type {
             case NodeType::GREATER:
             case NodeType::GREATER_EQUAL:
             case NodeType::NUMBER:
+            case NodeType::FUNCTION_CALL:
                 node->type = std::make_shared<Type>(TypeKind::INT);
                 return;
             case NodeType::VARIABLE:
