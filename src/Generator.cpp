@@ -148,8 +148,20 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
             lines.emplace_back(mov(Address<Register>{RDI}, RAX));
             return;
         case NodeType::FUNCTION_CALL:
-            lines.emplace_back(mov(RAX, 0));
-            lines.emplace_back(call(node->functionName));
+            {
+                int argCount = 0;
+                for (auto arg = node->arguments; arg; arg = arg->next) {
+                    generateExpression(arg);
+                    lines.emplace_back(push(RAX));
+                    argCount++;
+                }
+                assert(argCount <= static_cast<int>(ARG_REGISTERS.size()));
+                for (int i = argCount - 1; i >= 0; i--) {
+                    lines.emplace_back(pop(ARG_REGISTERS[i]));
+                }
+                lines.emplace_back(mov(RAX, 0));
+                lines.emplace_back(call(node->functionName));
+            }
             return;
         default:
             break;

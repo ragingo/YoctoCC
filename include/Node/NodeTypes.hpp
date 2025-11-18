@@ -58,6 +58,7 @@ namespace yoctocc {
         std::shared_ptr<Object> variable;
         // function call
         std::string functionName;
+        std::shared_ptr<Node> arguments;
 
         Node(NodeType type = NodeType::UNKNOWN): nodeType(type), value(0) {}
     };

@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <format>
 #include <string_view>
 
@@ -37,6 +38,15 @@ enum class Register {
     DL,
     DH,
     DX,
+};
+
+static constexpr std::array<Register, 6> ARG_REGISTERS = {
+    Register::RDI,
+    Register::RSI,
+    Register::RDX,
+    Register::RCX,
+    Register::R8,
+    Register::R9,
 };
 
 } // namespace yoctocc
