@@ -17,7 +17,10 @@ std::vector<std::string> Generator::run(const std::shared_ptr<Function>& func) {
     assert(func);
 
     assignLocalVariableOffsets(func);
-    generateStatement(func->body);
+
+    for (auto fn = func; fn; fn = fn->next) {
+        generateFunction(fn);
+    }
 
     return lines;
 }
@@ -26,13 +29,14 @@ std::vector<std::string> Generator::run(const std::shared_ptr<Function>& func) {
 void Generator::assignLocalVariableOffsets(const std::shared_ptr<Function>& func) {
     assert(func);
 
-    int offset = 0;
-    for (auto obj = func->locals; obj; obj = obj->next) {
-        offset += POINTER_SIZE;
-        obj->offset = -offset;
+    for (auto fn = func; fn; fn = fn->next) {
+        int offset = 0;
+        for (auto obj = fn->locals; obj; obj = obj->next) {
+            offset += POINTER_SIZE;
+            obj->offset = -offset;
+        }
+        fn->stackSize = alignTo(offset, STACK_ALIGNMENT);
     }
-
-    func->stackSize = alignTo(offset, STACK_ALIGNMENT);
 }
 
 void Generator::generateAddress(const std::shared_ptr<Node>& node) {
@@ -104,7 +108,7 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
     }
     if (node->nodeType == NodeType::RETURN) {
         generateExpression(node->left);
-        lines.emplace_back(jmp(".L.return"));
+        lines.emplace_back(jmp(std::format(".L.return.{}", currentFunction->name)));
         return;
     }
     if (node->nodeType == NodeType::EXPRESSION_STATEMENT) {
@@ -223,6 +227,29 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
 
     using namespace std::literals;
     Log::error(node->token->location, "Invalid expression"sv);
+}
+
+void Generator::generateFunction(const std::shared_ptr<Function>& func) {
+    using enum Register;
+    assert(func);
+    currentFunction = func;
+
+    lines.emplace_back(std::format(".global {}", func->name));
+    lines.emplace_back(std::format("{}:", func->name));
+    // Prologue
+    lines.emplace_back(push(RBP));
+    lines.emplace_back(mov(RBP, RSP));
+    if (func->stackSize > 0) {
+        lines.emplace_back(sub(RSP, func->stackSize));
+    }
+
+    generateStatement(func->body);
+
+    // Epilogue
+    lines.emplace_back(std::format(".L.return.{}:", func->name));
+    lines.emplace_back(mov(RSP, RBP));
+    lines.emplace_back(pop(RBP));
+    lines.emplace_back(ret());
 }
 
 } // namespace yoctocc

@@ -22,9 +22,11 @@ private:
     void generateAddress(const std::shared_ptr<Node>& node);
     void generateStatement(const std::shared_ptr<Node>& node);
     void generateExpression(const std::shared_ptr<Node>& node);
+    void generateFunction(const std::shared_ptr<Function>& func);
 
 private:
     std::vector<std::string> lines{};
+    std::shared_ptr<Function> currentFunction;
     uint64_t labelCount = 0UL;
 };
 

@@ -9,12 +9,14 @@ struct Token;
 enum class TypeKind {
     INT,
     POINTER,
+    FUNCTION,
 };
 
 struct Type {
     TypeKind kind;
     std::shared_ptr<Type> base;
     std::shared_ptr<Token> name;
+    std::shared_ptr<Type> returnType;
 
     Type(TypeKind kind): kind(kind), base(nullptr) {}
 };
@@ -27,6 +29,8 @@ namespace type {
     }
 
     std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base);
+
+    std::shared_ptr<Type> functionType(const std::shared_ptr<Type>& returnType);
 
     void addType(const std::shared_ptr<Node>& node);
 }

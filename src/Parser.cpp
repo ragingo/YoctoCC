@@ -28,14 +28,24 @@ namespace {
         return std::make_shared<Type>(TypeKind::INT);
     }
 
+    const std::shared_ptr<Type> typeSuffix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
+        if (token::is(token, "(")) {
+            result = token::skipIf(token->next, ")");
+            return type::functionType(type);
+        }
+        result = token;
+        return type;
+    }
+
     const std::shared_ptr<Type> declarator(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
         while (consumeToken(result, token, "*")) {
             type = type::pointerTo(type);
         }
 
-        if (result->type == TokenType::IDENTIFIER) {
-            type->name = token;
-            result = token->next;
+        if (token->type == TokenType::IDENTIFIER) {
+            auto name = token;
+            type = typeSuffix(result, token->next, type);
+            type->name = name;
         } else {
             using namespace std::literals;
             Log::error(token->location, "Expected an identifier"sv);
@@ -49,15 +59,12 @@ namespace yoctocc {
 
 std::shared_ptr<Function> Parser::parse(std::shared_ptr<Token>& token) {
     assert(token);
-
-    token = token::skipIf(token, "{");
-
-    auto func = std::make_shared<Function>();
-    func->body = parseCompoundStatement(token, token);
-    func->locals = _locals;
-    func->stackSize = 0;
-
-    return func;
+    std::shared_ptr<Function> head = std::make_shared<Function>();
+    std::shared_ptr<Function> current = head;
+    while (token->type != TokenType::TERMINATOR) {
+        current = current->next = parseFunction(token, token);
+    }
+    return head->next;
 }
 
 std::shared_ptr<Object> Parser::findLocalVariable(std::shared_ptr<Token>& token) {
@@ -320,6 +327,19 @@ std::shared_ptr<Node> Parser::parseFunctionCall(std::shared_ptr<Token>& result, 
     node->arguments = head->next;
 
     return node;
+}
+
+std::shared_ptr<Function> Parser::parseFunction(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
+    auto type = declSpec(token, token);
+    auto funcType = declarator(token, token, type);
+    token = token::skipIf(token, "{");
+    _locals.reset();
+
+    auto func = std::make_shared<Function>();
+    func->name = getIdentifier(funcType->name);
+    func->body = parseCompoundStatement(result, token);
+    func->locals = _locals;
+    return func;
 }
 
 std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {

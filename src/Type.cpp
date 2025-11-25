@@ -12,6 +12,12 @@ namespace yoctocc::type {
         return type;
     }
 
+    std::shared_ptr<Type> functionType(const std::shared_ptr<Type>& returnType) {
+        auto type = std::make_shared<Type>(TypeKind::FUNCTION);
+        type->returnType = returnType;
+        return type;
+    }
+
     void addType(const std::shared_ptr<Node>& node) {
         if (!node || node->type) {
             return;

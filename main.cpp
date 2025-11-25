@@ -51,7 +51,10 @@ int main(int argc, char* argv[]) {
     std::println("Generating...");
     Generator generator{};
     auto lines = generator.run(program);
-    std::vector<std::string> entryPointBody = prologue(program->stackSize);
+
+    std::vector<std::string> entryPointBody{};
+    entryPointBody.emplace_back(call("main"));
+    entryPointBody.emplace_back(jmp(".L.return"));
     for (const auto& line : lines) {
         entryPointBody.emplace_back(line);
     }
