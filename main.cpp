@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 
     AssemblyWriter writer{};
     writer.section(TEXT);
-    writer.section_text_symbol(GLOBAL, ENTRY_POINT_NAME);
+    writer.section_text_symbol(GLOBAL, SYSTEM_ENTRY_POINT);
 
     std::println("Tokenizing...");
     auto token = tokenize(ifs);
@@ -52,17 +52,17 @@ int main(int argc, char* argv[]) {
     Generator generator{};
     auto lines = generator.run(program);
 
-    std::vector<std::string> entryPointBody{};
-    entryPointBody.emplace_back(call("main"));
-    entryPointBody.emplace_back(jmp(".L.return"));
+    std::vector<std::string> startupCode{};
+    startupCode.emplace_back(call(USER_ENTRY_POINT));
+    startupCode.emplace_back(jmp(".L.return"));
     for (const auto& line : lines) {
-        entryPointBody.emplace_back(line);
+        startupCode.emplace_back(line);
     }
-    entryPointBody.emplace_back(".L.return:");
-    entryPointBody.emplace_back(mov(RDI, RAX));
-    entryPointBody.emplace_back(mov(RAX, std::to_underlying(EXIT)));
-    entryPointBody.emplace_back(syscall());
-    writer.func(ENTRY_POINT_NAME, entryPointBody);
+    startupCode.emplace_back(".L.return:");
+    startupCode.emplace_back(mov(RDI, RAX));
+    startupCode.emplace_back(mov(RAX, std::to_underlying(EXIT)));
+    startupCode.emplace_back(syscall());
+    writer.func(SYSTEM_ENTRY_POINT, startupCode);
 
     writer.compile();
 
