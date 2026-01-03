@@ -243,6 +243,11 @@ void Generator::generateFunction(const std::shared_ptr<Function>& func) {
         lines.emplace_back(sub(RSP, func->stackSize));
     }
 
+    int i = 0;
+    for (auto param = func->parameters; param; param = param->next) {
+        lines.emplace_back(mov(Address<Register>{RBP, param->offset}, ARG_REGISTERS[i++]));
+    }
+
     generateStatement(func->body);
 
     // Epilogue

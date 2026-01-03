@@ -35,6 +35,10 @@ namespace yoctocc::type {
             addType(body);
         }
 
+        for (auto arguments = node->arguments; arguments; arguments = arguments->next) {
+            addType(arguments);
+        }
+
         switch (node->nodeType) {
             case NodeType::ADD:
             case NodeType::SUB:

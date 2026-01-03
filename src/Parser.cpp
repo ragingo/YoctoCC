@@ -28,14 +28,7 @@ namespace {
         return std::make_shared<Type>(TypeKind::INT);
     }
 
-    const std::shared_ptr<Type> typeSuffix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
-        if (token::is(token, "(")) {
-            result = token::skipIf(token->next, ")");
-            return type::functionType(type);
-        }
-        result = token;
-        return type;
-    }
+    const std::shared_ptr<Type> typeSuffix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type);
 
     const std::shared_ptr<Type> declarator(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
         while (consumeToken(result, token, "*")) {
@@ -51,6 +44,33 @@ namespace {
             Log::error(token->location, "Expected an identifier"sv);
         }
 
+        return type;
+    }
+
+    const std::shared_ptr<Type> typeSuffix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
+        if (token::is(token, "(")) {
+            token = token->next;
+
+            std::shared_ptr<Type> head;
+            auto current = &head;
+            while (!token::is(token, ")")) {
+                if (head) {
+                    token = token::skipIf(token, ",");
+                }
+                auto paramType = declSpec(token, token);
+                paramType = declarator(token, token, paramType);
+                *current = paramType;
+                current = &paramType->next;
+            }
+
+            type = type::functionType(type);
+            type->parameters = head;
+            result = token->next;
+
+            return type;
+        }
+
+        result = token;
         return type;
     }
 }
@@ -335,8 +355,11 @@ std::shared_ptr<Function> Parser::parseFunction(std::shared_ptr<Token>& result, 
     token = token::skipIf(token, "{");
     _locals.reset();
 
+    applyParamLVars(funcType->parameters);
+
     auto func = std::make_shared<Function>();
     func->name = getIdentifier(funcType->name);
+    func->parameters = _locals;
     func->body = parseCompoundStatement(result, token);
     func->locals = _locals;
     return func;
@@ -377,6 +400,13 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
     Log::error(token->location, "Expected an expression"sv);
 
     return nullptr;
+}
+
+void Parser::applyParamLVars(const std::shared_ptr<Type>& parameter) {
+    if (parameter) {
+        applyParamLVars(parameter->next);
+        createLocalVariable(getIdentifier(parameter->name), parameter);
+    }
 }
 
 } // namespace yoctocc

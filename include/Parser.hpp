@@ -30,6 +30,7 @@ private:
     std::shared_ptr<Node> parseFunctionCall(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Function> parseFunction(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
+    void applyParamLVars(const std::shared_ptr<Type>& parameter);
 private:
     std::shared_ptr<Object> _locals;
 };

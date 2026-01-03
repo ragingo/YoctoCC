@@ -65,6 +65,7 @@ namespace yoctocc {
 
     struct Function {
         std::string name;
+        std::shared_ptr<Object> parameters;
         std::shared_ptr<Function> next;
         std::shared_ptr<Node> body;
         std::shared_ptr<Object> locals;

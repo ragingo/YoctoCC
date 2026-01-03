@@ -17,6 +17,8 @@ struct Type {
     std::shared_ptr<Type> base;
     std::shared_ptr<Token> name;
     std::shared_ptr<Type> returnType;
+    std::shared_ptr<Type> parameters;
+    std::shared_ptr<Type> next;
 
     Type(TypeKind kind): kind(kind), base(nullptr) {}
 };
