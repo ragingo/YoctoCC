@@ -8,7 +8,11 @@
                 "all"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "CXX": "/usr/bin/clang++",
+                    "CC": "/usr/bin/clang"
+                }
             },
             "group": {
                 "kind": "build",
@@ -17,7 +21,58 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Makefile を使用してプロジェクトをビルドします"
+            "detail": "Clang 20 でプロジェクトをビルドします"
+        },
+        {
+            "type": "shell",
+            "label": "Build with GCC",
+            "command": "make",
+            "args": [
+                "all"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "CXX": "g++",
+                    "CC": "gcc"
+                }
+            },
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "GCC でプロジェクトをビルドします"
+        },
+        {
+            "type": "shell",
+            "label": "Run Tests",
+            "command": "make",
+            "args": [
+                "test"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "CXX": "/usr/bin/clang++",
+                    "CC": "/usr/bin/clang"
+                }
+            },
+            "group": "test",
+            "problemMatcher": [],
+            "detail": "並列テストを実行します"
+        },
+        {
+            "type": "shell",
+            "label": "Clean Build",
+            "command": "make",
+            "args": [
+                "clean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "ビルドディレクトリを削除します"
         }
     ],
     "version": "2.0.0"
