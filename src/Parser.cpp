@@ -80,7 +80,8 @@ namespace {
 
         if (token::is(token, "[")) {
             int size = getNumber(token->next);
-            result = token::skipIf(token->next->next, "]");
+            token = token::skipIf(token->next->next, "]");
+            type = typeSuffix(result, token, type);
             return type::arrayOf(type, size);
         }
 
