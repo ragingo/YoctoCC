@@ -1,4 +1,5 @@
 CXX := g++
+CC := gcc
 MODE ?= debug
 PROFILE ?= 0
 
@@ -49,7 +50,7 @@ $(BUILD_DIR)/%.o: %.cpp | $(BUILD_DIR)
 
 # テスト用ヘルパーのコンパイル (C 言語、C23/C2X 対応)
 $(TEST_HELPER_O): $(TEST_HELPER_C) | $(BUILD_DIR)
-	gcc -std=c2x -O2 -c -o $@ $<
+	$(CC) -std=c2x -O2 -c -o $@ $<
 
 # コンパイラ実行ファイルのリンク
 $(COMPILER): $(OBJS) | $(BUILD_DIR)
@@ -64,13 +65,13 @@ $(ASM): $(COMPILER)
 	./$(COMPILER) $(INPUT)
 	@echo "Generated assembly file: $(ASM)"
 
-# GCC でアセンブル（GNU as を使用、Intel 構文）
+# GCC でアセンブル
 $(OBJ): $(ASM)
-	gcc -c -o $@ $<
+	$(CC) -c -o $@ $<
 
 # yoctocc が生成したコード + テストヘルパーをリンク（nostdlib で独自の _start を使用）
 $(BIN): $(OBJ) $(TEST_HELPER_O)
-	gcc -nostdlib -no-pie -o $@ $^
+	$(CC) -nostdlib -no-pie -o $@ $^
 
 # 依存関係ファイルのインクルード
 -include $(DEPS)
