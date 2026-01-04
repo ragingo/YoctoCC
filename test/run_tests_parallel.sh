@@ -17,11 +17,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_DIR="$SCRIPT_DIR"
 CONF_FILE="$TEST_DIR/tests.conf"
-BUILD_DIR="$PROJECT_ROOT/build"
 
-# コンパイラとテストヘルパーのパス
-COMPILER="$BUILD_DIR/yoctocc"
-TEST_HELPER_O="$BUILD_DIR/test_helper.o"
+# Makefile ターゲット用（相対パス）
+COMPILER_TARGET="build/yoctocc"
+TEST_HELPER_TARGET="build/test_helper.o"
+
+# 実行用（絶対パス）
+COMPILER="$PROJECT_ROOT/$COMPILER_TARGET"
+TEST_HELPER_O="$PROJECT_ROOT/$TEST_HELPER_TARGET"
 
 # 並列数（CPU コア数）
 PARALLEL_JOBS=${PARALLEL_JOBS:-$(nproc)}
@@ -46,7 +49,7 @@ fi
 # コンパイラのビルド（インクリメンタルビルド）
 echo -e "${YELLOW}コンパイラをビルド中...${NC}"
 cd "$PROJECT_ROOT"
-if ! make -s "$COMPILER" "$TEST_HELPER_O" > /dev/null 2>&1; then
+if ! make -s "$COMPILER_TARGET" "$TEST_HELPER_TARGET" > /dev/null 2>&1; then
     echo -e "${RED}コンパイラのビルドに失敗しました${NC}"
     exit 1
 fi
