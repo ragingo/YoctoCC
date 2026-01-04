@@ -1,12 +1,16 @@
-CXX := g++
-CC := gcc
+# コンパイラ設定（環境変数で上書き可能）
+CXX ?= g++
+CC ?= gcc
 MODE ?= debug
 PROFILE ?= 0
 
+# C++23 フラグ（Apple Clang は -std=c++2b が必要な場合あり）
+CXX_STD ?= -std=c++23
+
 ifeq ($(MODE), release)
-	CXXFLAGS := -std=c++23 -O3 -DNDEBUG -Wall -Wextra -I./include -c
+	CXXFLAGS := $(CXX_STD) -O3 -DNDEBUG -Wall -Wextra -I./include -c
 else
-	CXXFLAGS := -std=c++23 -g -O0 -Wall -Wextra -I./include -c
+	CXXFLAGS := $(CXX_STD) -g -O0 -Wall -Wextra -I./include -c
 endif
 
 ifeq ($(PROFILE), 1)
@@ -116,4 +120,11 @@ help:
 	@echo "Build mode (default: debug):"
 	@echo "  make MODE=debug       - Debug build (-g -O0)"
 	@echo "  make MODE=release     - Release build (-O3 -DNDEBUG)"
+	@echo ""
+	@echo "Compiler selection (default: g++):"
+	@echo "  make CXX=clang++      - Use Clang"
+	@echo "  make CXX=g++          - Use GCC"
+	@echo ""
+	@echo "C++ standard (default: -std=c++23):"
+	@echo "  make CXX_STD=-std=c++2b  - For older Clang versions"
 
