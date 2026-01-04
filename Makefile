@@ -84,7 +84,11 @@ run: $(COMPILER)
 compile: $(ASM)
 
 test:
-	@echo "Running test suite..."
+	@echo "Running parallel test suite..."
+	@bash test/run_tests_parallel.sh
+
+test-serial:
+	@echo "Running serial test suite..."
 	@bash test/run_tests.sh
 
 rebuild: clean all
@@ -98,14 +102,15 @@ profile: clean
 
 help:
 	@echo "Available targets:"
-	@echo "  all       - Build the compiler (default)"
-	@echo "  compile   - Compile input file to assembly (INPUT=filename.txt)"
-	@echo "  run       - Run the compiler"
-	@echo "  test      - Run test suite"
-	@echo "  profile   - Profile compiler with gprof"
-	@echo "  rebuild   - Clean and rebuild"
-	@echo "  clean     - Remove build directory"
-	@echo "  help      - Show this help message"
+	@echo "  all         - Build the compiler (default)"
+	@echo "  compile     - Compile input file to assembly (INPUT=filename.txt)"
+	@echo "  run         - Run the compiler"
+	@echo "  test        - Run test suite (parallel, default)"
+	@echo "  test-serial - Run test suite (sequential)"
+	@echo "  profile     - Profile compiler with gprof"
+	@echo "  rebuild     - Clean and rebuild"
+	@echo "  clean       - Remove build directory"
+	@echo "  help        - Show this help message"
 	@echo ""
 	@echo "Build mode (default: debug):"
 	@echo "  make MODE=debug       - Debug build (-g -O0)"

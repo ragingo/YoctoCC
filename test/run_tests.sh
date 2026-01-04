@@ -17,6 +17,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_DIR="$SCRIPT_DIR"
 CONF_FILE="$TEST_DIR/tests.conf"
+BUILD_DIR="$PROJECT_ROOT/build"
+
+# コンパイラとテストヘルパーのパス
+COMPILER="$BUILD_DIR/yoctocc"
+TEST_HELPER_O="$BUILD_DIR/test_helper.o"
+ASM_FILE="$BUILD_DIR/program.s"
+OBJ_FILE="$BUILD_DIR/program.o"
+BIN_FILE="$BUILD_DIR/program"
 
 # カウンタ
 TOTAL_TESTS=0
@@ -35,11 +43,10 @@ if [ ! -f "$CONF_FILE" ]; then
     exit 1
 fi
 
-# コンパイラのビルド
+# コンパイラのビルド（インクリメンタルビルド）
 echo -e "${YELLOW}コンパイラをビルド中...${NC}"
 cd "$PROJECT_ROOT"
-make -s clean > /dev/null 2>&1
-if ! make -s build/yoctocc > /dev/null 2>&1; then
+if ! make -s "$COMPILER" "$TEST_HELPER_O" > /dev/null 2>&1; then
     echo -e "${RED}コンパイラのビルドに失敗しました${NC}"
     exit 1
 fi
@@ -61,34 +68,37 @@ while IFS= read -r line || [ -n "$line" ]; do
     # テスト実行
     echo -n "Testing #$TOTAL_TESTS: "
 
-    # 一時テストファイルを作成
-    TEST_FILE="$TEST_DIR/tmp_test.txt"
-    echo "$TEST_CODE" > "$TEST_FILE"
-
-    # 古いアセンブリファイルを削除 (依存関係を正しく処理するため)
-    rm -f "$PROJECT_ROOT/build/program.s" "$PROJECT_ROOT/build/program.o" "$PROJECT_ROOT/build/program"
-
-    # コンパイラ実行
+    # コンパイラ実行（直接実行、make を経由しない）
     ERROR_LOG=$(mktemp)
-    if ! make -s INPUT="$TEST_FILE" build/program > "$ERROR_LOG" 2>&1; then
+    if ! echo "$TEST_CODE" | "$COMPILER" /dev/stdin > "$ERROR_LOG" 2>&1; then
         echo -e "${RED}✗ FAILED (compile error): $TEST_CODE${NC}"
         if [ -s "$ERROR_LOG" ]; then
             cat "$ERROR_LOG" | head -n 3 | sed 's/^/  /'
         fi
-        rm -f "$ERROR_LOG" "$TEST_FILE"
+        rm -f "$ERROR_LOG"
         FAILED_TESTS=$((FAILED_TESTS + 1))
         continue
     fi
     rm -f "$ERROR_LOG"
 
+    # アセンブル & リンク（直接実行）
+    if ! gcc -c -o "$OBJ_FILE" "$ASM_FILE" 2>/dev/null; then
+        echo -e "${RED}✗ FAILED (assemble error): $TEST_CODE${NC}"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        continue
+    fi
+
+    if ! gcc -nostdlib -no-pie -o "$BIN_FILE" "$OBJ_FILE" "$TEST_HELPER_O" 2>/dev/null; then
+        echo -e "${RED}✗ FAILED (link error): $TEST_CODE${NC}"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        continue
+    fi
+
     # プログラム実行
     set +e
-    "$PROJECT_ROOT/build/program" > /dev/null 2>&1
+    "$BIN_FILE" > /dev/null 2>&1
     ACTUAL_EXIT=$?
     set -e
-
-    # 一時ファイル削除
-    rm -f "$TEST_FILE"
 
     # 結果の比較
     if [ "$ACTUAL_EXIT" -eq "$EXPECTED_EXIT" ]; then
