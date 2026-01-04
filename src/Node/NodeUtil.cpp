@@ -72,7 +72,7 @@ std::shared_ptr<Node> createAddNode(const std::shared_ptr<Token>& token, const s
     }
 
     // pointer + number
-    newRight = createBinaryNode(NodeType::MUL, token, right, createNumberNode(token, 8));
+    newRight = createBinaryNode(NodeType::MUL, token, right, createNumberNode(token, left->type->base->size));
     return createBinaryNode(NodeType::ADD, token, left, newRight);
 }
 
@@ -88,7 +88,7 @@ std::shared_ptr<Node> createSubNode(const std::shared_ptr<Token>& token, const s
 
     // pointer - number
     if (left->type->base && type::isInteger(right->type)) {
-        auto newRight = createBinaryNode(NodeType::MUL, token, right, createNumberNode(token, 8));
+        auto newRight = createBinaryNode(NodeType::MUL, token, right, createNumberNode(token, left->type->base->size));
         type::addType(newRight);
         auto node = createBinaryNode(NodeType::SUB, token, left, newRight);
         node->type = left->type;
@@ -99,7 +99,7 @@ std::shared_ptr<Node> createSubNode(const std::shared_ptr<Token>& token, const s
     if (left->type->base && right->type->base) {
         auto node = createBinaryNode(NodeType::SUB, token, left, right);
         node->type = std::make_shared<Type>(TypeKind::INT);
-        return createBinaryNode(NodeType::DIV, token, node, createNumberNode(token, 8));
+        return createBinaryNode(NodeType::DIV, token, node, createNumberNode(token, left->type->base->size));
     }
 
     Log::error(token->location, "Invalid subtraction involving pointers"sv);

@@ -18,14 +18,19 @@ namespace {
         return false;
     }
 
-    const std::string& getIdentifier(const std::shared_ptr<Token>& token) {
+    inline const std::string& getIdentifier(const std::shared_ptr<Token>& token) {
         assert(token && token->type == TokenType::IDENTIFIER);
         return token->originalValue;
     }
 
+    inline int getNumber(const std::shared_ptr<Token>& token) {
+        assert(token && token->type == TokenType::DIGIT);
+        return token->numberValue;
+    }
+
     const std::shared_ptr<Type> declSpec(std::shared_ptr<Token>& result, const std::shared_ptr<Token>& token) {
         result = token::skipIf(token, "int");
-        return std::make_shared<Type>(TypeKind::INT);
+        return type::intType();
     }
 
     const std::shared_ptr<Type> typeSuffix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type);
@@ -47,27 +52,36 @@ namespace {
         return type;
     }
 
+    const std::shared_ptr<Type> functionParameters(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
+        std::shared_ptr<Type> head;
+        auto current = &head;
+
+        while (!token::is(token, ")")) {
+            if (head) {
+                token = token::skipIf(token, ",");
+            }
+            auto paramType = declSpec(token, token);
+            paramType = declarator(token, token, paramType);
+            *current = paramType;
+            current = &paramType->next;
+        }
+
+        type = type::functionType(type);
+        type->parameters = head;
+        result = token->next;
+
+        return type;
+    }
+
     const std::shared_ptr<Type> typeSuffix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
         if (token::is(token, "(")) {
-            token = token->next;
+            return functionParameters(result, token->next, type);
+        }
 
-            std::shared_ptr<Type> head;
-            auto current = &head;
-            while (!token::is(token, ")")) {
-                if (head) {
-                    token = token::skipIf(token, ",");
-                }
-                auto paramType = declSpec(token, token);
-                paramType = declarator(token, token, paramType);
-                *current = paramType;
-                current = &paramType->next;
-            }
-
-            type = type::functionType(type);
-            type->parameters = head;
-            result = token->next;
-
-            return type;
+        if (token::is(token, "[")) {
+            int size = getNumber(token->next);
+            result = token::skipIf(token->next->next, "]");
+            return type::arrayOf(type, size);
         }
 
         result = token;

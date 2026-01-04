@@ -5,9 +5,9 @@
 #include "Logger.hpp"
 #include "Node/Node.hpp"
 #include "Token.hpp"
+#include "Type.hpp"
 
 namespace {
-    constexpr size_t POINTER_SIZE = 8;
     constexpr size_t STACK_ALIGNMENT = 16;
 }
 
@@ -25,6 +25,19 @@ std::vector<std::string> Generator::run(const std::shared_ptr<Function>& func) {
     return lines;
 }
 
+void Generator::load(const std::shared_ptr<Type>& type) {
+    assert(type);
+    if (type->kind == TypeKind::ARRAY) {
+        // 何もしない
+        return;
+    }
+    lines.emplace_back(mov(Register::RAX, Address<Register>{Register::RAX}));
+}
+
+void Generator::store() {
+    lines.emplace_back(pop(Register::RDI));
+    lines.emplace_back(mov(Address<Register>{Register::RDI}, Register::RAX));
+}
 
 void Generator::assignLocalVariableOffsets(const std::shared_ptr<Function>& func) {
     assert(func);
@@ -32,7 +45,7 @@ void Generator::assignLocalVariableOffsets(const std::shared_ptr<Function>& func
     for (auto fn = func; fn; fn = fn->next) {
         int offset = 0;
         for (auto obj = fn->locals; obj; obj = obj->next) {
-            offset += POINTER_SIZE;
+            offset += obj->type->size;
             obj->offset = -offset;
         }
         fn->stackSize = alignTo(offset, STACK_ALIGNMENT);
@@ -135,21 +148,20 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
             return;
         case NodeType::VARIABLE:
             generateAddress(node);
-            lines.emplace_back(mov(RAX, Address<Register>{RAX}));
+            load(node->type);
             return;
         case NodeType::ADDRESS:
             generateAddress(node->left);
             return;
         case NodeType::DEREFERENCE:
             generateExpression(node->left);
-            lines.emplace_back(mov(RAX, Address<Register>{RAX}));
+            load(node->type);
             return;
         case NodeType::ASSIGN:
             generateAddress(node->left);
             lines.emplace_back(push(RAX));
             generateExpression(node->right);
-            lines.emplace_back(pop(RDI));
-            lines.emplace_back(mov(Address<Register>{RDI}, RAX));
+            store();
             return;
         case NodeType::FUNCTION_CALL:
             {

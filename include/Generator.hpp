@@ -9,6 +9,7 @@ namespace yoctocc {
 
 struct Function;
 struct Node;
+struct Type;
 
 class Generator final {
 public:
@@ -18,6 +19,8 @@ private:
     static constexpr size_t alignTo(size_t n, size_t align) {
         return (n + align - 1) / align * align;
     }
+    void load(const std::shared_ptr<Type>& type);
+    void store();
     void assignLocalVariableOffsets(const std::shared_ptr<Function>& func);
     void generateAddress(const std::shared_ptr<Node>& node);
     void generateStatement(const std::shared_ptr<Node>& node);

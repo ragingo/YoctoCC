@@ -7,7 +7,7 @@
 namespace yoctocc::type {
 
     std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base) {
-        auto type = std::make_shared<Type>(TypeKind::POINTER);
+        auto type = std::make_shared<Type>(TypeKind::POINTER, 8);
         type->base = base;
         return type;
     }
@@ -15,6 +15,13 @@ namespace yoctocc::type {
     std::shared_ptr<Type> functionType(const std::shared_ptr<Type>& returnType) {
         auto type = std::make_shared<Type>(TypeKind::FUNCTION);
         type->returnType = returnType;
+        return type;
+    }
+
+    std::shared_ptr<Type> arrayOf(const std::shared_ptr<Type>& base, int size) {
+        auto type = std::make_shared<Type>(TypeKind::ARRAY, base->size * size);
+        type->base = base;
+        type->arraySize = size;
         return type;
     }
 
@@ -45,7 +52,14 @@ namespace yoctocc::type {
             case NodeType::MUL:
             case NodeType::DIV:
             case NodeType::NEGATE:
+                node->type = node->left->type;
+                return;
             case NodeType::ASSIGN:
+                if (node->left->type->kind == TypeKind::ARRAY) {
+                    using namespace std::literals;
+                    Log::error(node->token->location, "not an lvalue"sv);
+                    return;
+                }
                 node->type = node->left->type;
                 return;
             case NodeType::EQUAL:
@@ -62,10 +76,14 @@ namespace yoctocc::type {
                 node->type = node->variable->type;
                 return;
             case NodeType::ADDRESS:
-                node->type = pointerTo(node->left->type);
+                if (node->left->type->kind == TypeKind::ARRAY) {
+                    node->type = pointerTo(node->left->type->base);
+                } else {
+                    node->type = pointerTo(node->left->type);
+                }
                 return;
             case NodeType::DEREFERENCE:
-                if (node->left->type->kind != TypeKind::POINTER) {
+                if (!node->left->type->base) {
                     using namespace std::literals;
                     Log::error(node->token->location, "Invalid pointer dereference"sv);
                     return;
