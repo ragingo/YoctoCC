@@ -83,7 +83,7 @@ namespace yoctocc::type {
                 }
                 return;
             case NodeType::DEREFERENCE:
-                if (!node->left->type->base) {
+                if (!node->left->type || !node->left->type->base) {
                     using namespace std::literals;
                     Log::error(node->token->location, "Invalid pointer dereference"sv);
                     return;

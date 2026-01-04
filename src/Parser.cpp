@@ -343,16 +343,18 @@ std::shared_ptr<Node> Parser::parseUnary(std::shared_ptr<Token>& result, std::sh
 }
 
 std::shared_ptr<Node> Parser::parsePostfix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
-    auto node = parsePrimary(token, token);
+    std::shared_ptr<Token> rest = token;
+    auto node = parsePrimary(rest, token);
 
-    while (token::is(token, "[")) {
-        auto start = token;
-        auto index = parseExpression(token, token->next);
+    while (token::is(rest, "[")) {
+        auto start = rest;
+        std::shared_ptr<Token> nextToken = rest->next;
+        auto index = parseExpression(rest, nextToken);
         node = createAddNode(start, node, index);
         node = createUnaryNode(NodeType::DEREFERENCE, start, node);
-        token = token::skipIf(token, "]");
+        rest = token::skipIf(rest, "]");
     }
-    result = token;
+    result = rest;
     return node;
 }
 
@@ -399,6 +401,12 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
         auto node = parseExpression(token, token->next);
         result = token::skipIf(token, ")");
         return node;
+    }
+
+    if (token::is(token, "sizeof")) {
+        auto node = parseUnary(result, token->next);
+        type::addType(node);
+        return createNumberNode(token, node->type->size);
     }
 
     if (token->type == TokenType::IDENTIFIER) {

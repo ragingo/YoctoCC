@@ -11,6 +11,7 @@ namespace yoctocc {
         FOR,
         WHILE,
         INT,
+        SIZEOF
     };
 
     static const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
@@ -20,6 +21,7 @@ namespace yoctocc {
         { "for", Keyword::FOR },
         { "while", Keyword::WHILE },
         { "int", Keyword::INT },
+        { "sizeof", Keyword::SIZEOF },
     };
 
 } // namespace yoctocc
