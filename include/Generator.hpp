@@ -27,6 +27,15 @@ private:
     void generateExpression(const std::shared_ptr<Node>& node);
     void generateFunction(const std::shared_ptr<Function>& func);
 
+    inline void addCode(std::string&& line) {
+        lines.emplace_back(std::move(line));
+    }
+
+    template<typename... Args>
+    void addCode(Args&&... args) {
+        (lines.emplace_back(std::forward<Args>(args)), ...);
+    }
+
 private:
     std::vector<std::string> lines{};
     std::shared_ptr<Function> currentFunction;

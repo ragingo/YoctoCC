@@ -13,6 +13,8 @@ namespace {
 
 namespace yoctocc {
 
+using enum Register;
+
 std::vector<std::string> Generator::run(const std::shared_ptr<Function>& func) {
     assert(func);
 
@@ -31,12 +33,14 @@ void Generator::load(const std::shared_ptr<Type>& type) {
         // 何もしない
         return;
     }
-    lines.emplace_back(mov(Register::RAX, Address<Register>{Register::RAX}));
+    addCode(mov(RAX, Address{RAX}));
 }
 
 void Generator::store() {
-    lines.emplace_back(pop(Register::RDI));
-    lines.emplace_back(mov(Address<Register>{Register::RDI}, Register::RAX));
+    addCode(
+        pop(RDI),
+        mov(Address{RDI}, RAX)
+    );
 }
 
 void Generator::assignLocalVariableOffsets(const std::shared_ptr<Function>& func) {
@@ -56,7 +60,7 @@ void Generator::generateAddress(const std::shared_ptr<Node>& node) {
     assert(node);
     if (node->nodeType == NodeType::VARIABLE) {
         int offset = node->variable->offset;
-        lines.emplace_back(lea(Register::RAX, Address<Register>{Register::RBP, offset}));
+        addCode(lea(RAX, Address{RBP, offset}));
         return;
     }
     if (node->nodeType == NodeType::DEREFERENCE) {
@@ -76,17 +80,17 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
 
         generateExpression(node->condition);
         // if
-        lines.emplace_back(cmp(Register::RAX, 0));
-        lines.emplace_back(je(elseLabel.ref()));
+        addCode(cmp(RAX, 0));
+        addCode(je(elseLabel.ref()));
         // then
         generateStatement(node->then);
-        lines.emplace_back(jmp(endLabel.ref()));
+        addCode(jmp(endLabel.ref()));
         // else
-        lines.emplace_back(elseLabel.def());
+        addCode(elseLabel.def());
         if (node->els) {
             generateStatement(node->els);
         }
-        lines.emplace_back(endLabel.def());
+        addCode(endLabel.def());
         return;
     }
     if (node->nodeType == NodeType::FOR) {
@@ -97,18 +101,18 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
         if (node->init) {
             generateStatement(node->init);
         }
-        lines.emplace_back(beginLabel.def());
+        addCode(beginLabel.def());
         if (node->condition) {
             generateExpression(node->condition);
-            lines.emplace_back(cmp(Register::RAX, 0));
-            lines.emplace_back(je(endLabel.ref()));
+            addCode(cmp(RAX, 0));
+            addCode(je(endLabel.ref()));
         }
         generateStatement(node->then);
         if (node->inc) {
             generateExpression(node->inc);
         }
-        lines.emplace_back(jmp(beginLabel.ref()));
-        lines.emplace_back(endLabel.def());
+        addCode(jmp(beginLabel.ref()));
+        addCode(endLabel.def());
         return;
     }
     if (node->nodeType == NodeType::BLOCK) {
@@ -121,7 +125,7 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
     }
     if (node->nodeType == NodeType::RETURN) {
         generateExpression(node->left);
-        lines.emplace_back(jmp(std::format(".L.return.{}", currentFunction->name)));
+        addCode(jmp(std::format(".L.return.{}", currentFunction->name)));
         return;
     }
     if (node->nodeType == NodeType::EXPRESSION_STATEMENT) {
@@ -134,17 +138,15 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
 }
 
 void Generator::generateExpression(const std::shared_ptr<Node>& node) {
-    using enum Register;
-
     assert(node);
 
     switch (node->nodeType) {
         case NodeType::NUMBER:
-            lines.emplace_back(mov(RAX, node->value));
+            addCode(mov(RAX, node->value));
             return;
         case NodeType::NEGATE:
             generateExpression(node->left);
-            lines.emplace_back(neg(RAX));
+            addCode(neg(RAX));
             return;
         case NodeType::VARIABLE:
             generateAddress(node);
@@ -159,7 +161,7 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
             return;
         case NodeType::ASSIGN:
             generateAddress(node->left);
-            lines.emplace_back(push(RAX));
+            addCode(push(RAX));
             generateExpression(node->right);
             store();
             return;
@@ -168,15 +170,15 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
                 int argCount = 0;
                 for (auto arg = node->arguments; arg; arg = arg->next) {
                     generateExpression(arg);
-                    lines.emplace_back(push(RAX));
+                    addCode(push(RAX));
                     argCount++;
                 }
                 assert(argCount <= static_cast<int>(ARG_REGISTERS.size()));
                 for (int i = argCount - 1; i >= 0; i--) {
-                    lines.emplace_back(pop(ARG_REGISTERS[i]));
+                    addCode(pop(ARG_REGISTERS[i]));
                 }
-                lines.emplace_back(mov(RAX, 0));
-                lines.emplace_back(call(node->functionName));
+                addCode(mov(RAX, 0));
+                addCode(call(node->functionName));
             }
             return;
         default:
@@ -184,54 +186,68 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
     }
 
     generateExpression(node->right);
-    lines.emplace_back(push(RAX));
+    addCode(push(RAX));
 
     generateExpression(node->left);
-    lines.emplace_back(pop(RDI));
+    addCode(pop(RDI));
 
     switch (node->nodeType) {
         case NodeType::ADD:
-            lines.emplace_back(add(RAX, RDI));
+            addCode(add(RAX, RDI));
             return;
         case NodeType::SUB:
-            lines.emplace_back(sub(RAX, RDI));
+            addCode(sub(RAX, RDI));
             return;
         case NodeType::MUL:
-            lines.emplace_back(imul(RAX, RDI));
+            addCode(imul(RAX, RDI));
             return;
         case NodeType::DIV:
-            lines.emplace_back(cqo());
-            lines.emplace_back(idiv(RDI));
+            addCode(
+                cqo(),
+                idiv(RDI)
+            );
             return;
         case NodeType::EQUAL:
-            lines.emplace_back(cmp(RAX, RDI));
-            lines.emplace_back(sete(AL));
-            lines.emplace_back(movzx(RAX, AL));
+            addCode(
+                cmp(RAX, RDI),
+                sete(AL),
+                movzx(RAX, AL)
+            );
             return;
         case NodeType::NOT_EQUAL:
-            lines.emplace_back(cmp(RAX, RDI));
-            lines.emplace_back(setne(AL));
-            lines.emplace_back(movzx(RAX, AL));
+            addCode(
+                 cmp(RAX, RDI),
+                 setne(AL),
+                 movzx(RAX, AL)
+            );
             return;
         case NodeType::LESS:
-            lines.emplace_back(cmp(RAX, RDI));
-            lines.emplace_back(setl(AL));
-            lines.emplace_back(movzx(RAX, AL));
+            addCode(
+                cmp(RAX, RDI),
+                setl(AL),
+                movzx(RAX, AL)
+            );
             return;
         case NodeType::LESS_EQUAL:
-            lines.emplace_back(cmp(RAX, RDI));
-            lines.emplace_back(setle(AL));
-            lines.emplace_back(movzx(RAX, AL));
+            addCode(
+                cmp(RAX, RDI),
+                setle(AL),
+                movzx(RAX, AL)
+            );
             return;
         case NodeType::GREATER:
-            lines.emplace_back(cmp(RAX, RDI));
-            lines.emplace_back(setg(AL));
-            lines.emplace_back(movzx(RAX, AL));
+            addCode(
+                cmp(RAX, RDI),
+                setg(AL),
+                movzx(RAX, AL)
+            );
             return;
         case NodeType::GREATER_EQUAL:
-            lines.emplace_back(cmp(RAX, RDI));
-            lines.emplace_back(setge(AL));
-            lines.emplace_back(movzx(RAX, AL));
+            addCode(
+                cmp(RAX, RDI),
+                setge(AL),
+                movzx(RAX, AL)
+            );
             return;
         default:
             break;
@@ -242,31 +258,34 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
 }
 
 void Generator::generateFunction(const std::shared_ptr<Function>& func) {
-    using enum Register;
     assert(func);
     currentFunction = func;
 
-    lines.emplace_back(std::format(".global {}", func->name));
-    lines.emplace_back(std::format("{}:", func->name));
-    // Prologue
-    lines.emplace_back(push(RBP));
-    lines.emplace_back(mov(RBP, RSP));
+    addCode(
+        std::format(".global {}", func->name),
+        std::format("{}:", func->name),
+        // Prologue
+        push(RBP),
+        mov(RBP, RSP)
+    );
     if (func->stackSize > 0) {
-        lines.emplace_back(sub(RSP, func->stackSize));
+        addCode(sub(RSP, func->stackSize));
     }
 
     int i = 0;
     for (auto param = func->parameters; param; param = param->next) {
-        lines.emplace_back(mov(Address<Register>{RBP, param->offset}, ARG_REGISTERS[i++]));
+        addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS[i++]));
     }
 
     generateStatement(func->body);
 
     // Epilogue
-    lines.emplace_back(std::format(".L.return.{}:", func->name));
-    lines.emplace_back(mov(RSP, RBP));
-    lines.emplace_back(pop(RBP));
-    lines.emplace_back(ret());
+    addCode(
+        std::format(".L.return.{}:", func->name),
+        mov(RSP, RBP),
+        pop(RBP),
+        ret()
+    );
 }
 
 } // namespace yoctocc

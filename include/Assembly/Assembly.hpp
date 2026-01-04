@@ -18,5 +18,4 @@ constexpr std::string USER_ENTRY_POINT = "main";
 #include "SystemCall.hpp"
 
 #include "Instructions/Instructions.hpp"
-#include "Instructions/InstructionsUtil.hpp"
 #include "AssemblyWriter.hpp"
