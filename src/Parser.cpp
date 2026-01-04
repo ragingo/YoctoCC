@@ -339,7 +339,21 @@ std::shared_ptr<Node> Parser::parseUnary(std::shared_ptr<Token>& result, std::sh
     if (token::is(token, "*")) {
         return createUnaryNode(NodeType::DEREFERENCE, token, parseUnary(result, token->next));
     }
-    return parsePrimary(result, token);
+    return parsePostfix(result, token);
+}
+
+std::shared_ptr<Node> Parser::parsePostfix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
+    auto node = parsePrimary(token, token);
+
+    while (token::is(token, "[")) {
+        auto start = token;
+        auto index = parseExpression(token, token->next);
+        node = createAddNode(start, node, index);
+        node = createUnaryNode(NodeType::DEREFERENCE, start, node);
+        token = token::skipIf(token, "]");
+    }
+    result = token;
+    return node;
 }
 
 std::shared_ptr<Node> Parser::parseFunctionCall(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {

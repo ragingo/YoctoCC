@@ -72,8 +72,8 @@ std::shared_ptr<Node> createAddNode(const std::shared_ptr<Token>& token, const s
     }
 
     // pointer + number
-    newRight = createBinaryNode(NodeType::MUL, token, right, createNumberNode(token, left->type->base->size));
-    return createBinaryNode(NodeType::ADD, token, left, newRight);
+    newRight = createBinaryNode(NodeType::MUL, token, newRight, createNumberNode(token, newLeft->type->base->size));
+    return createBinaryNode(NodeType::ADD, token, newLeft, newRight);
 }
 
 std::shared_ptr<Node> createSubNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& left, const std::shared_ptr<Node>& right) {

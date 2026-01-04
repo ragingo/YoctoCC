@@ -27,6 +27,7 @@ private:
     std::shared_ptr<Node> parseAdditive(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseMultiply(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseUnary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
+    std::shared_ptr<Node> parsePostfix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseFunctionCall(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Function> parseFunction(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
