@@ -1,7 +1,8 @@
 #pragma once
-#include "Assembly/Register.hpp"
 #include <format>
 #include <string>
+#include "Assembly/Register.hpp"
+#include "String/String.hpp"
 
 namespace yoctocc {
 
@@ -10,16 +11,32 @@ struct Address {
     T base;
     int offset;
 
-    Address(T base, int offset = 0) : base(base), offset(offset) {}
+    constexpr Address(T base, int offset = 0) : base(base), offset(offset) {}
 
-    Address operator+(int value) const {
+    constexpr Address operator+(int value) const {
         return Address{base, offset + value};
     }
 
-    Address operator-(int value) const {
+    constexpr Address operator-(int value) const {
         return Address{base, offset - value};
     }
 };
+
+inline constexpr std::string to_string(Address<Register>&& addr) {
+    if (addr.offset == 0) {
+        return "[" + to_string(addr.base) + "]";
+    } else if (addr.offset > 0) {
+        return "[" + to_string(addr.base) + " + " + to_string(addr.offset) + "]";
+    } else {
+        return "[" + to_string(addr.base) + " - " + to_string(-addr.offset) + "]";
+    }
+}
+
+namespace {
+using enum Register;
+static_assert(to_string(Address{RAX, 1}) == "[rax + 1]");
+static_assert(to_string(Address{R8, -2}) == "[r8 - 2]");
+}
 
 } // namespace yoctocc
 

@@ -14,7 +14,7 @@ void AssemblyWriter::section_text_symbol(LinkerDirective directive, const std::s
     auto it = _sections.find(Section::TEXT);
     assert(it != _sections.end());
     if (it != _sections.end()) {
-        it->second.emplace_back(std::format("    {} {}\n", directive, symbol));
+        it->second.emplace_back(std::format("    {} {}\n", to_string(directive), symbol));
     }
 }
 
@@ -34,7 +34,7 @@ void AssemblyWriter::compile() noexcept {
     final_code.emplace_back(".intel_syntax noprefix\n");
 
     for (const auto& [section, lines] : _sections) {
-        final_code.emplace_back(std::format(".{}\n", section));
+        final_code.emplace_back(std::format(".{}\n", to_string(section)));
         for (const auto& line : lines) {
             final_code.emplace_back(line);
         }

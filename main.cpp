@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     startupCode.emplace_back(".L.return:");
     startupCode.emplace_back(mov(RDI, RAX));
     startupCode.emplace_back(mov(RAX, std::to_underlying(EXIT)));
-    startupCode.emplace_back(syscall());
+    startupCode.emplace_back(syscall_());
     writer.func(SYSTEM_ENTRY_POINT, startupCode);
 
     writer.compile();

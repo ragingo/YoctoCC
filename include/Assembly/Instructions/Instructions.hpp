@@ -1,138 +1,103 @@
 #pragma once
+#include <concepts>
 #include <format>
 #include <string>
+#include <utility>
 #include <vector>
 #include "Assembly/Assembly.hpp"
 
 namespace yoctocc {
 
-    template <typename T>
-    concept DestinationOperandType =
-        std::is_same_v<T, std::string> ||
-        std::is_same_v<T, std::string_view> ||
-        std::is_same_v<T, Register> ||
-        std::is_same_v<T, Address<Register>>;
+    namespace {
+        using enum OpCode;
+        using enum Register;
+    }
 
     template <typename T>
-    concept SourceOperandType =
-        std::is_enum_v<T> && std::is_integral_v<std::underlying_type_t<T>> ||
-        std::is_integral_v<T> ||
-        std::is_same_v<T, std::string> ||
-        std::is_same_v<T, std::string_view> ||
-        std::is_same_v<T, Register> ||
-        std::is_same_v<T, Address<Register>>;
+    concept OperandType =
+        (std::is_enum_v<std::remove_cvref_t<T>> && std::is_integral_v<std::underlying_type_t<std::remove_cvref_t<T>>>) ||
+        std::is_integral_v<std::remove_cvref_t<T>> ||
+        std::is_same_v<std::remove_cvref_t<T>, std::string> ||
+        std::is_same_v<std::remove_cvref_t<T>, std::string_view> ||
+        std::is_convertible_v<T, const char*> ||
+        std::is_same_v<std::remove_cvref_t<T>, Register> ||
+        std::is_same_v<std::remove_cvref_t<T>, Address<Register>>;
 
-    template <DestinationOperandType D, SourceOperandType S>
-    inline constexpr std::string mov(const D& dest, const S& src) {
-        return std::format("{} {}, {}", OpCode::MOV, dest, src);
+    template<OperandType T>
+    inline constexpr std::string operand_to_string(T&& operand) {
+        using U = std::remove_cvref_t<T>;
+        if constexpr (std::is_same_v<U, Register>) {
+            return to_string(operand);
+        } else if constexpr (std::is_same_v<U, Address<Register>>) {
+            return to_string(std::move(operand));
+        } else if constexpr (std::is_integral_v<U>) {
+            return to_string(operand);
+        } else if constexpr (std::is_enum_v<U>) {
+            return to_string(std::to_underlying(operand));
+        } else if constexpr (std::is_same_v<U, std::string>) {
+            return operand;
+        } else if constexpr (std::is_same_v<U, std::string_view>) {
+            return std::string(operand);
+        } else if constexpr (std::is_convertible_v<T, const char*>) {
+            return std::string(operand);
+        } else {
+            static_assert(false, "Unsupported operand type");
+            return "";
+        }
     }
 
-    template <DestinationOperandType D, SourceOperandType S>
-    inline constexpr std::string movzx(const D& dest, const S& src) {
-        return std::format("{} {}, {}", OpCode::MOVZX, dest, src);
+    template <typename... Operands>
+    inline constexpr std::string instruction(OpCode opCode, Operands&&... operands) {
+        std::vector<std::string> operandStrings = {
+            operand_to_string(std::forward<Operands>(operands))...
+        };
+        std::string result = to_string(opCode) + " ";;
+        for (size_t i = 0; i < operandStrings.size(); ++i) {
+            result += operandStrings[i];
+            if (i + 1 < operandStrings.size()) {
+                result += ", ";
+            }
+        }
+        return result;
     }
+    static_assert(instruction(MOV, RAX, 42) == "mov rax, 42");
 
-    template <DestinationOperandType D, SourceOperandType S>
-    inline constexpr std::string lea(const D& dest, const S& src) {
-        return std::format("{} {}, {}", OpCode::LEA, dest, src);
-    }
+    template <OpCode Op>
+    struct Instruction {
+        constexpr std::string operator()(OperandType auto&&... operands) const {
+            return instruction(Op, std::forward<decltype(operands)>(operands)...);
+        }
+    };
 
-    template <DestinationOperandType D, SourceOperandType S>
-    inline constexpr std::string add(const D& dest, const S& src) {
-        return std::format("{} {}, {}", OpCode::ADD, dest, src);
-    }
+    inline constexpr Instruction<MOV> mov;
+    inline constexpr Instruction<MOVZX> movzx;
+    inline constexpr Instruction<LEA> lea;
+    inline constexpr Instruction<ADD> add;
+    inline constexpr Instruction<SUB> sub;
+    inline constexpr Instruction<INC> inc;
+    inline constexpr Instruction<DEC> dec;
+    inline constexpr Instruction<IMUL> imul;
+    inline constexpr Instruction<MUL> mul;
+    inline constexpr Instruction<IDIV> idiv;
+    inline constexpr Instruction<CQO> cqo;
+    inline constexpr Instruction<NEG> neg;
+    inline constexpr Instruction<CMP> cmp;
+    inline constexpr Instruction<SETE> sete;
+    inline constexpr Instruction<SETNE> setne;
+    inline constexpr Instruction<SETL> setl;
+    inline constexpr Instruction<SETLE> setle;
+    inline constexpr Instruction<SETG> setg;
+    inline constexpr Instruction<SETGE> setge;
+    inline constexpr Instruction<SYSCALL> syscall_;
+    inline constexpr Instruction<PUSH> push;
+    inline constexpr Instruction<POP> pop;
+    inline constexpr Instruction<RET> ret;
+    inline constexpr Instruction<JMP> jmp;
+    inline constexpr Instruction<JE> je;
+    inline constexpr Instruction<CALL> call;
 
-    template <DestinationOperandType D>
-    inline constexpr std::string inc(const D& dest) {
-        return std::format("{} {}", OpCode::INC, dest);
-    }
-
-    template <DestinationOperandType D, SourceOperandType S>
-    inline constexpr std::string sub(const D& dest, const S& src) {
-        return std::format("{} {}, {}", OpCode::SUB, dest, src);
-    }
-
-    template <DestinationOperandType D>
-    inline constexpr std::string dec(const D& dest) {
-        return std::format("{} {}", OpCode::DEC, dest);
-    }
-
-    template <SourceOperandType T>
-    inline constexpr std::string imul(Register dest, const T& src) {
-        return std::format("{} {}, {}", OpCode::IMUL, dest, src);
-    }
-
-    inline constexpr std::string mul(Register src) {
-        return std::format("{} {}", OpCode::MUL, src);
-    }
-
-    inline constexpr std::string idiv(Register src) {
-        return std::format("{} {}", OpCode::IDIV, src);
-    }
-
-    inline constexpr std::string cqo() {
-        return std::format("{}", OpCode::CQO);
-    }
-
-    inline constexpr std::string neg(Register dest) {
-        return std::format("{} {}", OpCode::NEG, dest);
-    }
-
-    template <SourceOperandType T>
-    inline constexpr std::string cmp(Register lhs, const T& rhs) {
-        return std::format("{} {}, {}", OpCode::CMP, lhs, rhs);
-    }
-
-    inline constexpr std::string sete(Register dest) {
-        return std::format("{} {}", OpCode::SETE, dest);
-    }
-
-    inline constexpr std::string setne(Register dest) {
-        return std::format("{} {}", OpCode::SETNE, dest);
-    }
-
-    inline constexpr std::string setl(Register dest) {
-        return std::format("{} {}", OpCode::SETL, dest);
-    }
-
-    inline constexpr std::string setle(Register dest) {
-        return std::format("{} {}", OpCode::SETLE, dest);
-    }
-
-    inline constexpr std::string setg(Register dest) {
-        return std::format("{} {}", OpCode::SETG, dest);
-    }
-
-    inline constexpr std::string setge(Register dest) {
-        return std::format("{} {}", OpCode::SETGE, dest);
-    }
-
-    inline constexpr std::string syscall() {
-        return std::format("{}", OpCode::SYSCALL);
-    }
-
-    inline constexpr std::string push(Register src) {
-        return std::format("{} {}", OpCode::PUSH, src);
-    }
-
-    inline constexpr std::string pop(Register dest) {
-        return std::format("{} {}", OpCode::POP, dest);
-    }
-
-    inline constexpr std::string ret() {
-        return std::format("{}", OpCode::RET);
-    }
-
-    inline constexpr std::string jmp(const std::string& label) {
-        return std::format("{} {}", OpCode::JMP, label);
-    }
-
-    inline constexpr std::string je(const std::string& label) {
-        return std::format("{} {}", OpCode::JE, label);
-    }
-
-    inline constexpr std::string call(const std::string& label) {
-        return std::format("{} {}", OpCode::CALL, label);
-    }
+    static_assert(mov(RAX, 42) == "mov rax, 42");
+    static_assert(add(Address{RAX}, 42) == "add [rax], 42");
+    static_assert(sub(Address{RAX}, R8) == "sub [rax], r8");
 
 } // namespace yoctocc
