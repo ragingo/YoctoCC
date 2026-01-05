@@ -11,6 +11,7 @@ enum class TypeKind {
     POINTER,
     FUNCTION,
     ARRAY,
+    UNKNOWN,
 };
 
 struct Type {

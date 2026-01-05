@@ -12,9 +12,9 @@ enum class Section {
 constexpr std::string to_string(Section sec) {
     using enum Section;
     switch (sec) {
-        case TEXT: return "text";
-        case DATA: return "data";
-        case BSS:  return "bss";
+        case TEXT: return ".text";
+        case DATA: return ".data";
+        case BSS:  return ".bss";
         default: return "???";
     }
 }

@@ -13,7 +13,7 @@ public:
     std::shared_ptr<Object> parse(std::shared_ptr<Token>& token);
 
 private:
-    std::shared_ptr<Object> findLocalVariable(std::shared_ptr<Token>& token);
+    std::shared_ptr<Object> findVariable(std::shared_ptr<Token>& token);
     std::shared_ptr<Object> createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type);
     std::shared_ptr<Object> createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type);
     std::shared_ptr<Node> declaration(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
@@ -30,6 +30,7 @@ private:
     std::shared_ptr<Node> parsePostfix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseFunctionCall(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Token> parseFunction(std::shared_ptr<Token>& result, std::shared_ptr<Type>& baseType);
+    std::shared_ptr<Token> parseGlobalVariable(std::shared_ptr<Token>& token, std::shared_ptr<Type>& baseType);
     std::shared_ptr<Node> parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     void applyParamLVars(const std::shared_ptr<Type>& parameter);
 private:

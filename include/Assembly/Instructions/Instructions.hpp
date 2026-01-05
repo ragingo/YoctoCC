@@ -21,7 +21,8 @@ namespace yoctocc {
         std::is_same_v<std::remove_cvref_t<T>, std::string_view> ||
         std::is_convertible_v<T, const char*> ||
         std::is_same_v<std::remove_cvref_t<T>, Register> ||
-        std::is_same_v<std::remove_cvref_t<T>, Address<Register>>;
+        std::is_same_v<std::remove_cvref_t<T>, Address<Register>> ||
+        std::is_same_v<std::remove_cvref_t<T>, RipRelativeAddress>;
 
     template<OperandType T>
     inline constexpr std::string operand_to_string(T&& operand) {
@@ -29,6 +30,8 @@ namespace yoctocc {
         if constexpr (std::is_same_v<U, Register>) {
             return to_string(operand);
         } else if constexpr (std::is_same_v<U, Address<Register>>) {
+            return to_string(std::move(operand));
+        } else if constexpr (std::is_same_v<U, RipRelativeAddress>) {
             return to_string(std::move(operand));
         } else if constexpr (std::is_integral_v<U>) {
             return to_string(operand);

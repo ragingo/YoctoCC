@@ -26,6 +26,9 @@ private:
     void generateStatement(const std::shared_ptr<Node>& node);
     void generateExpression(const std::shared_ptr<Node>& node);
     void generateFunction(const std::shared_ptr<Object>& obj);
+    void emitData(std::shared_ptr<Object> obj);
+    void emitText(std::shared_ptr<Object> obj);
+
     inline void addCode(std::string&& line) {
         lines.emplace_back(std::move(line));
     }

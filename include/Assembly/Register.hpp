@@ -13,6 +13,7 @@ enum class Register {
     RDI,
     RBP,
     RSP,
+    RIP,
     R8,
     R9,
     R10,
@@ -59,6 +60,7 @@ inline constexpr std::string to_string(Register reg) {
         case RDI: return "rdi";
         case RBP: return "rbp";
         case RSP: return "rsp";
+        case RIP: return "rip";
         case R8:  return "r8";
         case R9:  return "r9";
         case R10: return "r10";

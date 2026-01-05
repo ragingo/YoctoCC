@@ -39,10 +39,6 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    AssemblyWriter writer{};
-    writer.section(TEXT);
-    writer.section_text_symbol(GLOBAL, SYSTEM_ENTRY_POINT);
-
     std::println("Tokenizing...");
     auto token = tokenize(ifs);
 
@@ -54,23 +50,26 @@ int main(int argc, char* argv[]) {
     Generator generator{};
     auto lines = generator.run(program);
 
-    std::vector<std::string> startupCode{};
-    startupCode.emplace_back(call(USER_ENTRY_POINT));
-    startupCode.emplace_back(jmp(".L.return"));
+    ofs << ".intel_syntax noprefix\n";
+    ofs << to_string(Section::TEXT) << "\n";
+    ofs << "    " << to_string(LinkerDirective::GLOBAL) << " " << SYSTEM_ENTRY_POINT << "\n";
+    ofs << SYSTEM_ENTRY_POINT << ":\n";
+    ofs << "    " << call(USER_ENTRY_POINT) << "\n";
+    ofs << "    " << jmp(".L.return") << "\n";
+
+    // Generator の出力（.data セクション、.text セクションの関数定義）
     for (const auto& line : lines) {
-        startupCode.emplace_back(line);
+        ofs << line << "\n";
     }
-    startupCode.emplace_back(".L.return:");
-    startupCode.emplace_back(mov(RDI, RAX));
-    startupCode.emplace_back(mov(RAX, std::to_underlying(EXIT)));
-    startupCode.emplace_back(syscall_());
-    writer.func(SYSTEM_ENTRY_POINT, startupCode);
 
-    writer.compile();
+    // _start の終了処理
+    ofs << ".L.return:\n";
+    ofs << "    " << mov(RDI, RAX) << "\n";
+    ofs << "    " << mov(RAX, std::to_underlying(EXIT)) << "\n";
+    ofs << "    " << syscall_() << "\n";
 
-    for (const auto &line : writer.get_code()) {
-        ofs << line;
-    }
+    ofs << ".section .note.GNU-stack,\"\",\%progbits\n";
+
     ofs.close();
 
     return EXIT_SUCCESS;

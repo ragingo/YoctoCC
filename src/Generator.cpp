@@ -13,20 +13,16 @@ namespace {
 
 namespace yoctocc {
 
+using enum DataDirective;
+using enum LinkerDirective;
 using enum Register;
+using enum Section;
 
 std::vector<std::string> Generator::run(const std::shared_ptr<Object>& obj) {
     assert(obj);
-
     assignLocalVariableOffsets(obj);
-
-    for (auto fn = obj; fn; fn = fn->next) {
-        if (!fn->isFunction) {
-            continue;
-        }
-        generateFunction(fn);
-    }
-
+    emitData(obj);
+    emitText(obj);
     return lines;
 }
 
@@ -65,8 +61,11 @@ void Generator::assignLocalVariableOffsets(const std::shared_ptr<Object>& obj) {
 void Generator::generateAddress(const std::shared_ptr<Node>& node) {
     assert(node);
     if (node->nodeType == NodeType::VARIABLE) {
-        int offset = node->variable->offset;
-        addCode(lea(RAX, Address{RBP, offset}));
+        if (node->variable->isLocal) {
+            addCode(lea(RAX, Address{RBP, node->variable->offset}));
+        } else {
+            addCode(lea(RAX, RipRelativeAddress{node->variable->name}));
+        }
         return;
     }
     if (node->nodeType == NodeType::DEREFERENCE) {
@@ -268,7 +267,7 @@ void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
     currentFunction = obj;
 
     addCode(
-        std::format(".global {}", obj->name),
+        std::format("{} {}", to_string(GLOBAL), obj->name),
         std::format("{}:", obj->name),
         // Prologue
         push(RBP),
@@ -291,6 +290,35 @@ void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
         pop(RBP),
         ret()
     );
+}
+
+void Generator::emitData(std::shared_ptr<Object> obj) {
+    assert(obj);
+
+    for (auto var = obj; var; var = var->next) {
+        if (var->isFunction) {
+            continue;
+        }
+        addCode(
+            to_string(DATA),
+            std::format("{} {}", to_string(GLOBAL), var->name),
+            std::format("{}:", var->name),
+            std::format("{} {}", to_string(ZERO), var->type->size)
+        );
+    }
+}
+
+void Generator::emitText(std::shared_ptr<Object> obj) {
+    assert(obj);
+
+    addCode(to_string(TEXT));
+
+    for (auto fn = obj; fn; fn = fn->next) {
+        if (!fn->isFunction) {
+            continue;
+        }
+        generateFunction(fn);
+    }
 }
 
 } // namespace yoctocc

@@ -42,7 +42,8 @@ namespace {
 
         if (token->type == TokenType::IDENTIFIER) {
             auto name = token;
-            type = typeSuffix(result, token->next, type);
+            auto nextToken = token->next;
+            type = typeSuffix(result, nextToken, type);
             type->name = name;
         } else {
             using namespace std::literals;
@@ -75,7 +76,8 @@ namespace {
 
     const std::shared_ptr<Type> typeSuffix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
         if (token::is(token, "(")) {
-            return functionParameters(result, token->next, type);
+            auto nextToken = token->next;
+            return functionParameters(result, nextToken, type);
         }
 
         if (token::is(token, "[")) {
@@ -88,6 +90,16 @@ namespace {
         result = token;
         return type;
     }
+
+    bool isFunction(std::shared_ptr<Token>& token) {
+        if (token::is(token, ";")) {
+            return false;
+        }
+        auto dummy = std::make_shared<Type>(TypeKind::UNKNOWN);
+        auto start = token;
+        auto type = declarator(start, start, dummy);
+        return type->kind == TypeKind::FUNCTION;
+    }
 }
 
 namespace yoctocc {
@@ -97,13 +109,22 @@ std::shared_ptr<Object> Parser::parse(std::shared_ptr<Token>& token) {
     _globals = nullptr;
     while (token->type != TokenType::TERMINATOR) {
         auto baseType = declSpec(token, token);
-        token = parseFunction(token, baseType);
+        if (isFunction(token)) {
+            token = parseFunction(token, baseType);
+            continue;
+        }
+        token = parseGlobalVariable(token, baseType);
     }
     return _globals;
 }
 
-std::shared_ptr<Object> Parser::findLocalVariable(std::shared_ptr<Token>& token) {
+std::shared_ptr<Object> Parser::findVariable(std::shared_ptr<Token>& token) {
     for (auto var = _locals; var; var = var->next) {
+        if (var->name == token->originalValue) {
+            return var;
+        }
+    }
+    for (auto var = _globals; var; var = var->next) {
         if (var->name == token->originalValue) {
             return var;
         }
@@ -403,6 +424,22 @@ std::shared_ptr<Token> Parser::parseFunction(std::shared_ptr<Token>& token, std:
     return token;
 }
 
+std::shared_ptr<Token> Parser::parseGlobalVariable(std::shared_ptr<Token>& token, std::shared_ptr<Type>& baseType) {
+    bool isFirst = true;
+
+    while (!consumeToken(token, token, ";")) {
+        if (!isFirst) {
+            token = token::skipIf(token, ",");
+        }
+        isFirst = false;
+        auto varType = declarator(token, token, baseType);
+        auto varName = getIdentifier(varType->name);
+        createGlobalVariable(varName, varType);
+    }
+
+    return token;
+}
+
 std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     if (token::is(token, "(")) {
         auto node = parseExpression(token, token->next);
@@ -423,7 +460,7 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
         }
 
         // variable
-        auto var = findLocalVariable(token);
+        auto var = findVariable(token);
         if (!var) {
             Log::error(token->location, std::format("Undefined variable: {}", token->originalValue));
             return nullptr;

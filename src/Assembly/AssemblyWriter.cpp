@@ -34,7 +34,7 @@ void AssemblyWriter::compile() noexcept {
     final_code.emplace_back(".intel_syntax noprefix\n");
 
     for (const auto& [section, lines] : _sections) {
-        final_code.emplace_back(std::format(".{}\n", to_string(section)));
+        final_code.emplace_back(std::format("{}\n", to_string(section)));
         for (const auto& line : lines) {
             final_code.emplace_back(line);
         }

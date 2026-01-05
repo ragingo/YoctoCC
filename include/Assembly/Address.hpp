@@ -32,10 +32,22 @@ inline constexpr std::string to_string(Address<Register>&& addr) {
     }
 }
 
+// RIP相対アドレッシング用 (グローバル変数用)
+struct RipRelativeAddress {
+    std::string symbol;
+
+    constexpr explicit RipRelativeAddress(std::string_view sym) : symbol(sym) {}
+};
+
+inline constexpr std::string to_string(RipRelativeAddress&& addr) {
+    return "[rip + " + addr.symbol + "]";
+}
+
 namespace {
 using enum Register;
 static_assert(to_string(Address{RAX, 1}) == "[rax + 1]");
 static_assert(to_string(Address{R8, -2}) == "[r8 - 2]");
+static_assert(to_string(RipRelativeAddress{"symbol"}) == "[rip + symbol]");
 }
 
 } // namespace yoctocc

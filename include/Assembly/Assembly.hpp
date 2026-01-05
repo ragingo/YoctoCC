@@ -10,6 +10,7 @@ constexpr std::string USER_ENTRY_POINT = "main";
 } // namespace yoctocc
 
 #include "Address.hpp"
+#include "DataDirective.hpp"
 #include "Label.hpp"
 #include "LinkerDirective.hpp"
 #include "OpCode.hpp"
