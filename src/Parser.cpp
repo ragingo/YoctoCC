@@ -92,14 +92,14 @@ namespace {
 
 namespace yoctocc {
 
-std::shared_ptr<Function> Parser::parse(std::shared_ptr<Token>& token) {
+std::shared_ptr<Object> Parser::parse(std::shared_ptr<Token>& token) {
     assert(token);
-    std::shared_ptr<Function> head = std::make_shared<Function>();
-    std::shared_ptr<Function> current = head;
+    _globals = nullptr;
     while (token->type != TokenType::TERMINATOR) {
-        current = current->next = parseFunction(token, token);
+        auto baseType = declSpec(token, token);
+        token = parseFunction(token, baseType);
     }
-    return head->next;
+    return _globals;
 }
 
 std::shared_ptr<Object> Parser::findLocalVariable(std::shared_ptr<Token>& token) {
@@ -112,11 +112,16 @@ std::shared_ptr<Object> Parser::findLocalVariable(std::shared_ptr<Token>& token)
 }
 
 std::shared_ptr<Object> Parser::createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type) {
-    auto var = std::make_shared<Object>();
-    var->name = name;
-    var->type = type;
+    auto var = makeVariable(name, type, true);
     var->next = _locals;
     _locals = var;
+    return var;
+}
+
+std::shared_ptr<Object> Parser::createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type) {
+    auto var = makeVariable(name, type, false);
+    var->next = _globals;
+    _globals = var;
     return var;
 }
 
@@ -331,13 +336,16 @@ std::shared_ptr<Node> Parser::parseUnary(std::shared_ptr<Token>& result, std::sh
         return parsePrimary(result, token->next);
     }
     if (token::is(token, "-")) {
-        return createUnaryNode(NodeType::NEGATE, token, parseUnary(result, token->next));
+        auto start = token;
+        return createUnaryNode(NodeType::NEGATE, start, parseUnary(result, token->next));
     }
     if (token::is(token, "&")) {
-        return createUnaryNode(NodeType::ADDRESS, token, parseUnary(result, token->next));
+        auto start = token;
+        return createUnaryNode(NodeType::ADDRESS, start, parseUnary(result, token->next));
     }
     if (token::is(token, "*")) {
-        return createUnaryNode(NodeType::DEREFERENCE, token, parseUnary(result, token->next));
+        auto start = token;
+        return createUnaryNode(NodeType::DEREFERENCE, start, parseUnary(result, token->next));
     }
     return parsePostfix(result, token);
 }
@@ -380,20 +388,19 @@ std::shared_ptr<Node> Parser::parseFunctionCall(std::shared_ptr<Token>& result, 
     return node;
 }
 
-std::shared_ptr<Function> Parser::parseFunction(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
-    auto type = declSpec(token, token);
-    auto funcType = declarator(token, token, type);
-    token = token::skipIf(token, "{");
+std::shared_ptr<Token> Parser::parseFunction(std::shared_ptr<Token>& token, std::shared_ptr<Type>& baseType) {
+    auto funcType = declarator(token, token, baseType);
+    auto name = getIdentifier(funcType->name);
+    auto func = makeFunction(name, funcType);
     _locals.reset();
-
+    token = token::skipIf(token, "{");
     applyParamLVars(funcType->parameters);
-
-    auto func = std::make_shared<Function>();
-    func->name = getIdentifier(funcType->name);
     func->parameters = _locals;
-    func->body = parseCompoundStatement(result, token);
+    func->body = parseCompoundStatement(token, token);
     func->locals = _locals;
-    return func;
+    func->next = _globals;
+    _globals = func;
+    return token;
 }
 
 std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {

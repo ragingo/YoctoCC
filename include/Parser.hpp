@@ -3,7 +3,6 @@
 
 namespace yoctocc {
 
-struct Function;
 struct Node;
 struct Object;
 struct Token;
@@ -11,11 +10,12 @@ struct Type;
 
 class Parser final {
 public:
-    std::shared_ptr<Function> parse(std::shared_ptr<Token>& token);
+    std::shared_ptr<Object> parse(std::shared_ptr<Token>& token);
 
 private:
     std::shared_ptr<Object> findLocalVariable(std::shared_ptr<Token>& token);
     std::shared_ptr<Object> createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type);
+    std::shared_ptr<Object> createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type);
     std::shared_ptr<Node> declaration(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseExpression(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseAssignment(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
@@ -29,11 +29,12 @@ private:
     std::shared_ptr<Node> parseUnary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parsePostfix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     std::shared_ptr<Node> parseFunctionCall(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Function> parseFunction(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
+    std::shared_ptr<Token> parseFunction(std::shared_ptr<Token>& result, std::shared_ptr<Type>& baseType);
     std::shared_ptr<Node> parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
     void applyParamLVars(const std::shared_ptr<Type>& parameter);
 private:
     std::shared_ptr<Object> _locals;
+    std::shared_ptr<Object> _globals;
 };
 
 } // namespace yoctocc

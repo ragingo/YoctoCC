@@ -3,6 +3,8 @@
 
 namespace yoctocc {
 
+    struct Node;
+    struct Object;
     struct Token;
     struct Type;
 
@@ -33,11 +35,43 @@ namespace yoctocc {
     };
 
     struct Object {
+        // local or global variable/function
+        bool isLocal;
+        // global variable or function
+        bool isFunction;
+        // local variable
         int offset;
         std::string name;
         std::shared_ptr<Type> type;
+
+        // function
+        std::shared_ptr<Object> parameters;
+        std::shared_ptr<Node> body;
+        std::shared_ptr<Object> locals;
+        int stackSize;
+
         std::shared_ptr<Object> next;
     };
+
+    inline std::shared_ptr<Object> makeVariable(const std::string& name, const std::shared_ptr<Type>& type, bool isLocal) {
+        auto var = std::make_shared<Object>();
+        var->isLocal = isLocal;
+        var->isFunction = false;
+        var->name = name;
+        var->type = type;
+        var->stackSize = 0;
+        return var;
+    }
+
+    inline std::shared_ptr<Object> makeFunction(const std::string& name, const std::shared_ptr<Type>& returnType) {
+        auto func = std::make_shared<Object>();
+        func->isLocal = false;
+        func->isFunction = true;
+        func->name = name;
+        func->type = returnType;
+        func->stackSize = 0;
+        return func;
+    }
 
     struct Node {
         NodeType nodeType;
@@ -61,15 +95,6 @@ namespace yoctocc {
         std::shared_ptr<Node> arguments;
 
         Node(NodeType type = NodeType::UNKNOWN): nodeType(type), value(0) {}
-    };
-
-    struct Function {
-        std::string name;
-        std::shared_ptr<Object> parameters;
-        std::shared_ptr<Function> next;
-        std::shared_ptr<Node> body;
-        std::shared_ptr<Object> locals;
-        int stackSize;
     };
 
 } // namespace yoctocc

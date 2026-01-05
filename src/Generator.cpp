@@ -15,12 +15,15 @@ namespace yoctocc {
 
 using enum Register;
 
-std::vector<std::string> Generator::run(const std::shared_ptr<Function>& func) {
-    assert(func);
+std::vector<std::string> Generator::run(const std::shared_ptr<Object>& obj) {
+    assert(obj);
 
-    assignLocalVariableOffsets(func);
+    assignLocalVariableOffsets(obj);
 
-    for (auto fn = func; fn; fn = fn->next) {
+    for (auto fn = obj; fn; fn = fn->next) {
+        if (!fn->isFunction) {
+            continue;
+        }
         generateFunction(fn);
     }
 
@@ -43,10 +46,13 @@ void Generator::store() {
     );
 }
 
-void Generator::assignLocalVariableOffsets(const std::shared_ptr<Function>& func) {
-    assert(func);
+void Generator::assignLocalVariableOffsets(const std::shared_ptr<Object>& obj) {
+    assert(obj);
 
-    for (auto fn = func; fn; fn = fn->next) {
+    for (auto fn = obj; fn; fn = fn->next) {
+        if (!fn->isFunction) {
+            continue;
+        }
         int offset = 0;
         for (auto obj = fn->locals; obj; obj = obj->next) {
             offset += obj->type->size;
@@ -257,31 +263,30 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
     Log::error(node->token->location, "Invalid expression"sv);
 }
 
-void Generator::generateFunction(const std::shared_ptr<Function>& func) {
-    assert(func);
-    currentFunction = func;
+void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
+    assert(obj);
+    currentFunction = obj;
 
     addCode(
-        std::format(".global {}", func->name),
-        std::format("{}:", func->name),
+        std::format(".global {}", obj->name),
+        std::format("{}:", obj->name),
         // Prologue
         push(RBP),
         mov(RBP, RSP)
     );
-    if (func->stackSize > 0) {
-        addCode(sub(RSP, func->stackSize));
+    if (obj->stackSize > 0) {
+        addCode(sub(RSP, obj->stackSize));
     }
 
     int i = 0;
-    for (auto param = func->parameters; param; param = param->next) {
+    for (auto param = obj->parameters; param; param = param->next) {
         addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS[i++]));
     }
 
-    generateStatement(func->body);
-
+    generateStatement(obj->body);
     // Epilogue
     addCode(
-        std::format(".L.return.{}:", func->name),
+        std::format(".L.return.{}:", obj->name),
         mov(RSP, RBP),
         pop(RBP),
         ret()
