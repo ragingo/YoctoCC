@@ -12,12 +12,6 @@
 make test
 ```
 
-または、直接スクリプトを実行:
-
-```bash
-./test/run_tests.sh
-```
-
 ### テストの追加
 
 `test/tests.conf` に新しいテストケースを追加します。

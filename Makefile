@@ -92,10 +92,6 @@ test:
 	@echo "Running parallel test suite..."
 	@bash test/run_tests_parallel.sh
 
-test-serial:
-	@echo "Running serial test suite..."
-	@bash test/run_tests.sh
-
 rebuild: clean all
 	@echo "Rebuild complete"
 
@@ -110,8 +106,7 @@ help:
 	@echo "  all         - Build the compiler (default)"
 	@echo "  compile     - Compile input file to assembly (INPUT=filename.txt)"
 	@echo "  run         - Run the compiler"
-	@echo "  test        - Run test suite (parallel, default)"
-	@echo "  test-serial - Run test suite (sequential)"
+	@echo "  test        - Run test suite"
 	@echo "  profile     - Profile compiler with gprof"
 	@echo "  rebuild     - Clean and rebuild"
 	@echo "  clean       - Remove build directory"
