@@ -130,7 +130,7 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
     }
     if (node->nodeType == NodeType::RETURN) {
         generateExpression(node->left);
-        addCode(jmp(std::format(".L.return.{}", currentFunction->name)));
+        addCode(jmp(makeLabel("return", currentFunction->name).ref()));
         return;
     }
     if (node->nodeType == NodeType::EXPRESSION_STATEMENT) {
@@ -267,8 +267,8 @@ void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
     currentFunction = obj;
 
     addCode(
-        std::format("{} {}", to_string(GLOBAL), obj->name),
-        std::format("{}:", obj->name),
+        directive::global(obj->name),
+        makeLabel(obj->name).def(),
         // Prologue
         push(RBP),
         mov(RBP, RSP)
@@ -285,7 +285,7 @@ void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
     generateStatement(obj->body);
     // Epilogue
     addCode(
-        std::format(".L.return.{}:", obj->name),
+        makeLabel("return", obj->name).def(),
         mov(RSP, RBP),
         pop(RBP),
         ret()
@@ -301,9 +301,9 @@ void Generator::emitData(std::shared_ptr<Object> obj) {
         }
         addCode(
             to_string(DATA),
-            std::format("{} {}", to_string(GLOBAL), var->name),
-            std::format("{}:", var->name),
-            std::format("{} {}", to_string(ZERO), var->type->size)
+            directive::global(var->name),
+            makeLabel(var->name).def(),
+            directive::zero(var->type->size)
         );
     }
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "String/String.hpp"
 
 namespace yoctocc {
 
@@ -25,6 +26,17 @@ constexpr std::string to_string(DataDirective directive) {
         case ASCIZ: return ".asciz";
         default:    return "???";
     }
+}
+
+namespace {
+    using enum DataDirective;
+}
+
+namespace directive {
+    static constexpr std::string zero(size_t size) {
+        return to_string(ZERO) + " " + to_string(size);
+    }
+    static_assert(zero(16) == ".zero 16");
 }
 
 } // namespace yoctocc
