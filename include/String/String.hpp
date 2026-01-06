@@ -1,9 +1,14 @@
 #pragma once
 #include <cstdint>
-#include <cmath>
 #include <string>
 
 namespace yoctocc {
+
+// Clang + libc++ では std::abs が constexpr ではないため自作
+template<std::integral T>
+constexpr T abs(T value) noexcept {
+    return value < 0 ? -value : value;
+}
 
 constexpr bool isIdentifierChar(char ch, bool isFirstChar) {
     bool isAlpha = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
@@ -33,7 +38,7 @@ constexpr std::string to_string(T value) {
 
     std::string result;
     bool isNegative = value < 0;
-    auto uvalue = static_cast<std::make_unsigned_t<T>>(std::abs(value));
+    auto uvalue = static_cast<std::make_unsigned_t<T>>(abs(value));
 
     while (uvalue > 0) {
         char digit = itoa(uvalue % 10);
