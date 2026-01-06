@@ -29,6 +29,10 @@ namespace {
     }
 
     const std::shared_ptr<Type> declSpec(std::shared_ptr<Token>& result, const std::shared_ptr<Token>& token) {
+        if (token::is(token, "char")) {
+            result = token->next;
+            return type::charType();
+        }
         result = token::skipIf(token, "int");
         return type::intType();
     }
@@ -253,7 +257,7 @@ std::shared_ptr<Node> Parser::parseCompoundStatement(std::shared_ptr<Token>& res
     auto head = std::make_shared<Node>();
     auto current = head;
     while (token->type != TokenType::TERMINATOR && !token::is(token, "}")) {
-        if (token::is(token, "int")) {
+        if (type::isTypeName(token)) {
             current = current->next = declaration(token, token);
         } else {
             current = current->next = parseStatement(token, token);

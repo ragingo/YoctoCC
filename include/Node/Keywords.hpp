@@ -11,6 +11,7 @@ namespace yoctocc {
         FOR,
         WHILE,
         INT,
+        CHAR,
         SIZEOF
     };
 
@@ -21,6 +22,7 @@ namespace yoctocc {
         { "for", Keyword::FOR },
         { "while", Keyword::WHILE },
         { "int", Keyword::INT },
+        { "char", Keyword::CHAR },
         { "sizeof", Keyword::SIZEOF },
     };
 

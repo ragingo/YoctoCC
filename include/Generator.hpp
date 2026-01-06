@@ -20,7 +20,7 @@ private:
         return (n + align - 1) / align * align;
     }
     void load(const std::shared_ptr<Type>& type);
-    void store();
+    void store(const std::shared_ptr<Type>& type);
     void assignLocalVariableOffsets(const std::shared_ptr<Object>& obj);
     void generateAddress(const std::shared_ptr<Node>& node);
     void generateStatement(const std::shared_ptr<Node>& node);

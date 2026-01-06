@@ -32,14 +32,20 @@ void Generator::load(const std::shared_ptr<Type>& type) {
         // 何もしない
         return;
     }
-    addCode(mov(RAX, Address{RAX}));
+    if (type->size == 1) {
+        addCode(movsbq(RAX, Address{RAX}));
+    } else {
+        addCode(mov(RAX, Address{RAX}));
+    }
 }
 
-void Generator::store() {
-    addCode(
-        pop(RDI),
-        mov(Address{RDI}, RAX)
-    );
+void Generator::store(const std::shared_ptr<Type>& type) {
+    addCode(pop(RDI));
+    if (type->size == 1) {
+        addCode(mov(Address{RDI}, AL));
+    } else {
+        addCode(mov(Address{RDI}, RAX));
+    }
 }
 
 void Generator::assignLocalVariableOffsets(const std::shared_ptr<Object>& obj) {
@@ -168,7 +174,7 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
             generateAddress(node->left);
             addCode(push(RAX));
             generateExpression(node->right);
-            store();
+            store(node->type);
             return;
         case NodeType::FUNCTION_CALL:
             {
@@ -178,9 +184,9 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
                     addCode(push(RAX));
                     argCount++;
                 }
-                assert(argCount <= static_cast<int>(ARG_REGISTERS.size()));
+                assert(argCount <= static_cast<int>(ARG_REGISTERS64.size()));
                 for (int i = argCount - 1; i >= 0; i--) {
-                    addCode(pop(ARG_REGISTERS[i]));
+                    addCode(pop(ARG_REGISTERS64[i]));
                 }
                 addCode(mov(RAX, 0));
                 addCode(call(node->functionName));
@@ -279,7 +285,11 @@ void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
 
     int i = 0;
     for (auto param = obj->parameters; param; param = param->next) {
-        addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS[i++]));
+        if (param->type->size == 1) {
+            addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS8[i++]));
+        } else {
+            addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS64[i++]));
+        }
     }
 
     generateStatement(obj->body);
