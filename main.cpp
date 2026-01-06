@@ -1,10 +1,7 @@
 #include <fstream>
-#include <iostream>
 #include <memory>
 #include <print>
 #include <string>
-#include <utility>
-#include <vector>
 #include "Assembly/Assembly.hpp"
 #include "Generator.hpp"
 #include "Logger.hpp"
@@ -14,11 +11,6 @@
 #include "Parser.hpp"
 
 using namespace yoctocc;
-using enum LinkerDirective;
-using enum OpCode;
-using enum Register;
-using enum Section;
-using enum SystemCall;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -48,28 +40,13 @@ int main(int argc, char* argv[]) {
 
     std::println("Generating...");
     Generator generator{};
-    auto lines = generator.run(program);
+    AssemblyWriter writer{};
+    writer.compile(generator.run(program));
 
-    ofs << ".intel_syntax noprefix\n";
-    ofs << to_string(Section::TEXT) << "\n";
-    ofs << "    " << to_string(LinkerDirective::GLOBAL) << " " << SYSTEM_ENTRY_POINT << "\n";
-    ofs << SYSTEM_ENTRY_POINT << ":\n";
-    ofs << "    " << call(USER_ENTRY_POINT) << "\n";
-    ofs << "    " << jmp(".L.return") << "\n";
-
-    // Generator の出力（.data セクション、.text セクションの関数定義）
-    for (const auto& line : lines) {
-        ofs << line << "\n";
+    std::println("Writing...");
+    for (const auto& line : writer.getCode()) {
+        ofs << line;
     }
-
-    // _start の終了処理
-    ofs << ".L.return:\n";
-    ofs << "    " << mov(RDI, RAX) << "\n";
-    ofs << "    " << mov(RAX, std::to_underlying(EXIT)) << "\n";
-    ofs << "    " << syscall_() << "\n";
-
-    ofs << ".section .note.GNU-stack,\"\",\%progbits\n";
-
     ofs.close();
 
     return EXIT_SUCCESS;

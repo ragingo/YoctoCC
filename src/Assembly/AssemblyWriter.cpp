@@ -6,56 +6,49 @@
 
 namespace yoctocc {
 
-void AssemblyWriter::section(Section section) noexcept {
-    _sections.emplace(section, std::vector<std::string>{});
-}
+using enum LinkerDirective;
+using enum Register;
+using enum Section;
+using enum SystemCall;
 
-void AssemblyWriter::section_text_symbol(LinkerDirective directive, const std::string& symbol) noexcept {
-    auto it = _sections.find(Section::TEXT);
-    assert(it != _sections.end());
-    if (it != _sections.end()) {
-        it->second.emplace_back(std::format("    {} {}\n", to_string(directive), symbol));
-    }
-}
+void AssemblyWriter::compile(const std::vector<std::string>& code) noexcept {
+    std::string RETURN_LABEL = ".L.return";
+    std::vector<std::string> result{};
+    result.emplace_back(".intel_syntax noprefix\n");
+    result.emplace_back(std::format("{}\n", to_string(TEXT)));
+    result.emplace_back(std::format("    {} {}\n", to_string(GLOBAL), SYSTEM_ENTRY_POINT));
+    result.emplace_back(std::format("{}:\n", SYSTEM_ENTRY_POINT));
+    result.emplace_back(std::format("    {}\n", call(USER_ENTRY_POINT)));
+    result.emplace_back(std::format("    {}\n", jmp(RETURN_LABEL)));
 
-void AssemblyWriter::func(const std::string& label, std::vector<std::string> body) noexcept {
-    _code.emplace_back(std::format("{}:\n", label));
-    for (const auto& line : body) {
-        _code.emplace_back("    " + line + "\n");
-    }
-}
+    result.emplace_back("\n");
+    result.emplace_back("# ===== Generated Code Start =====\n");
+    result.emplace_back("\n");
 
-void AssemblyWriter::func(const std::string& label, std::function<std::vector<std::string>()> body) noexcept {
-    func(label, body());
-}
-
-void AssemblyWriter::compile() noexcept {
-    std::vector<std::string> final_code{};
-    final_code.emplace_back(".intel_syntax noprefix\n");
-
-    for (const auto& [section, lines] : _sections) {
-        final_code.emplace_back(std::format("{}\n", to_string(section)));
-        for (const auto& line : lines) {
-            final_code.emplace_back(line);
-        }
+    for (auto&& line : code) {
+        result.emplace_back(std::format("{}\n", line));
     }
 
-    for (const auto& line : _code) {
-        final_code.emplace_back(line);
-    }
+    result.emplace_back("\n");
+    result.emplace_back("# ===== Generated Code End =====\n");
+    result.emplace_back("\n");
+
+    result.emplace_back(std::format("{}:\n", RETURN_LABEL));
+    result.emplace_back(std::format("    {}\n", mov(RDI, RAX)));
+    result.emplace_back(std::format("    {}\n", mov(RAX, std::to_underlying(EXIT))));
+    result.emplace_back(std::format("    {}\n", syscall_()));
 
     // 実行可能スタックが不要であることを示すセクション（警告を抑制）
-    final_code.emplace_back(".section .note.GNU-stack,\"\",%progbits\n");
+    result.emplace_back(".section .note.GNU-stack,\"\",%progbits\n");
 
-    _code = std::move(final_code);
+    _code = std::move(result);
 }
 
 void AssemblyWriter::clear() noexcept {
     _code.clear();
-    _sections.clear();
 }
 
-const std::vector<std::string>& AssemblyWriter::get_code() const noexcept {
+const std::vector<std::string>& AssemblyWriter::getCode() const noexcept {
     return _code;
 }
 
