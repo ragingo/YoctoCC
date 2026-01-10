@@ -37,6 +37,11 @@ namespace directive {
         return to_string(ZERO) + " " + to_string(size);
     }
     static_assert(zero(16) == ".zero 16");
+
+    static constexpr std::string byte(uint8_t value) {
+        return to_string(BYTE) + " " + to_string(value);
+    }
+    static_assert(byte(255) == ".byte 255");
 }
 
 } // namespace yoctocc

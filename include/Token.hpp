@@ -8,11 +8,12 @@
 namespace yoctocc {
 
 // https://learn.microsoft.com/ja-jp/cpp/c-language/lexical-grammar?view=msvc-170
-enum class TokenType {
+enum class TokenKind {
     UNKNOWN,
     IDENTIFIER,
     PUNCTUATOR,
     KEYWORD,
+    STRING,
     DIGIT,
     TERMINATOR,
 };
@@ -20,13 +21,13 @@ enum class TokenType {
 } // namespace yoctocc
 
 template <>
-struct std::formatter<yoctocc::TokenType> {
+struct std::formatter<yoctocc::TokenKind> {
     constexpr auto parse(std::format_parse_context& ctx) -> std::format_parse_context::iterator {
         return ctx.begin();
     }
 
-    auto format(const yoctocc::TokenType& type, std::format_context& ctx) const -> std::format_context::iterator {
-        using enum yoctocc::TokenType;
+    auto format(const yoctocc::TokenKind& type, std::format_context& ctx) const -> std::format_context::iterator {
+        using enum yoctocc::TokenKind;
         std::string_view name;
         switch (type) {
             case UNKNOWN:    name = "UNKNOWN";    break;
@@ -43,14 +44,17 @@ struct std::formatter<yoctocc::TokenType> {
 
 namespace yoctocc {
 
+struct Type;
+
 struct Token {
-    TokenType type;
+    TokenKind kind;
     std::string originalValue;
     int numberValue;
     size_t location;
+    std::shared_ptr<Type> type;
     std::shared_ptr<Token> next;
 
-    Token(TokenType type = TokenType::UNKNOWN) : type(type), numberValue(0), location(0) {}
+    Token(TokenKind kind = TokenKind::UNKNOWN) : kind(kind), numberValue(0), location(0) {}
 };
 
 namespace token {

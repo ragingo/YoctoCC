@@ -39,6 +39,8 @@ namespace yoctocc {
         bool isLocal;
         // global variable or function
         bool isFunction;
+        // global variable
+        std::string initialData;
         // local variable
         int offset;
         std::string name;

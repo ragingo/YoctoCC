@@ -7,6 +7,7 @@
 #include "Node/Keywords.hpp"
 #include "String/String.hpp"
 #include "Token.hpp"
+#include "Type.hpp"
 
 namespace yoctocc {
 
@@ -38,13 +39,33 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
         }
 
         if (!number.empty()) {
-            auto next = std::make_shared<Token>(TokenType::DIGIT);
+            auto next = std::make_shared<Token>(TokenKind::DIGIT);
             next->originalValue = number;
             next->numberValue = std::stoi(number);
             next->location = std::distance(content.begin(), it) - number.size();
             current->next = next;
             current = next;
             number.clear();
+        }
+
+        // string literal
+        if (ch == '"') {
+            std::string str;
+            size_t startLocation = std::distance(content.begin(), it);
+            ++it;
+            while (it != content.end() && *it != '"') {
+                str += *it;
+                ++it;
+            }
+            ++it;
+
+            auto next = std::make_shared<Token>(TokenKind::STRING);
+            next->type = type::arrayOf(type::charType(), str.size() + 1);
+            next->originalValue = str;
+            next->location = startLocation;
+            current->next = next;
+            current = next;
+            continue;
         }
 
         if (isIdentifierChar(ch, true)) {
@@ -55,7 +76,7 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
                 identifier += *it;
                 ++it;
             }
-            auto next = std::make_shared<Token>(TokenType::IDENTIFIER);
+            auto next = std::make_shared<Token>(TokenKind::IDENTIFIER);
             next->originalValue = identifier;
             next->location = std::distance(content.begin(), it) - identifier.size();
             current->next = next;
@@ -68,7 +89,7 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
             std::array<char, 2> chars = { ch, nextCh };
             if (chars == std::array{ '=', '=' } || chars == std::array{ '!', '=' } ||
                 chars == std::array{ '<', '=' } || chars == std::array{ '>', '=' }) {
-                auto next = std::make_shared<Token>(TokenType::PUNCTUATOR);
+                auto next = std::make_shared<Token>(TokenKind::PUNCTUATOR);
                 next->originalValue = std::string{ ch, nextCh };
                 next->location = std::distance(content.begin(), it);
                 current->next = next;
@@ -77,7 +98,7 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
                 continue;
             }
 
-            auto next = std::make_shared<Token>(TokenType::PUNCTUATOR);
+            auto next = std::make_shared<Token>(TokenKind::PUNCTUATOR);
             next->originalValue = ch;
             next->location = std::distance(content.begin(), it);
             current->next = next;
@@ -90,16 +111,16 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
         return nullptr;
     }
 
-    auto terminator = std::make_shared<Token>(TokenType::TERMINATOR);
+    auto terminator = std::make_shared<Token>(TokenKind::TERMINATOR);
     current->next = terminator;
 
     for (auto token = head->next; token; token = token->next) {
-        if (token->type == TokenType::TERMINATOR) {
+        if (token->kind == TokenKind::TERMINATOR) {
             break;
         }
-        if (token->type == TokenType::IDENTIFIER) {
+        if (token->kind == TokenKind::IDENTIFIER) {
             if (KEYWORDS.find(token->originalValue) != KEYWORDS.end()) {
-                token->type = TokenType::KEYWORD;
+                token->kind = TokenKind::KEYWORD;
             }
         }
     }

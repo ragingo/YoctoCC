@@ -19,12 +19,12 @@ namespace {
     }
 
     inline const std::string& getIdentifier(const std::shared_ptr<Token>& token) {
-        assert(token && token->type == TokenType::IDENTIFIER);
+        assert(token && token->kind == TokenKind::IDENTIFIER);
         return token->originalValue;
     }
 
     inline int getNumber(const std::shared_ptr<Token>& token) {
-        assert(token && token->type == TokenType::DIGIT);
+        assert(token && token->kind == TokenKind::DIGIT);
         return token->numberValue;
     }
 
@@ -44,7 +44,7 @@ namespace {
             type = type::pointerTo(type);
         }
 
-        if (token->type == TokenType::IDENTIFIER) {
+        if (token->kind == TokenKind::IDENTIFIER) {
             auto name = token;
             auto nextToken = token->next;
             type = typeSuffix(result, nextToken, type);
@@ -104,6 +104,11 @@ namespace {
         auto type = declarator(start, start, dummy);
         return type->kind == TypeKind::FUNCTION;
     }
+
+    std::string makeUniqueName() {
+        static int count = 0;
+        return std::format(".L..{}", count++);
+    }
 }
 
 namespace yoctocc {
@@ -111,7 +116,7 @@ namespace yoctocc {
 std::shared_ptr<Object> Parser::parse(std::shared_ptr<Token>& token) {
     assert(token);
     _globals = nullptr;
-    while (token->type != TokenType::TERMINATOR) {
+    while (token->kind != TokenKind::TERMINATOR) {
         auto baseType = declSpec(token, token);
         if (isFunction(token)) {
             token = parseFunction(token, baseType);
@@ -256,7 +261,7 @@ std::shared_ptr<Node> Parser::parseStatement(std::shared_ptr<Token>& result, std
 std::shared_ptr<Node> Parser::parseCompoundStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto head = std::make_shared<Node>();
     auto current = head;
-    while (token->type != TokenType::TERMINATOR && !token::is(token, "}")) {
+    while (token->kind != TokenKind::TERMINATOR && !token::is(token, "}")) {
         if (type::isTypeName(token)) {
             current = current->next = declaration(token, token);
         } else {
@@ -457,7 +462,7 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
         return createNumberNode(token, node->type->size);
     }
 
-    if (token->type == TokenType::IDENTIFIER) {
+    if (token->kind == TokenKind::IDENTIFIER) {
         // function
         if (token::is(token->next, "(")) {
             return parseFunctionCall(result, token);
@@ -475,7 +480,15 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
         return node;
     }
 
-    if (token->type == TokenType::DIGIT) {
+    if (token->kind == TokenKind::STRING) {
+        auto var = createGlobalVariable(makeUniqueName(), token->type);
+        var->initialData = token->originalValue;
+        auto node = createVariableNode(token, var);
+        result = token->next;
+        return node;
+    }
+
+    if (token->kind == TokenKind::DIGIT) {
         auto node = createNumberNode(token, token->numberValue);
         result = token->next;
         return node;

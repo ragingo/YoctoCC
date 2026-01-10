@@ -312,9 +312,16 @@ void Generator::emitData(std::shared_ptr<Object> obj) {
         addCode(
             to_string(DATA),
             directive::global(var->name),
-            makeLabel(var->name).def(),
-            directive::zero(var->type->size)
+            makeLabel(var->name).def()
         );
+        if (var->initialData.empty()) {
+            addCode(directive::zero(var->type->size));
+        } else {
+            assert((var->initialData.size() + 1uz) == static_cast<size_t>(var->type->size));
+            for (int i = 0; i < var->type->size; i++) {
+                addCode(directive::byte(var->initialData[i]));
+            }
+        }
     }
 }
 
