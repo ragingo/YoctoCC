@@ -9,6 +9,8 @@
 #include "Token.hpp"
 #include "Type.hpp"
 
+using namespace std::string_view_literals;
+
 namespace yoctocc {
 
 std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
@@ -54,7 +56,27 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
             size_t startLocation = std::distance(content.begin(), it);
             ++it;
             while (it != content.end() && *it != '"') {
-                str += *it;
+                if (*it == '\n' || *it == '\r' || *it == '\0') {
+                    Log::error(std::distance(content.begin(), it), "unclosed string literal"sv);
+                    return nullptr;
+                }
+                // escape sequences
+                if (*it == '\\') {
+                    ++it;
+                    switch (*it) {
+                        case 'n': str += '\n'; break;
+                        case 't': str += '\t'; break;
+                        case 'r': str += '\r'; break;
+                        case 'a': str += '\a'; break;
+                        case 'b': str += '\b'; break;
+                        case 'f': str += '\f'; break;
+                        case 'v': str += '\v'; break;
+                        case 'e': str += 27; break;
+                        default: str += *it; break;
+                    }
+                } else {
+                    str += *it;
+                }
                 ++it;
             }
             ++it;
