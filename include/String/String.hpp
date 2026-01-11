@@ -22,6 +22,10 @@ constexpr bool isIdentifierChar(char ch, bool isFirstChar) {
     }
 }
 
+constexpr bool isOctalDigit(char ch) {
+    return ch >= '0' && ch <= '7';
+}
+
 constexpr int atoi(char ch) {
     return ch - '0';
 }

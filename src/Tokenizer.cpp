@@ -20,13 +20,17 @@ namespace {
         std::string::const_iterator& it;
     };
 
+    inline bool isEOF(const ParseContext& context) {
+        return context.it == context.end;
+    }
+
     inline bool hasNext(const ParseContext& context) {
-        return std::next(context.it) != context.end;
+        return isEOF(context) ? false : std::next(context.it) != context.end;
     }
 
     std::shared_ptr<Token> parseNumber(ParseContext& context) {
         std::string number;
-        while (context.it != context.end && std::isdigit(*context.it)) {
+        while (hasNext(context) && std::isdigit(*context.it)) {
             number += *context.it;
             ++context.it;
         }
@@ -41,7 +45,7 @@ namespace {
         std::string str;
         ++context.it; // 最初の " をスキップ
 
-        while (context.it != context.end && *context.it != '"') {
+        while (hasNext(context) && *context.it != '"') {
             if (*context.it == '\n' || *context.it == '\r' || *context.it == '\0') {
                 Log::error(std::distance(context.begin, context.it), "unclosed string literal"sv);
                 return nullptr;
@@ -49,6 +53,18 @@ namespace {
             // escape sequences
             if (*context.it == '\\') {
                 ++context.it;
+                // octal
+                if (hasNext(context) && isOctalDigit(*context.it)) {
+                    int value = 0;
+                    int count = 0;
+                    while (hasNext(context) && isOctalDigit(*context.it) && count < 3) {
+                        value = (value << 3) + yoctocc::atoi(*context.it);
+                        ++context.it;
+                        ++count;
+                    }
+                    str += static_cast<char>(value);
+                    continue;
+                }
                 switch (*context.it) {
                     case 'n': str += '\n'; break;
                     case 't': str += '\t'; break;
@@ -76,7 +92,7 @@ namespace {
 
     std::shared_ptr<Token> parseIdentifier(ParseContext& context) {
         std::string identifier;
-        while (context.it != context.end && isIdentifierChar(*context.it, false)) {
+        while (hasNext(context) && isIdentifierChar(*context.it, false)) {
             identifier += *context.it;
             ++context.it;
         }
@@ -118,8 +134,6 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
     std::string content{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
     Log::sourceCode = content;
     auto it = content.cbegin();
-    auto hasNext = [&it, &content]() { return std::next(it) != content.cend(); };
-    auto isEOF = [&it, &content]() { return it == content.cend(); };
     auto startLocation = [&it, &content]() { return std::distance(content.cbegin(), it); };
     ParseContext context{ content.cbegin(), content.cend(), it };
 
