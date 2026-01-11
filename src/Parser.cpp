@@ -39,6 +39,7 @@ namespace {
 
     const std::shared_ptr<Type> typeSuffix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type);
 
+    // declarator = "*"* ident type-suffix
     const std::shared_ptr<Type> declarator(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
         while (consumeToken(result, token, "*")) {
             type = type::pointerTo(type);
@@ -57,6 +58,8 @@ namespace {
         return type;
     }
 
+    // func-params = (param ("," param)*)? ")"
+    // param       = declspec declarator
     const std::shared_ptr<Type> functionParameters(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
         std::shared_ptr<Type> head;
         auto current = &head;
@@ -78,6 +81,9 @@ namespace {
         return type;
     }
 
+    // type-suffix = "(" func-params
+    //             | "[" num "]" type-suffix
+    //             | ε
     const std::shared_ptr<Type> typeSuffix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::shared_ptr<Type>& type) {
         if (token::is(token, "(")) {
             auto nextToken = token->next;
@@ -113,6 +119,7 @@ namespace {
 
 namespace yoctocc {
 
+// program = (function-definition | global-variable)*
 std::shared_ptr<Object> Parser::parse(std::shared_ptr<Token>& token) {
     assert(token);
     _globals = nullptr;
@@ -155,6 +162,7 @@ std::shared_ptr<Object> Parser::createGlobalVariable(const std::string& name, co
     return var;
 }
 
+// declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 std::shared_ptr<Node> Parser::declaration(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto type = declSpec(token, token);
     auto head = std::make_shared<Node>();
@@ -185,10 +193,12 @@ std::shared_ptr<Node> Parser::declaration(std::shared_ptr<Token>& result, std::s
     return node;
 }
 
+// expr = assign
 std::shared_ptr<Node> Parser::parseExpression(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     return parseAssignment(result, token);
 }
 
+// assign = equality ("=" assign)?
 std::shared_ptr<Node> Parser::parseAssignment(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto node = parseEquality(token, token);
 
@@ -200,6 +210,12 @@ std::shared_ptr<Node> Parser::parseAssignment(std::shared_ptr<Token>& result, st
     return node;
 }
 
+// stmt = "return" expr ";"
+//      | "if" "(" expr ")" stmt ("else" stmt)?
+//      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
+//      | "while" "(" expr ")" stmt
+//      | "{" compound-stmt
+//      | expr-stmt
 std::shared_ptr<Node> Parser::parseStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     if (token::is(token, "return")) {
         auto node = createUnaryNode(NodeType::RETURN, token, parseExpression(token, token->next));
@@ -258,6 +274,7 @@ std::shared_ptr<Node> Parser::parseStatement(std::shared_ptr<Token>& result, std
     return parseExpressionStatement(result, token);
 }
 
+// compound-stmt = (declaration | stmt)* "}"
 std::shared_ptr<Node> Parser::parseCompoundStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto head = std::make_shared<Node>();
     auto current = head;
@@ -274,6 +291,7 @@ std::shared_ptr<Node> Parser::parseCompoundStatement(std::shared_ptr<Token>& res
     return node;
 }
 
+// expr-stmt = expr? ";"
 std::shared_ptr<Node> Parser::parseExpressionStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     if (token::is(token, ";")) {
         result = token->next;
@@ -285,6 +303,7 @@ std::shared_ptr<Node> Parser::parseExpressionStatement(std::shared_ptr<Token>& r
     return node;
 }
 
+// equality = relational ("==" relational | "!=" relational)*
 std::shared_ptr<Node> Parser::parseEquality(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto node = parseRelational(token, token);
 
@@ -302,6 +321,7 @@ std::shared_ptr<Node> Parser::parseEquality(std::shared_ptr<Token>& result, std:
     }
 }
 
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 std::shared_ptr<Node> Parser::parseRelational(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto node = parseAdditive(token, token);
 
@@ -327,6 +347,7 @@ std::shared_ptr<Node> Parser::parseRelational(std::shared_ptr<Token>& result, st
     }
 }
 
+// add = mul ("+" mul | "-" mul)*
 std::shared_ptr<Node> Parser::parseAdditive(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto node = parseMultiply(token, token);
 
@@ -344,6 +365,7 @@ std::shared_ptr<Node> Parser::parseAdditive(std::shared_ptr<Token>& result, std:
     }
 }
 
+// mul = unary ("*" unary | "/" unary)*
 std::shared_ptr<Node> Parser::parseMultiply(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto node = parseUnary(token, token);
 
@@ -361,6 +383,8 @@ std::shared_ptr<Node> Parser::parseMultiply(std::shared_ptr<Token>& result, std:
     }
 }
 
+// unary = ("+" | "-" | "*" | "&") unary
+//       | postfix
 std::shared_ptr<Node> Parser::parseUnary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     if (token::is(token, "+")) {
         return parsePrimary(result, token->next);
@@ -380,6 +404,7 @@ std::shared_ptr<Node> Parser::parseUnary(std::shared_ptr<Token>& result, std::sh
     return parsePostfix(result, token);
 }
 
+// postfix = primary ("[" expr "]")*
 std::shared_ptr<Node> Parser::parsePostfix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     std::shared_ptr<Token> rest = token;
     auto node = parsePrimary(rest, token);
@@ -396,6 +421,7 @@ std::shared_ptr<Node> Parser::parsePostfix(std::shared_ptr<Token>& result, std::
     return node;
 }
 
+// funcall = ident "(" (assign ("," assign)*)? ")"
 std::shared_ptr<Node> Parser::parseFunctionCall(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto start = token;
     token = token->next->next; // 関数名と"("をスキップ
@@ -449,6 +475,7 @@ std::shared_ptr<Token> Parser::parseGlobalVariable(std::shared_ptr<Token>& token
     return token;
 }
 
+// primary = "(" expr ")" | "sizeof" unary | ident func-args? | str | num
 std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     if (token::is(token, "(")) {
         auto node = parseExpression(token, token->next);
