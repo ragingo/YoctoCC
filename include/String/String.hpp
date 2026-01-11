@@ -26,12 +26,28 @@ constexpr bool isOctalDigit(char ch) {
     return ch >= '0' && ch <= '7';
 }
 
+constexpr bool isHexDigit(char ch) {
+    return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
+}
+
 constexpr int atoi(char ch) {
     return ch - '0';
 }
 
 constexpr char itoa(int value) {
     return static_cast<char>(value + '0');
+}
+
+constexpr int hexCharToInt(char ch) {
+    if (ch >= '0' && ch <= '9') {
+        return ch - '0';
+    } else if (ch >= 'a' && ch <= 'f') {
+        return ch - 'a' + 10;
+    } else if (ch >= 'A' && ch <= 'F') {
+        return ch - 'A' + 10;
+    } else {
+        return -1;
+    }
 }
 
 template<std::integral T>
