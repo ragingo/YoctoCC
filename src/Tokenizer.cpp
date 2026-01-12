@@ -151,7 +151,7 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
     while (it != content.cend()) {
         char ch = *it;
 
-        if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
+        if (std::isspace(ch)) {
             ++it;
             continue;
         }
