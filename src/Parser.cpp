@@ -6,6 +6,8 @@
 #include "Token.hpp"
 #include "Type.hpp"
 
+using namespace std::string_view_literals;
+
 namespace {
     using namespace yoctocc;
 
@@ -51,8 +53,7 @@ namespace {
             type = typeSuffix(result, nextToken, type);
             type->name = name;
         } else {
-            using namespace std::literals;
-            Log::error(token->location, "Expected an identifier"sv);
+            Log::error("Expected an identifier"sv, token->location);
         }
 
         return type;
@@ -512,7 +513,7 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
         // variable
         auto var = findVariable(token);
         if (!var) {
-            Log::error(token->location, std::format("Undefined variable: {}", token->originalValue));
+            Log::error(std::format("Undefined variable: {}", token->originalValue), token->location);
             return nullptr;
         }
         result = token->next;
@@ -535,8 +536,7 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
         return node;
     }
 
-    using namespace std::literals;
-    Log::error(token->location, "Expected an expression"sv);
+    Log::error("Expected an expression"sv, token->location);
 
     return nullptr;
 }

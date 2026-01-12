@@ -32,6 +32,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::println("Tokenizing...");
+    Log::sourceFileName = source_file;
     auto token = tokenize(ifs);
 
     std::println("Parsing...");

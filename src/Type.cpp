@@ -58,7 +58,7 @@ namespace yoctocc::type {
                 return;
             case NodeType::ASSIGN:
                 if (node->left->type->kind == TypeKind::ARRAY) {
-                    Log::error(node->token->location, "not an lvalue"sv);
+                    Log::error("not an lvalue"sv, node->token->location);
                     return;
                 }
                 node->type = node->left->type;
@@ -85,7 +85,7 @@ namespace yoctocc::type {
                 return;
             case NodeType::DEREFERENCE:
                 if (!node->left->type || !node->left->type->base) {
-                    Log::error(node->token->location, "Invalid pointer dereference"sv);
+                    Log::error("Invalid pointer dereference"sv, node->token->location);
                     return;
                 }
                 node->type = node->left->type->base;
@@ -101,7 +101,7 @@ namespace yoctocc::type {
                         return;
                     }
                 }
-                Log::error(node->token->location, "statement expression returning void is not supported"sv);
+                Log::error("statement expression returning void is not supported"sv, node->token->location);
                 return;
             case NodeType::BLOCK:
             case NodeType::IF:

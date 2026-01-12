@@ -79,7 +79,7 @@ void Generator::generateAddress(const std::shared_ptr<Node>& node) {
         return;
     }
     using namespace std::literals;
-    Log::error(node->token->location, "Not an lvalue"sv);
+    Log::error("Not an lvalue"sv, node->token->location);
 }
 
 void Generator::generateStatement(const std::shared_ptr<Node>& node) {
@@ -145,7 +145,7 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
     }
 
     using namespace std::literals;
-    Log::error(node->token->location, "Invalid statement"sv);
+    Log::error("Invalid statement"sv, node->token->location);
 }
 
 void Generator::generateExpression(const std::shared_ptr<Node>& node) {
@@ -270,7 +270,7 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
     }
 
     using namespace std::literals;
-    Log::error(node->token->location, "Invalid expression"sv);
+    Log::error("Invalid expression"sv, node->token->location);
 }
 
 void Generator::generateFunction(const std::shared_ptr<Object>& obj) {

@@ -47,7 +47,7 @@ namespace {
 
         while (hasNext(context) && *context.it != '"') {
             if (*context.it == '\n' || *context.it == '\r' || *context.it == '\0') {
-                Log::error(std::distance(context.begin, context.it), "unclosed string literal"sv);
+                Log::error("unclosed string literal"sv, std::distance(context.begin, context.it));
                 return nullptr;
             }
             // escape sequences
@@ -169,7 +169,7 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
         } else if (std::ispunct(ch)) {
             next = parsePunctuator(ch, context);
         } else {
-            Log::error(startLocation(), std::format("Unexpected character '{}'", ch));
+            Log::error(std::format("Unexpected character '{}'", ch), startLocation());
             return nullptr;
         }
 
