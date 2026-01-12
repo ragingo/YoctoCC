@@ -69,11 +69,9 @@ namespace {
                 if (hasNext(context) && *context.it == 'x') {
                     ++context.it;
                     int value = 0;
-                    int count = 0;
                     while (hasNext(context) && isHexDigit(*context.it)) {
                         value = (value << 4) + hexCharToInt(*context.it);
                         ++context.it;
-                        ++count;
                     }
                     str += static_cast<char>(value);
                     continue;
