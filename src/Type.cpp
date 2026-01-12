@@ -4,6 +4,8 @@
 #include "Node/Node.hpp"
 #include "Token.hpp"
 
+using namespace std::literals;
+
 namespace yoctocc::type {
 
     std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base) {
@@ -56,7 +58,6 @@ namespace yoctocc::type {
                 return;
             case NodeType::ASSIGN:
                 if (node->left->type->kind == TypeKind::ARRAY) {
-                    using namespace std::literals;
                     Log::error(node->token->location, "not an lvalue"sv);
                     return;
                 }
@@ -84,11 +85,23 @@ namespace yoctocc::type {
                 return;
             case NodeType::DEREFERENCE:
                 if (!node->left->type || !node->left->type->base) {
-                    using namespace std::literals;
                     Log::error(node->token->location, "Invalid pointer dereference"sv);
                     return;
                 }
                 node->type = node->left->type->base;
+                return;
+            case NodeType::STATEMENT_EXPRESSION:
+                if (node->body) {
+                    auto stmt = node->body;
+                    while (stmt->next) {
+                        stmt = stmt->next;
+                    }
+                    if (stmt->nodeType == NodeType::EXPRESSION_STATEMENT) {
+                        node->type = stmt->left->type;
+                        return;
+                    }
+                }
+                Log::error(node->token->location, "statement expression returning void is not supported"sv);
                 return;
             case NodeType::BLOCK:
             case NodeType::IF:

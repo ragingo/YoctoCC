@@ -475,8 +475,22 @@ std::shared_ptr<Token> Parser::parseGlobalVariable(std::shared_ptr<Token>& token
     return token;
 }
 
-// primary = "(" expr ")" | "sizeof" unary | ident func-args? | str | num
+// primary = "(" "{" stmt+ "}" ")"
+//         | "(" expr ")"
+//         | "sizeof" unary
+//         | ident func-args?
+//         | str
+//         | num
 std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
+    if (token::is(token, "(") && token::is(token->next, "{")) {
+        auto node = std::make_shared<Node>(NodeType::STATEMENT_EXPRESSION);
+        node->token = token;
+        auto next = token->next->next;
+        node->body = parseCompoundStatement(token, next)->body;
+        result = token::skipIf(token, ")");
+        return node;
+    }
+
     if (token::is(token, "(")) {
         auto node = parseExpression(token, token->next);
         result = token::skipIf(token, ")");

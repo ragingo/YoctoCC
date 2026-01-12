@@ -31,6 +31,7 @@ namespace yoctocc {
         FUNCTION_CALL,
         VARIABLE,
         EXPRESSION_STATEMENT,
+        STATEMENT_EXPRESSION,
         NUMBER,
     };
 
@@ -89,7 +90,7 @@ namespace yoctocc {
         std::shared_ptr<Node> els;
         std::shared_ptr<Node> init;
         std::shared_ptr<Node> inc;
-        // block
+        // block or statement expression
         std::shared_ptr<Node> body;
         std::shared_ptr<Object> variable;
         // function call

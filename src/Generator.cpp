@@ -176,6 +176,11 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
             generateExpression(node->right);
             store(node->type);
             return;
+        case NodeType::STATEMENT_EXPRESSION:
+            for (auto stmt = node->body; stmt; stmt = stmt->next) {
+                generateStatement(stmt);
+            }
+            return;
         case NodeType::FUNCTION_CALL:
             {
                 int argCount = 0;
