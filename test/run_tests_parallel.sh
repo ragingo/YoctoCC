@@ -141,7 +141,7 @@ if [ -f "$CONF_FILE" ]; then
             echo "$test_code" > "$temp_test"
             TEST_FILES[$test_num]="$temp_test"
             TEST_EXPECTED[$test_num]="$expected_exit"
-            TEST_NAMES[$test_num]="inline#$test_num"
+            TEST_NAMES[$test_num]="$test_code"
         fi
     done < "$CONF_FILE"
 fi
@@ -174,6 +174,7 @@ echo ""
 for i in $(seq 1 $TOTAL_TESTS); do
     result_file="$WORK_DIR/test_$i/result"
     test_name="${TEST_NAMES[$i]}"
+    expected="${TEST_EXPECTED[$i]}"
 
     if [ -f "$result_file" ]; then
         result=$(cat "$result_file")
@@ -181,7 +182,7 @@ for i in $(seq 1 $TOTAL_TESTS); do
 
         if [ "$status" = "PASS" ]; then
             actual=$(echo "$result" | awk '{print $2}')
-            echo -e "Testing #$i: ${GREEN}$test_name => $actual${NC}"
+            echo -e "Testing #$i: ${GREEN}$test_name => expected: $expected, actual: $actual${NC}"
             PASSED_TESTS=$((PASSED_TESTS + 1))
         else
             reason=$(echo "$result" | awk '{print $2}')
@@ -198,7 +199,7 @@ for i in $(seq 1 $TOTAL_TESTS); do
                 result)
                     expected=$(echo "$result" | awk '{print $3}')
                     actual=$(echo "$result" | awk '{print $4}')
-                    echo -e "Testing #$i: ${RED}$test_name => $expected expected, but got $actual${NC}"
+                    echo -e "Testing #$i: ${RED}$test_name => expected: $expected, actual: $actual${NC}"
                     ;;
             esac
             FAILED_TESTS=$((FAILED_TESTS + 1))
