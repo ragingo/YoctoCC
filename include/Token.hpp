@@ -51,10 +51,11 @@ struct Token {
     std::string originalValue;
     int numberValue;
     size_t location;
+    size_t line;
     std::shared_ptr<Type> type;
     std::shared_ptr<Token> next;
 
-    Token(TokenKind kind = TokenKind::UNKNOWN) : kind(kind), numberValue(0), location(0) {}
+    Token(TokenKind kind = TokenKind::UNKNOWN) : kind(kind), numberValue(0), location(0), line(0) {}
 };
 
 namespace token {

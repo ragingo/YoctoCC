@@ -85,7 +85,7 @@ namespace {
             type = typeSuffix(result, nextToken, type);
             type->name = name;
         } else {
-            Log::error("Expected an identifier"sv, token->location);
+            Log::error("Expected an identifier"sv, token);
         }
 
         return type;
@@ -556,7 +556,7 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
         // variable
         auto var = findVariable(token);
         if (!var) {
-            Log::error(std::format("Undefined variable: {}", token->originalValue), token->location);
+            Log::error(std::format("Undefined variable: {}", token->originalValue), token);
             return nullptr;
         }
         result = token->next;
@@ -579,7 +579,7 @@ std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::
         return node;
     }
 
-    Log::error("Expected an expression"sv, token->location);
+    Log::error("Expected an expression"sv, token);
 
     return nullptr;
 }

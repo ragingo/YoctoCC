@@ -61,7 +61,7 @@ namespace {
         auto token = std::make_shared<Token>(TokenKind::DIGIT);
         token->originalValue = number;
         token->numberValue = std::stoi(number);
-        token->location = std::distance(context.begin, context.it);
+        token->location = std::distance(context.begin, context.it - token->originalValue.size());
         return token;
     }
 
@@ -121,7 +121,7 @@ namespace {
         auto token = std::make_shared<Token>(TokenKind::STRING);
         token->type = type::arrayOf(type::charType(), str.size() + 1);
         token->originalValue = str;
-        token->location = std::distance(context.begin, context.it);
+        token->location = std::distance(context.begin, context.it - token->originalValue.size());
         return token;
     }
 
@@ -133,7 +133,7 @@ namespace {
         }
         auto token = std::make_shared<Token>(TokenKind::IDENTIFIER);
         token->originalValue = identifier;
-        token->location = std::distance(context.begin, context.it);
+        token->location = std::distance(context.begin, context.it - token->originalValue.size());
         return token;
     }
 
@@ -145,14 +145,14 @@ namespace {
             chars == std::array{ '<', '=' } || chars == std::array{ '>', '=' }) {
             auto token = std::make_shared<Token>(TokenKind::PUNCTUATOR);
             token->originalValue = std::string{ ch, nextCh };
-            token->location = std::distance(context.begin, context.it);
+            token->location = std::distance(context.begin, context.it - token->originalValue.size());
             context.it += 2;
             return token;
         }
 
         auto token = std::make_shared<Token>(TokenKind::PUNCTUATOR);
         token->originalValue = ch;
-        token->location = std::distance(context.begin, context.it);
+        token->location = std::distance(context.begin, context.it - token->originalValue.size());
 
         ++context.it;
 
@@ -169,7 +169,7 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
     std::string content{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
     Log::sourceCode = content;
     auto it = content.cbegin();
-    auto startLocation = [&it, &content]() { return std::distance(content.cbegin(), it); };
+    auto startLocation = [&it, &content]() { return static_cast<size_t>(std::distance(content.cbegin(), it)); };
     ParseContext context{ content.cbegin(), content.cend(), it };
 
     while (it != content.cend()) {
@@ -223,6 +223,24 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
                 token->kind = TokenKind::KEYWORD;
             }
         }
+    }
+
+    it = content.cbegin();
+    size_t line = 1;
+    while (it != content.cend()) {
+        size_t currentLocation = std::distance(content.cbegin(), it);
+        for (auto token = head->next; token; token = token->next) {
+            if (token->kind == TokenKind::TERMINATOR) {
+                break;
+            }
+            if (token->location == currentLocation) {
+                token->line = line;
+            }
+        }
+        if (*it == '\n') {
+            ++line;
+        }
+        ++it;
     }
 
     return head->next;

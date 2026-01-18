@@ -56,7 +56,7 @@ std::shared_ptr<Node> createAddNode(const std::shared_ptr<Token>& token, const s
 
     // pointer + pointer (error)
     if (left->type->base && right->type->base) {
-        Log::error("Invalid addition of two pointers"sv, token->location);
+        Log::error("Invalid addition of two pointers"sv, token);
         return nullptr;
     }
 
@@ -97,7 +97,7 @@ std::shared_ptr<Node> createSubNode(const std::shared_ptr<Token>& token, const s
         return createBinaryNode(NodeType::DIV, token, node, createNumberNode(token, left->type->base->size));
     }
 
-    Log::error("Invalid subtraction involving pointers"sv, token->location);
+    Log::error("Invalid subtraction involving pointers"sv, token);
     return nullptr;
 }
 

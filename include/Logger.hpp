@@ -4,31 +4,55 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include "Token.hpp"
 
 namespace yoctocc::Log {
 
 inline std::string sourceFileName;
 inline std::string sourceCode;
 
-inline std::tuple<size_t, size_t> getLineAndColumn(size_t location) {
-    size_t line = 1;
-    size_t column = 1;
-    for (auto it = sourceCode.cbegin(); it != sourceCode.cbegin() + location; ++it) {
-        if (*it == '\n') {
-            ++line;
-            column = 1;
-        } else {
-            ++column;
+inline size_t getColumn(size_t location, size_t line) {
+    size_t column = 0;
+    size_t currentLine = 1;
+    std::string::const_iterator it = sourceCode.cbegin();
+
+    while (it != sourceCode.cend()) {
+        if (std::next(it) == sourceCode.cend()) {
+            break;
         }
+
+        if (*it == '\n') {
+            ++currentLine;
+            if (currentLine > line) {
+                break;
+            }
+        } else {
+            size_t currentLocation = std::distance(sourceCode.cbegin(), it);
+            if (currentLine == line && currentLocation <= location) {
+                ++column;
+            }
+        }
+
+        ++it;
     }
-    return { line, column };
+
+    return column;
 }
 
-inline void error(std::string_view message, std::optional<size_t> position = std::nullopt, bool exit = true) {
+struct SourceInfo {
+    size_t location;
+    size_t line;
+
+    SourceInfo(size_t loc) : location(loc), line(0) {}
+    SourceInfo(size_t loc, size_t line) : location(loc), line(line) {}
+    SourceInfo(const std::shared_ptr<yoctocc::Token>& token) : location(token->location), line(token->line) {}
+};
+
+inline void error(std::string_view message, std::optional<SourceInfo> sourceInfo = std::nullopt, bool exit = true) {
     std::string formattedMessage;
-    if (position) {
-        auto [line, column] = getLineAndColumn(*position);
-        formattedMessage = std::format("\033[31mError at {} {}:{}: {}\033[0m", sourceFileName, line, column, message);
+    if (sourceInfo) {
+        size_t column = getColumn(sourceInfo->location, sourceInfo->line);
+        formattedMessage = std::format("\033[31mError at {} {}:{}: {}\033[0m", sourceFileName, sourceInfo->line, column, message);
     } else {
         formattedMessage = std::format("\033[31mError: {}\033[0m", message);
     }
