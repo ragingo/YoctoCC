@@ -11,6 +11,38 @@ using namespace std::string_view_literals;
 namespace {
     using namespace yoctocc;
 
+    struct VariableScope {
+        std::string name;
+        std::shared_ptr<VariableScope> next;
+        std::shared_ptr<Object> variable;
+    };
+
+    struct Scope {
+        std::shared_ptr<VariableScope> variable;
+        std::shared_ptr<Scope> next;
+    };
+
+    std::shared_ptr<Scope> currentScope = std::make_shared<Scope>();
+
+    void enterScope() {
+        auto scope = std::make_shared<Scope>();
+        scope->next = currentScope;
+        currentScope = scope;
+    }
+
+    void leaveScope() {
+        assert(currentScope);
+        currentScope = currentScope->next;
+    }
+
+    void pushVariableScope(const std::string& name, const std::shared_ptr<Object>& variable) {
+        auto variableScope = std::make_shared<VariableScope>();
+        variableScope->name = name;
+        variableScope->variable = variable;
+        variableScope->next = currentScope->variable;
+        currentScope->variable = variableScope;
+    }
+
     bool consumeToken(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token, std::string_view value) {
         if (token::is(token, value)) {
             result = token->next;
@@ -136,14 +168,11 @@ std::shared_ptr<Object> Parser::parse(std::shared_ptr<Token>& token) {
 }
 
 std::shared_ptr<Object> Parser::findVariable(std::shared_ptr<Token>& token) {
-    for (auto var = _locals; var; var = var->next) {
-        if (var->name == token->originalValue) {
-            return var;
-        }
-    }
-    for (auto var = _globals; var; var = var->next) {
-        if (var->name == token->originalValue) {
-            return var;
+    for (auto scope = currentScope; scope; scope = scope->next) {
+        for (auto variableScope = scope->variable; variableScope; variableScope = variableScope->next) {
+            if (variableScope->name == token->originalValue) {
+                return variableScope->variable;
+            }
         }
     }
     return nullptr;
@@ -152,6 +181,7 @@ std::shared_ptr<Object> Parser::findVariable(std::shared_ptr<Token>& token) {
 std::shared_ptr<Object> Parser::createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type) {
     auto var = makeVariable(name, type, true);
     var->next = _locals;
+    pushVariableScope(name, var);
     _locals = var;
     return var;
 }
@@ -159,6 +189,7 @@ std::shared_ptr<Object> Parser::createLocalVariable(const std::string& name, con
 std::shared_ptr<Object> Parser::createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type) {
     auto var = makeVariable(name, type, false);
     var->next = _globals;
+    pushVariableScope(name, var);
     _globals = var;
     return var;
 }
@@ -279,6 +310,9 @@ std::shared_ptr<Node> Parser::parseStatement(std::shared_ptr<Token>& result, std
 std::shared_ptr<Node> Parser::parseCompoundStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto head = std::make_shared<Node>();
     auto current = head;
+
+    enterScope();
+
     while (token->kind != TokenKind::TERMINATOR && !token::is(token, "}")) {
         if (type::isTypeName(token)) {
             current = current->next = declaration(token, token);
@@ -287,6 +321,9 @@ std::shared_ptr<Node> Parser::parseCompoundStatement(std::shared_ptr<Token>& res
         }
         type::addType(current);
     }
+
+    leaveScope();
+
     result = token->next;
     auto node = createBlockNode(token, head->next);
     return node;
@@ -450,6 +487,9 @@ std::shared_ptr<Token> Parser::parseFunction(std::shared_ptr<Token>& token, std:
     auto name = getIdentifier(funcType->name);
     auto func = makeFunction(name, funcType);
     _locals.reset();
+
+    enterScope();
+
     token = token::skipIf(token, "{");
     applyParamLVars(funcType->parameters);
     func->parameters = _locals;
@@ -457,6 +497,9 @@ std::shared_ptr<Token> Parser::parseFunction(std::shared_ptr<Token>& token, std:
     func->locals = _locals;
     func->next = _globals;
     _globals = func;
+
+    leaveScope();
+
     return token;
 }
 
