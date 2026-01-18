@@ -28,6 +28,30 @@ namespace {
         return isEOF(context) ? false : std::next(context.it) != context.end;
     }
 
+    bool parseLineComment(ParseContext& context) {
+        if (*context.it != '/' || !hasNext(context) || *std::next(context.it) != '/') {
+            return false;
+        }
+        context.it += 2;
+        context.it = std::find_if(context.it, context.end, [](char ch) { return ch == '\n'; });
+        return true;
+    }
+
+    bool parseBlockComment(ParseContext& context) {
+        if (*context.it != '/' || !hasNext(context) || *std::next(context.it) != '*') {
+            return false;
+        }
+        context.it += 2;
+        constexpr auto endComment = "*/"sv;
+        context.it = std::search(context.it, context.end, endComment.cbegin(), endComment.cend());
+        if (isEOF(context)) {
+            Log::error("unclosed block comment"sv, std::distance(context.begin, context.it));
+            return false;
+        }
+        context.it += 2;
+        return true;
+    }
+
     std::shared_ptr<Token> parseNumber(ParseContext& context) {
         std::string number;
         while (hasNext(context) && std::isdigit(*context.it)) {
@@ -150,6 +174,14 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
 
     while (it != content.cend()) {
         char ch = *it;
+
+        if (parseLineComment(context)) {
+            continue;
+        }
+
+        if (parseBlockComment(context)) {
+            continue;
+        }
 
         if (std::isspace(ch)) {
             ++it;
