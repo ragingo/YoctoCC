@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_DIR="$SCRIPT_DIR"
 CONF_FILE="$TEST_DIR/tests.conf"
+CASES_DIR="$TEST_DIR/cases"
 
 # Makefile ターゲット用（相対パス）
 COMPILER_TARGET="build/yoctocc"
@@ -56,23 +57,20 @@ fi
 echo -e "${GREEN}コンパイラのビルドが完了しました${NC}"
 echo ""
 
-# 単一テスト実行関数
+# 単一テスト実行関数（ファイルベース）
 run_single_test() {
     local test_num="$1"
     local expected_exit="$2"
-    local test_code="$3"
+    local test_file="$3"
+    local test_name="$4"
 
     local test_work="$WORK_DIR/test_$test_num"
     mkdir -p "$test_work"
 
-    local test_file="$test_work/test.c"
     local asm_file="$test_work/program.s"
     local obj_file="$test_work/program.o"
     local bin_file="$test_work/program"
     local result_file="$test_work/result"
-
-    # テストコードをファイルに書き出し
-    echo "$test_code" > "$test_file"
 
     # コンパイラ実行（出力先を直接指定）
     if ! "$COMPILER" "$test_file" "$asm_file" > "$test_work/compiler.log" 2>&1; then
@@ -104,20 +102,49 @@ run_single_test() {
 }
 
 # テストケースを配列に読み込み
-declare -a TEST_CODES
+declare -a TEST_FILES
 declare -a TEST_EXPECTED
+declare -a TEST_NAMES
 test_num=0
-while IFS= read -r line || [ -n "$line" ]; do
-    [[ "$line" =~ ^[[:space:]]*# ]] && continue
-    [[ -z "${line// }" ]] && continue
 
-    expected_exit=$(echo "$line" | awk '{print $1}')
-    test_code=$(echo "$line" | cut -d' ' -f2-)
+# casesディレクトリから.cファイルを収集（ソート済み）
+if [ -d "$CASES_DIR" ]; then
+    while IFS= read -r test_file; do
+        # ファイルから期待値を抽出（先頭のコメントから）
+        expected_exit=$(grep -m1 '^// EXPECTED:' "$test_file" | sed 's|^// EXPECTED: *||')
 
-    test_num=$((test_num + 1))
-    TEST_EXPECTED[$test_num]="$expected_exit"
-    TEST_CODES[$test_num]="$test_code"
-done < "$CONF_FILE"
+        if [ -n "$expected_exit" ]; then
+            test_num=$((test_num + 1))
+            TEST_FILES[$test_num]="$test_file"
+            TEST_EXPECTED[$test_num]="$expected_exit"
+            # 相対パス名をテスト名として使用
+            TEST_NAMES[$test_num]=$(echo "$test_file" | sed "s|^$CASES_DIR/||")
+        fi
+    done < <(find "$CASES_DIR" -name "*.c" -type f | sort)
+fi
+
+# tests.conf からインラインテストを読み込み（後方互換性のため）
+if [ -f "$CONF_FILE" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        # コメント行と空行はスキップ
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "$line" ]] && continue
+
+        # 数字で始まる行のみ処理（インラインテストは1行完結）
+        if [[ "$line" =~ ^[0-9]+ ]]; then
+            test_num=$((test_num + 1))
+            expected_exit=$(echo "$line" | awk '{print $1}')
+            test_code=$(echo "$line" | cut -d' ' -f2-)
+
+            # 一時ファイルに書き出し
+            temp_test="$WORK_DIR/inline_test_$test_num.c"
+            echo "$test_code" > "$temp_test"
+            TEST_FILES[$test_num]="$temp_test"
+            TEST_EXPECTED[$test_num]="$expected_exit"
+            TEST_NAMES[$test_num]="inline#$test_num"
+        fi
+    done < "$CONF_FILE"
+fi
 
 TOTAL_TESTS=$test_num
 
@@ -126,7 +153,7 @@ echo -e "${YELLOW}テスト実行中... ($TOTAL_TESTS テスト)${NC}"
 # 並列実行（バックグラウンドジョブ）
 running=0
 for i in $(seq 1 $TOTAL_TESTS); do
-    run_single_test "$i" "${TEST_EXPECTED[$i]}" "${TEST_CODES[$i]}" &
+    run_single_test "$i" "${TEST_EXPECTED[$i]}" "${TEST_FILES[$i]}" "${TEST_NAMES[$i]}" &
     running=$((running + 1))
 
     # 並列数制限
@@ -146,7 +173,7 @@ FAILED_TESTS=0
 echo ""
 for i in $(seq 1 $TOTAL_TESTS); do
     result_file="$WORK_DIR/test_$i/result"
-    test_code="${TEST_CODES[$i]}"
+    test_name="${TEST_NAMES[$i]}"
 
     if [ -f "$result_file" ]; then
         result=$(cat "$result_file")
@@ -154,30 +181,30 @@ for i in $(seq 1 $TOTAL_TESTS); do
 
         if [ "$status" = "PASS" ]; then
             actual=$(echo "$result" | awk '{print $2}')
-            echo -e "Testing #$i: ${GREEN}$test_code => $actual${NC}"
+            echo -e "Testing #$i: ${GREEN}$test_name => $actual${NC}"
             PASSED_TESTS=$((PASSED_TESTS + 1))
         else
             reason=$(echo "$result" | awk '{print $2}')
             case "$reason" in
                 compile)
-                    echo -e "Testing #$i: ${RED}✗ FAILED (compile error): $test_code${NC}"
+                    echo -e "Testing #$i: ${RED}✗ FAILED (compile error): $test_name${NC}"
                     ;;
                 assemble)
-                    echo -e "Testing #$i: ${RED}✗ FAILED (assemble error): $test_code${NC}"
+                    echo -e "Testing #$i: ${RED}✗ FAILED (assemble error): $test_name${NC}"
                     ;;
                 link)
-                    echo -e "Testing #$i: ${RED}✗ FAILED (link error): $test_code${NC}"
+                    echo -e "Testing #$i: ${RED}✗ FAILED (link error): $test_name${NC}"
                     ;;
                 result)
                     expected=$(echo "$result" | awk '{print $3}')
                     actual=$(echo "$result" | awk '{print $4}')
-                    echo -e "Testing #$i: ${RED}$test_code => $expected expected, but got $actual${NC}"
+                    echo -e "Testing #$i: ${RED}$test_name => $expected expected, but got $actual${NC}"
                     ;;
             esac
             FAILED_TESTS=$((FAILED_TESTS + 1))
         fi
     else
-        echo -e "Testing #$i: ${RED}✗ FAILED (no result)${NC}"
+        echo -e "Testing #$i: ${RED}✗ FAILED (no result): $test_name${NC}"
         FAILED_TESTS=$((FAILED_TESTS + 1))
     fi
 done

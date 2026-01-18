@@ -14,40 +14,77 @@ make test
 
 ### テストの追加
 
-`test/tests.conf` に新しいテストケースを追加します。
+テストは2つの方法で追加できます:
+
+#### 方法1: ファイルベース (推奨)
+
+`test/cases/` ディレクトリ以下に `.c` ファイルを作成します。
+
+**ファイル構造**:
+```
+test/
+├── cases/
+│   ├── basic/           # 基本的なテスト
+│   ├── comment/         # コメント関連
+│   ├── control_flow/    # 制御構文
+│   ├── function/        # 関数呼び出し
+│   ├── gnu/             # GNU拡張
+│   └── ...
+```
+
+**ファイルフォーマット**:
+```c
+// EXPECTED: <期待される終了コード>
+int main() {
+    return 42;
+}
+```
+
+**例** (`test/cases/basic/return_42.c`):
+```c
+// EXPECTED: 42
+int main() { return 42; }
+```
+
+**メリット**:
+- 可読性が高い (シンタックスハイライト、整形)
+- 複雑な複数行のテストケースに対応
+- エディタで編集しやすい
+- カテゴリ別に整理できる
+
+#### 方法2: インラインテスト (後方互換)
+
+`test/tests.conf` に1行で記述します。
 
 **フォーマット**: `<期待される終了コード> <コード>`
 
 **例**:
 ```
-42 { return 42; }
-8 { a=3; z=5; return a+z; }
-3 { if (1) return 3; return 2; }
+42 int main() { return 42; }
+8 int main() { int a=3; int z=5; return a+z; }
 ```
 
-テストを実行:
+### テストの実行順序
+
+1. `test/cases/` 内の `.c` ファイル (アルファベット順)
+2. `test/tests.conf` のインラインテスト (記述順)
+
+### 並列実行
+
+テストは自動的に並列実行されます。並列数は CPU コア数に基づいて決定されます。
+カスタマイズする場合:
+
 ```bash
-make test
+PARALLEL_JOBS=4 make test
 ```
 
 ## ファイル構成
 
-- `tests.conf` - テストケースの設定ファイル
-- `run_tests.sh` - テスト実行スクリプト
-- `test1.txt`, `test2.txt`, ... - 各テストケースの入力ファイル
+- `cases/` - ファイルベースのテストケース
+- `tests.conf` - インラインテスト設定ファイル (後方互換)
+- `run_tests_parallel.sh` - 並列テスト実行スクリプト
+- `test_helper.c`, `test_helper.h` - テストヘルパー関数
 - `README.md` - このファイル
-
-## tests.conf の書式
-
-```
-# コメント行は '#' で始まる
-# 空行は無視される
-
-<テストファイル> <期待される終了コード> <説明(オプション)>
-```
-
-例:
-```
 test/test1.txt 100 "基本的な式と制御構文のテスト"
 test/test2.txt 0 "正常終了のテスト(return 0)"
 test/test3.txt 1 "return 1のテスト"
