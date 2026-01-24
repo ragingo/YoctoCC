@@ -82,6 +82,8 @@ void Generator::generateAddress(const std::shared_ptr<Node>& node) {
 
 void Generator::generateStatement(const std::shared_ptr<Node>& node) {
     assert(node);
+    addCode(directive::loc(1, node->token->line));
+
     if (node->nodeType == NodeType::IF) {
         uint64_t count = labelCount++;
         auto elseLabel = makeElseLabel(count);
@@ -148,6 +150,7 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
 
 void Generator::generateExpression(const std::shared_ptr<Node>& node) {
     assert(node);
+    addCode(directive::loc(1, node->token->line));
 
     switch (node->nodeType) {
         case NodeType::NUMBER:

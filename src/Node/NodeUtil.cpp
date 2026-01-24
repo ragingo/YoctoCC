@@ -10,38 +10,33 @@ using namespace std::literals;
 namespace yoctocc {
 
 std::shared_ptr<Node> createNumberNode(const std::shared_ptr<Token>& token, int value) {
-    auto node = std::make_shared<Node>(NodeType::NUMBER);
+    auto node = std::make_shared<Node>(NodeType::NUMBER, token);
     node->value = value;
-    node->token = token;
     return node;
 }
 
 std::shared_ptr<Node> createUnaryNode(NodeType type, const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& operand) {
-    auto node = std::make_shared<Node>(type);
+    auto node = std::make_shared<Node>(type, token);
     node->left = operand;
-    node->token = token;
     return node;
 }
 
 std::shared_ptr<Node> createBinaryNode(NodeType type, const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& left, const std::shared_ptr<Node>& right) {
-    auto node = std::make_shared<Node>(type);
+    auto node = std::make_shared<Node>(type, token);
     node->left = left;
     node->right = right;
-    node->token = token;
     return node;
 }
 
 std::shared_ptr<Node> createVariableNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Object>& variable) {
-    auto node = std::make_shared<Node>(NodeType::VARIABLE);
+    auto node = std::make_shared<Node>(NodeType::VARIABLE, token);
     node->variable = variable;
-    node->token = token;
     return node;
 }
 
 std::shared_ptr<Node> createBlockNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& body) {
-    auto node = std::make_shared<Node>(NodeType::BLOCK);
+    auto node = std::make_shared<Node>(NodeType::BLOCK, token);
     node->body = body;
-    node->token = token;
     return node;
 }
 

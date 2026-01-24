@@ -17,22 +17,22 @@ int main(int argc, char* argv[]) {
         Log::error("Usage: yoctocc <source_file> [output_file]");
         return EXIT_FAILURE;
     }
-    std::string source_file = argv[1];
-    std::string output_file = (argc >= 3) ? argv[2] : "build/program.s";
+    std::string sourceFile = argv[1];
+    std::string outputFile = (argc >= 3) ? argv[2] : "build/program.s";
 
-    std::ifstream ifs(source_file);
+    std::ifstream ifs(sourceFile);
     if (!ifs) {
         Log::error("Failed to open source file");
         return EXIT_FAILURE;
     }
-    std::ofstream ofs(output_file);
+    std::ofstream ofs(outputFile);
     if (!ofs) {
         Log::error("Failed to open output file");
         return EXIT_FAILURE;
     }
 
     std::println("Tokenizing...");
-    Log::sourceFileName = source_file;
+    Log::sourceFileName = sourceFile;
     auto token = tokenize(ifs);
 
     std::println("Parsing...");
@@ -42,6 +42,7 @@ int main(int argc, char* argv[]) {
     std::println("Generating...");
     Generator generator{};
     AssemblyWriter writer{};
+    writer.addLine(directive::file(1, sourceFile));
     writer.compile(generator.run(program));
 
     std::println("Writing...");

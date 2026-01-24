@@ -197,7 +197,7 @@ std::shared_ptr<Object> Parser::createGlobalVariable(const std::string& name, co
 // declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 std::shared_ptr<Node> Parser::declaration(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto type = declSpec(token, token);
-    auto head = std::make_shared<Node>();
+    auto head = std::make_shared<Node>(NodeType::UNKNOWN, token);
     auto current = head;
 
     int i = 0;
@@ -259,7 +259,7 @@ std::shared_ptr<Node> Parser::parseStatement(std::shared_ptr<Token>& result, std
     }
 
     if (token::is(token, "if")) {
-        auto node = std::make_shared<Node>(NodeType::IF);
+        auto node = std::make_shared<Node>(NodeType::IF, token);
         token = token::skipIf(token->next, "(");
         node->condition = parseExpression(token, token);
         token = token::skipIf(token, ")");
@@ -272,7 +272,7 @@ std::shared_ptr<Node> Parser::parseStatement(std::shared_ptr<Token>& result, std
     }
 
     if (token::is(token, "for")) {
-        auto node = std::make_shared<Node>(NodeType::FOR);
+        auto node = std::make_shared<Node>(NodeType::FOR, token);
         token = token::skipIf(token->next, "(");
         node->init = parseExpressionStatement(token, token);
 
@@ -291,7 +291,7 @@ std::shared_ptr<Node> Parser::parseStatement(std::shared_ptr<Token>& result, std
     }
 
     if (token::is(token, "while")) {
-        auto node = std::make_shared<Node>(NodeType::FOR);
+        auto node = std::make_shared<Node>(NodeType::FOR, token);
         token = token::skipIf(token->next, "(");
         node->condition = parseExpression(token, token);
         token = token::skipIf(token, ")");
@@ -308,7 +308,7 @@ std::shared_ptr<Node> Parser::parseStatement(std::shared_ptr<Token>& result, std
 
 // compound-stmt = (declaration | stmt)* "}"
 std::shared_ptr<Node> Parser::parseCompoundStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
-    auto head = std::make_shared<Node>();
+    auto head = std::make_shared<Node>(NodeType::UNKNOWN, token);
     auto current = head;
 
     enterScope();
@@ -463,7 +463,7 @@ std::shared_ptr<Node> Parser::parsePostfix(std::shared_ptr<Token>& result, std::
 std::shared_ptr<Node> Parser::parseFunctionCall(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     auto start = token;
     token = token->next->next; // 関数名と"("をスキップ
-    auto head = std::make_shared<Node>();
+    auto head = std::make_shared<Node>(NodeType::UNKNOWN, token);
     auto current = head;
 
     while (!token::is(token, ")")) {
@@ -475,7 +475,7 @@ std::shared_ptr<Node> Parser::parseFunctionCall(std::shared_ptr<Token>& result, 
 
     result = token::skipIf(token, ")");
 
-    auto node = std::make_shared<Node>(NodeType::FUNCTION_CALL);
+    auto node = std::make_shared<Node>(NodeType::FUNCTION_CALL, start);
     node->functionName = getIdentifier(start);
     node->arguments = head->next;
 
@@ -527,8 +527,7 @@ std::shared_ptr<Token> Parser::parseGlobalVariable(std::shared_ptr<Token>& token
 //         | num
 std::shared_ptr<Node> Parser::parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
     if (token::is(token, "(") && token::is(token->next, "{")) {
-        auto node = std::make_shared<Node>(NodeType::STATEMENT_EXPRESSION);
-        node->token = token;
+        auto node = std::make_shared<Node>(NodeType::STATEMENT_EXPRESSION, token);
         auto next = token->next->next;
         node->body = parseCompoundStatement(token, next)->body;
         result = token::skipIf(token, ")");

@@ -12,7 +12,7 @@ using enum SystemCall;
 
 void AssemblyWriter::compile(const std::vector<std::string>& code) noexcept {
     std::string RETURN_LABEL = ".L.return";
-    std::vector<std::string> result{};
+    std::vector<std::string> result = _code;
     result.emplace_back(".intel_syntax noprefix\n");
     result.emplace_back(std::format("{}\n", to_string(TEXT)));
     result.emplace_back(std::format("    {} {}\n", to_string(GLOBAL), SYSTEM_ENTRY_POINT));

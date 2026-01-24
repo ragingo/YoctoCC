@@ -97,7 +97,7 @@ namespace yoctocc {
         std::string functionName;
         std::shared_ptr<Node> arguments;
 
-        Node(NodeType type = NodeType::UNKNOWN): nodeType(type), value(0) {}
+        Node(NodeType type, std::shared_ptr<Token> token): nodeType(type), value(0), token(token) {}
     };
 
 } // namespace yoctocc
