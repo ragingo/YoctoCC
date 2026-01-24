@@ -6,9 +6,8 @@
 
 namespace yoctocc {
 
-using enum LinkerDirective;
+using enum GasDirective;
 using enum Register;
-using enum Section;
 using enum SystemCall;
 
 void AssemblyWriter::compile(const std::vector<std::string>& code) noexcept {

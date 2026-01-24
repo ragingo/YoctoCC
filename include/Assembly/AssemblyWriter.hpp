@@ -3,8 +3,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "Section.hpp"
-#include "LinkerDirective.hpp"
 
 namespace yoctocc {
 

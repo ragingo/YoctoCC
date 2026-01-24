@@ -13,10 +13,8 @@ namespace {
 
 namespace yoctocc {
 
-using enum DataDirective;
-using enum LinkerDirective;
+using enum GasDirective;
 using enum Register;
-using enum Section;
 
 std::vector<std::string> Generator::run(const std::shared_ptr<Object>& obj) {
     assert(obj);
