@@ -76,6 +76,9 @@ namespace yoctocc::type {
             case NodeType::VARIABLE:
                 node->type = node->variable->type;
                 return;
+            case NodeType::COMMA:
+                node->type = node->right->type;
+                return;
             case NodeType::ADDRESS:
                 if (node->left->type->kind == TypeKind::ARRAY) {
                     node->type = pointerTo(node->left->type->base);

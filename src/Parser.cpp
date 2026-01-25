@@ -225,9 +225,17 @@ std::shared_ptr<Node> Parser::declaration(std::shared_ptr<Token>& result, std::s
     return node;
 }
 
-// expr = assign
+// expr = assign ("," expr)?
 std::shared_ptr<Node> Parser::parseExpression(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token) {
-    return parseAssignment(result, token);
+    auto node = parseAssignment(token, token);
+
+    if (token::is(token, ",")) {
+        return createBinaryNode(NodeType::COMMA, token, node, parseExpression(result, token->next));
+    }
+
+    result = token;
+
+    return node;
 }
 
 // assign = equality ("=" assign)?

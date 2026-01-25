@@ -22,6 +22,7 @@ namespace yoctocc {
         GREATER,       // >
         GREATER_EQUAL, // >=
         ASSIGN,        // =
+        COMMA,         // ,
         ADDRESS,       // unary &
         DEREFERENCE,   // unary *
         RETURN,        // return

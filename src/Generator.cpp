@@ -15,6 +15,7 @@ namespace yoctocc {
 
 using enum GasDirective;
 using enum Register;
+using namespace std::string_view_literals;
 
 std::vector<std::string> Generator::run(const std::shared_ptr<Object>& obj) {
     assert(obj);
@@ -64,6 +65,7 @@ void Generator::assignLocalVariableOffsets(const std::shared_ptr<Object>& obj) {
 
 void Generator::generateAddress(const std::shared_ptr<Node>& node) {
     assert(node);
+
     if (node->nodeType == NodeType::VARIABLE) {
         if (node->variable->isLocal) {
             addCode(lea(RAX, Address{RBP, node->variable->offset}));
@@ -72,11 +74,18 @@ void Generator::generateAddress(const std::shared_ptr<Node>& node) {
         }
         return;
     }
+
     if (node->nodeType == NodeType::DEREFERENCE) {
         generateExpression(node->left);
         return;
     }
-    using namespace std::literals;
+
+    if (node->nodeType == NodeType::COMMA) {
+        generateExpression(node->left);
+        generateAddress(node->right);
+        return;
+    }
+
     Log::error("Not an lvalue"sv, node->token);
 }
 
@@ -181,6 +190,10 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
             for (auto stmt = node->body; stmt; stmt = stmt->next) {
                 generateStatement(stmt);
             }
+            return;
+        case NodeType::COMMA:
+            generateExpression(node->left);
+            generateExpression(node->right);
             return;
         case NodeType::FUNCTION_CALL:
             {
