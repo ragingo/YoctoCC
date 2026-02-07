@@ -1,110 +1,52 @@
-# コンパイラ設定（環境変数で上書き可能）
-CXX ?= g++
-CC ?= gcc
-MODE ?= debug
-PROFILE ?= 0
+# ==================================================
+#  YoctoCC - メイン Makefile
+# ==================================================
+#
+#  mk/common.mk    共通設定（コンパイラ, フラグ, ディレクトリ）
+#  mk/compiler.mk  YoctoCC コンパイラ本体のビルド
+#  mk/output.mk    コンパイラ成果物のアセンブル・リンク
+#  mk/test.mk      テスト
+# ==================================================
 
-# C++23 フラグ（Apple Clang は -std=c++2b が必要な場合あり）
-CXX_STD ?= -std=c++23
+.DEFAULT_GOAL := all
 
-ifeq ($(MODE), release)
-	CXXFLAGS := $(CXX_STD) -O3 -DNDEBUG -Wall -Wextra -I./include -c
-else
-	CXXFLAGS := $(CXX_STD) -g -O0 -Wall -Wextra -I./include -c
-endif
+include mk/output.mk
+include mk/test.mk
 
-ifeq ($(PROFILE), 1)
-	CXXFLAGS += -pg
-	LDFLAGS := $(LDFLAGS) -pg
-endif
+.PHONY: all clean run compile test rebuild profile help
 
-INPUT ?=
-
-BUILD_DIR := build
-SRC_DIR := .
-COMPILER := $(BUILD_DIR)/yoctocc
-ASM := $(BUILD_DIR)/program.s
-OBJ := $(BUILD_DIR)/program.o
-BIN := $(BUILD_DIR)/program
-
-# テスト用オブジェクト
-TEST_HELPER_C := test/test_helper.c
-TEST_HELPER_O := $(BUILD_DIR)/test_helper.o
-
-# C++ ソースファイル (サブディレクトリも含む)
-SRCS := $(shell find $(SRC_DIR) -name "*.cpp" -type f)
-# ヘッダーファイル (コンパイル時の依存関係用)
-HEADERS := $(wildcard include/*.hpp include/**/*.hpp)
-# オブジェクトファイル
-OBJS := $(SRCS:%.cpp=$(BUILD_DIR)/%.o)
-# 依存関係ファイル
-DEPS := $(OBJS:.o=.d)
-
-.PHONY: all clean run compile test help
-
+# --- デフォルトターゲット ---
 all: $(COMPILER)
 
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+# --- ソースをアセンブリにコンパイル ---
+compile: $(ASM)
 
-# オブジェクトファイルのコンパイル (自動依存関係生成)
-$(BUILD_DIR)/%.o: %.cpp | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -MMD -MP -o $@ $<
+# --- コンパイラを実行 ---
+# 使用例: make run ARGS="input.c output.s"
+run: $(COMPILER)
+	./$(COMPILER) $(ARGS)
 
-# テスト用ヘルパーのコンパイル (C 言語、C23/C2X 対応)
-$(TEST_HELPER_O): $(TEST_HELPER_C) | $(BUILD_DIR)
-	$(CC) -std=c2x -O2 -c -o $@ $<
-
-# コンパイラ実行ファイルのリンク
-$(COMPILER): $(OBJS) | $(BUILD_DIR)
-	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
-
-$(ASM): $(COMPILER)
-	@if [ -z "$(INPUT)" ]; then \
-		echo "Error: INPUT variable is required. Use: make INPUT=filename.txt"; \
-		exit 1; \
-	fi
-	@echo "Compiling $(INPUT) to assembly..."
-	./$(COMPILER) $(INPUT)
-	@echo "Generated assembly file: $(ASM)"
-
-# GCC でアセンブル
-$(OBJ): $(ASM)
-	$(CC) -c -o $@ $<
-
-# yoctocc が生成したコード + テストヘルパーをリンク（nostdlib で独自の _start を使用）
-$(BIN): $(OBJ) $(TEST_HELPER_O)
-	$(CC) -nostdlib -no-pie -o $@ $^
-
-# 依存関係ファイルのインクルード
--include $(DEPS)
-
+# --- クリーン ---
 clean:
 	rm -rf $(BUILD_DIR)
 
-run: $(COMPILER)
-	./$(COMPILER)
-
-compile: $(ASM)
-
-test:
-	@echo "Running parallel test suite..."
-	@bash test/run_tests_parallel.sh
-
+# --- リビルド ---
 rebuild: clean all
 	@echo "Rebuild complete"
 
+# --- プロファイル ---
+# 使用例: cat test.c | make profile
 profile: clean
-	$(MAKE) PROFILE=1
+	$(MAKE) PROFILE=1 all
 	@rm -f gmon.out
-	./$(COMPILER) test/test1.txt
+	./$(COMPILER) /dev/stdin /dev/null
 	@gprof ./$(COMPILER) gmon.out | tee profile.log
 
+# --- ヘルプ ---
 help:
 	@echo "Available targets:"
 	@echo "  all         - Build the compiler (default)"
-	@echo "  compile     - Compile input file to assembly (INPUT=filename.txt)"
+	@echo "  compile     - Compile input file to assembly (INPUT=filename.c)"
 	@echo "  run         - Run the compiler"
 	@echo "  test        - Run test suite"
 	@echo "  profile     - Profile compiler with gprof"

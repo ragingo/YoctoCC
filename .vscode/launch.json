@@ -36,34 +36,6 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "Debug Compiler (test1.txt)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/yoctocc",
-            "args": [
-                "test/test1.txt"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "gdb の再フォーマットを有効にする",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "逆アセンブリ フレーバーを Intel に設定",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                }
-            ],
-            "preLaunchTask": "Build with Make",
-            "miDebuggerPath": "/usr/bin/gdb"
-        },
-        {
             "name": "Debug Generated Program",
             "type": "cppdbg",
             "request": "launch",
@@ -94,7 +66,7 @@
             "id": "sourceFile",
             "type": "promptString",
             "description": "入力ソースファイル",
-            "default": "test/test1.txt"
+            "default": ""
         },
         {
             "id": "outputFile",
