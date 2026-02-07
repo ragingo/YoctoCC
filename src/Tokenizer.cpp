@@ -18,6 +18,7 @@ namespace {
         const std::string::const_iterator begin;
         const std::string::const_iterator end;
         std::string::const_iterator& it;
+        size_t line;
     };
 
     inline bool isEOF(const ParseContext& context) {
@@ -41,6 +42,7 @@ namespace {
         if (*context.it != '/' || !hasNext(context) || *std::next(context.it) != '*') {
             return false;
         }
+        auto start = context.it;
         context.it += 2;
         constexpr auto endComment = "*/"sv;
         context.it = std::search(context.it, context.end, endComment.cbegin(), endComment.cend());
@@ -49,6 +51,7 @@ namespace {
             return false;
         }
         context.it += 2;
+        context.line += std::count(start, context.it, '\n');
         return true;
     }
 
@@ -62,6 +65,7 @@ namespace {
         token->originalValue = number;
         token->numberValue = std::stoi(number);
         token->location = std::distance(context.begin, context.it - token->originalValue.size());
+        token->line = context.line;
         return token;
     }
 
@@ -122,6 +126,7 @@ namespace {
         token->type = type::arrayOf(type::charType(), str.size() + 1);
         token->originalValue = str;
         token->location = std::distance(context.begin, context.it - token->originalValue.size());
+        token->line = context.line;
         return token;
     }
 
@@ -134,6 +139,7 @@ namespace {
         auto token = std::make_shared<Token>(TokenKind::IDENTIFIER);
         token->originalValue = identifier;
         token->location = std::distance(context.begin, context.it - token->originalValue.size());
+        token->line = context.line;
         return token;
     }
 
@@ -146,6 +152,7 @@ namespace {
             auto token = std::make_shared<Token>(TokenKind::PUNCTUATOR);
             token->originalValue = std::string{ ch, nextCh };
             token->location = std::distance(context.begin, context.it - token->originalValue.size());
+            token->line = context.line;
             context.it += 2;
             return token;
         }
@@ -153,6 +160,7 @@ namespace {
         auto token = std::make_shared<Token>(TokenKind::PUNCTUATOR);
         token->originalValue = ch;
         token->location = std::distance(context.begin, context.it - token->originalValue.size());
+        token->line = context.line;
 
         ++context.it;
 
@@ -170,7 +178,7 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
     Log::sourceCode = content;
     auto it = content.cbegin();
     auto startLocation = [&it, &content]() { return static_cast<size_t>(std::distance(content.cbegin(), it)); };
-    ParseContext context{ content.cbegin(), content.cend(), it };
+    ParseContext context{ content.cbegin(), content.cend(), it, 1 };
 
     while (it != content.cend()) {
         char ch = *it;
@@ -184,6 +192,9 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
         }
 
         if (std::isspace(ch)) {
+            if (ch == '\n') {
+                ++context.line;
+            }
             ++it;
             continue;
         }
@@ -223,24 +234,6 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
                 token->kind = TokenKind::KEYWORD;
             }
         }
-    }
-
-    it = content.cbegin();
-    size_t line = 1;
-    while (it != content.cend()) {
-        size_t currentLocation = std::distance(content.cbegin(), it);
-        for (auto token = head->next; token; token = token->next) {
-            if (token->kind == TokenKind::TERMINATOR) {
-                break;
-            }
-            if (token->location == currentLocation) {
-                token->line = line;
-            }
-        }
-        if (*it == '\n') {
-            ++line;
-        }
-        ++it;
     }
 
     return head->next;

@@ -54,7 +54,7 @@ namespace yoctocc {
         std::vector<std::string> operandStrings = {
             operand_to_string(std::forward<Operands>(operands))...
         };
-        std::string result = to_string(opCode) + " ";;
+        std::string result = to_string(opCode) + " ";
         for (size_t i = 0; i < operandStrings.size(); ++i) {
             result += operandStrings[i];
             if (i + 1 < operandStrings.size()) {

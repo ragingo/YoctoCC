@@ -12,35 +12,32 @@ using enum SystemCall;
 
 void AssemblyWriter::compile(const std::vector<std::string>& code) noexcept {
     std::string RETURN_LABEL = ".L.return";
-    std::vector<std::string> result = _code;
-    result.emplace_back(".intel_syntax noprefix\n");
-    result.emplace_back(std::format("{}\n", to_string(TEXT)));
-    result.emplace_back(std::format("    {} {}\n", to_string(GLOBAL), SYSTEM_ENTRY_POINT));
-    result.emplace_back(std::format("{}:\n", SYSTEM_ENTRY_POINT));
-    result.emplace_back(std::format("    {}\n", call(USER_ENTRY_POINT)));
-    result.emplace_back(std::format("    {}\n", jmp(RETURN_LABEL)));
+    _code.emplace_back(".intel_syntax noprefix\n");
+    _code.emplace_back(std::format("{}\n", to_string(TEXT)));
+    _code.emplace_back(std::format("    {} {}\n", to_string(GLOBAL), SYSTEM_ENTRY_POINT));
+    _code.emplace_back(std::format("{}:\n", SYSTEM_ENTRY_POINT));
+    _code.emplace_back(std::format("    {}\n", call(USER_ENTRY_POINT)));
+    _code.emplace_back(std::format("    {}\n", jmp(RETURN_LABEL)));
 
-    result.emplace_back("\n");
-    result.emplace_back("# ===== Generated Code Start =====\n");
-    result.emplace_back("\n");
+    _code.emplace_back("\n");
+    _code.emplace_back("# ===== Generated Code Start =====\n");
+    _code.emplace_back("\n");
 
     for (auto&& line : code) {
-        result.emplace_back(std::format("{}\n", line));
+        _code.emplace_back(std::format("{}\n", line));
     }
 
-    result.emplace_back("\n");
-    result.emplace_back("# ===== Generated Code End =====\n");
-    result.emplace_back("\n");
+    _code.emplace_back("\n");
+    _code.emplace_back("# ===== Generated Code End =====\n");
+    _code.emplace_back("\n");
 
-    result.emplace_back(std::format("{}:\n", RETURN_LABEL));
-    result.emplace_back(std::format("    {}\n", mov(RDI, RAX)));
-    result.emplace_back(std::format("    {}\n", mov(RAX, std::to_underlying(EXIT))));
-    result.emplace_back(std::format("    {}\n", syscall_()));
+    _code.emplace_back(std::format("{}:\n", RETURN_LABEL));
+    _code.emplace_back(std::format("    {}\n", mov(RDI, RAX)));
+    _code.emplace_back(std::format("    {}\n", mov(RAX, std::to_underlying(EXIT))));
+    _code.emplace_back(std::format("    {}\n", syscall_()));
 
     // 実行可能スタックが不要であることを示すセクション（警告を抑制）
-    result.emplace_back(".section .note.GNU-stack,\"\",%progbits\n");
-
-    _code = std::move(result);
+    _code.emplace_back(".section .note.GNU-stack,\"\",%progbits\n");
 }
 
 void AssemblyWriter::clear() noexcept {

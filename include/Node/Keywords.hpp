@@ -15,7 +15,7 @@ namespace yoctocc {
         SIZEOF
     };
 
-    static const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
+    inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
         { "return", Keyword::RETURN },
         { "if", Keyword::IF },
         { "else", Keyword::ELSE },

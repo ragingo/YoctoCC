@@ -34,6 +34,7 @@ struct std::formatter<yoctocc::TokenKind> {
             case IDENTIFIER: name = "IDENTIFIER"; break;
             case PUNCTUATOR: name = "PUNCTUATOR"; break;
             case KEYWORD:    name = "KEYWORD";    break;
+            case STRING:     name = "STRING";     break;
             case DIGIT:      name = "DIGIT";      break;
             case TERMINATOR: name = "TERMINATOR"; break;
             default:         name = "???";        break;
