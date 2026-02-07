@@ -55,13 +55,13 @@ namespace {
         return true;
     }
 
-    std::shared_ptr<Token> parseNumber(ParseContext& context) {
+    std::unique_ptr<Token> parseNumber(ParseContext& context) {
         std::string number;
         while (hasNext(context) && std::isdigit(*context.it)) {
             number += *context.it;
             ++context.it;
         }
-        auto token = std::make_shared<Token>(TokenKind::DIGIT);
+        auto token = std::make_unique<Token>(TokenKind::DIGIT);
         token->originalValue = number;
         token->numberValue = std::stoi(number);
         token->location = std::distance(context.begin, context.it - token->originalValue.size());
@@ -69,7 +69,7 @@ namespace {
         return token;
     }
 
-    std::shared_ptr<Token> parseStringLiteral(ParseContext& context) {
+    std::unique_ptr<Token> parseStringLiteral(ParseContext& context) {
         std::string str;
         ++context.it; // 最初の " をスキップ
 
@@ -122,7 +122,7 @@ namespace {
         }
         ++context.it;
 
-        auto token = std::make_shared<Token>(TokenKind::STRING);
+        auto token = std::make_unique<Token>(TokenKind::STRING);
         token->type = type::arrayOf(type::charType(), str.size() + 1);
         token->originalValue = str;
         token->location = std::distance(context.begin, context.it - token->originalValue.size());
@@ -130,26 +130,26 @@ namespace {
         return token;
     }
 
-    std::shared_ptr<Token> parseIdentifier(ParseContext& context) {
+    std::unique_ptr<Token> parseIdentifier(ParseContext& context) {
         std::string identifier;
         while (hasNext(context) && isIdentifierChar(*context.it, false)) {
             identifier += *context.it;
             ++context.it;
         }
-        auto token = std::make_shared<Token>(TokenKind::IDENTIFIER);
+        auto token = std::make_unique<Token>(TokenKind::IDENTIFIER);
         token->originalValue = identifier;
         token->location = std::distance(context.begin, context.it - token->originalValue.size());
         token->line = context.line;
         return token;
     }
 
-    std::shared_ptr<Token> parsePunctuator(char ch, ParseContext& context) {
+    std::unique_ptr<Token> parsePunctuator(char ch, ParseContext& context) {
         auto nextCh = hasNext(context) ? *std::next(context.it) : '\0';
         std::array<char, 2> chars = { ch, nextCh };
 
         if (chars == std::array{ '=', '=' } || chars == std::array{ '!', '=' } ||
             chars == std::array{ '<', '=' } || chars == std::array{ '>', '=' }) {
-            auto token = std::make_shared<Token>(TokenKind::PUNCTUATOR);
+            auto token = std::make_unique<Token>(TokenKind::PUNCTUATOR);
             token->originalValue = std::string{ ch, nextCh };
             token->location = std::distance(context.begin, context.it - token->originalValue.size());
             token->line = context.line;
@@ -157,7 +157,7 @@ namespace {
             return token;
         }
 
-        auto token = std::make_shared<Token>(TokenKind::PUNCTUATOR);
+        auto token = std::make_unique<Token>(TokenKind::PUNCTUATOR);
         token->originalValue = ch;
         token->location = std::distance(context.begin, context.it - token->originalValue.size());
         token->line = context.line;
@@ -170,9 +170,9 @@ namespace {
 
 namespace yoctocc {
 
-std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
-    auto head = std::make_shared<Token>();
-    auto current = head;
+std::unique_ptr<Token> tokenize(std::ifstream& ifs) {
+    auto head = std::make_unique<Token>();
+    Token* current = head.get();
 
     std::string content{std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>()};
     Log::sourceCode = content;
@@ -199,7 +199,7 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
             continue;
         }
 
-        std::shared_ptr<Token> next;
+        std::unique_ptr<Token> next;
 
         if (std::isdigit(ch)) {
             next = parseNumber(context);
@@ -218,25 +218,25 @@ std::shared_ptr<Token> tokenize(std::ifstream& ifs) {
             return nullptr;
         }
 
-        current->next = next;
-        current = next;
+        current->next = std::move(next);
+        current = current->next.get();
     }
 
-    auto terminator = std::make_shared<Token>(TokenKind::TERMINATOR);
-    current->next = terminator;
+    auto terminator = std::make_unique<Token>(TokenKind::TERMINATOR);
+    current->next = std::move(terminator);
 
-    for (auto token = head->next; token; token = token->next) {
-        if (token->kind == TokenKind::TERMINATOR) {
+    for (Token* tok = head->next.get(); tok; tok = tok->next.get()) {
+        if (tok->kind == TokenKind::TERMINATOR) {
             break;
         }
-        if (token->kind == TokenKind::IDENTIFIER) {
-            if (KEYWORDS.find(token->originalValue) != KEYWORDS.end()) {
-                token->kind = TokenKind::KEYWORD;
+        if (tok->kind == TokenKind::IDENTIFIER) {
+            if (KEYWORDS.find(tok->originalValue) != KEYWORDS.end()) {
+                tok->kind = TokenKind::KEYWORD;
             }
         }
     }
 
-    return head->next;
+    return std::move(head->next);
 }
 
 } // namespace yoctocc

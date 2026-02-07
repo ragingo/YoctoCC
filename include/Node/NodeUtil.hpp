@@ -6,12 +6,12 @@ namespace yoctocc {
 
 struct Token;
 
-std::shared_ptr<Node> createNumberNode(const std::shared_ptr<Token>& token, int value);
-std::shared_ptr<Node> createUnaryNode(NodeType type, const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& operand);
-std::shared_ptr<Node> createBinaryNode(NodeType type, const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& left, const std::shared_ptr<Node>& right);
-std::shared_ptr<Node> createVariableNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Object>& variable);
-std::shared_ptr<Node> createBlockNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& body = nullptr);
-std::shared_ptr<Node> createAddNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& left, const std::shared_ptr<Node>& right);
-std::shared_ptr<Node> createSubNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& left, const std::shared_ptr<Node>& right);
+std::unique_ptr<Node> createNumberNode(const Token* token, int value);
+std::unique_ptr<Node> createUnaryNode(NodeType type, const Token* token, std::unique_ptr<Node> operand);
+std::unique_ptr<Node> createBinaryNode(NodeType type, const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right);
+std::unique_ptr<Node> createVariableNode(const Token* token, Object* variable);
+std::unique_ptr<Node> createBlockNode(const Token* token, std::unique_ptr<Node> body = nullptr);
+std::unique_ptr<Node> createAddNode(const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right);
+std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right);
 
 } // namespace yoctocc

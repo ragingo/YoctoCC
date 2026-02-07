@@ -6,6 +6,6 @@ namespace yoctocc {
 
 struct Token;
 
-std::shared_ptr<Token> tokenize(std::ifstream& ifs);
+std::unique_ptr<Token> tokenize(std::ifstream& ifs);
 
 } // namespace yoctocc

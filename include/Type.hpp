@@ -28,7 +28,7 @@ struct Type {
     std::shared_ptr<Type> base;
 
     // declaration
-    std::shared_ptr<Token> name;
+    const Token* name = nullptr;
 
     // function type
     std::shared_ptr<Type> returnType;
@@ -78,7 +78,7 @@ namespace type {
         return type && (type->kind == TypeKind::CHAR || type->kind == TypeKind::INT);
     }
 
-    inline bool isTypeName(const std::shared_ptr<Token>& token) {
+    inline bool isTypeName(const Token* token) {
         if (!token) {
             return false;
         }
@@ -88,7 +88,7 @@ namespace type {
     std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base);
     std::shared_ptr<Type> functionType(const std::shared_ptr<Type>& returnType);
     std::shared_ptr<Type> arrayOf(const std::shared_ptr<Type>& base, int size);
-    void addType(const std::shared_ptr<Node>& node);
+    void addType(Node* node);
 }
 
 } // namespace yoctocc

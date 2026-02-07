@@ -36,69 +36,65 @@ namespace yoctocc {
         NUMBER,
     };
 
+    struct Node {
+        NodeType nodeType;
+        int value = 0;
+        std::shared_ptr<Type> type;
+        const Token* token = nullptr;
+        std::unique_ptr<Node> left;
+        std::unique_ptr<Node> right;
+        std::unique_ptr<Node> next;
+        // if or for
+        std::unique_ptr<Node> condition;
+        std::unique_ptr<Node> then;
+        std::unique_ptr<Node> els;
+        std::unique_ptr<Node> init;
+        std::unique_ptr<Node> inc;
+        // block or statement expression
+        std::unique_ptr<Node> body;
+        Object* variable = nullptr;
+        // function call
+        std::string functionName;
+        std::unique_ptr<Node> arguments;
+
+        Node(NodeType type, const Token* token): nodeType(type), token(token) {}
+    };
+
     struct Object {
         // local or global variable/function
-        bool isLocal;
+        bool isLocal = false;
         // global variable or function
-        bool isFunction;
+        bool isFunction = false;
         // global variable
         std::string initialData;
         // local variable
-        int offset;
+        int offset = 0;
         std::string name;
         std::shared_ptr<Type> type;
 
         // function
-        std::shared_ptr<Object> parameters;
-        std::shared_ptr<Node> body;
-        std::shared_ptr<Object> locals;
-        int stackSize;
+        Object* parameters = nullptr;
+        std::unique_ptr<Node> body;
+        std::unique_ptr<Object> locals;
+        int stackSize = 0;
 
-        std::shared_ptr<Object> next;
+        std::unique_ptr<Object> next;
     };
 
-    inline std::shared_ptr<Object> makeVariable(const std::string& name, const std::shared_ptr<Type>& type, bool isLocal) {
-        auto var = std::make_shared<Object>();
+    inline std::unique_ptr<Object> makeVariable(const std::string& name, const std::shared_ptr<Type>& type, bool isLocal) {
+        auto var = std::make_unique<Object>();
         var->isLocal = isLocal;
-        var->isFunction = false;
         var->name = name;
         var->type = type;
-        var->stackSize = 0;
         return var;
     }
 
-    inline std::shared_ptr<Object> makeFunction(const std::string& name, const std::shared_ptr<Type>& returnType) {
-        auto func = std::make_shared<Object>();
-        func->isLocal = false;
+    inline std::unique_ptr<Object> makeFunction(const std::string& name, const std::shared_ptr<Type>& returnType) {
+        auto func = std::make_unique<Object>();
         func->isFunction = true;
         func->name = name;
         func->type = returnType;
-        func->stackSize = 0;
         return func;
-    }
-
-    struct Node {
-        NodeType nodeType;
-        int value;
-        std::shared_ptr<Type> type;
-        std::shared_ptr<Token> token;
-        std::shared_ptr<Node> left;
-        std::shared_ptr<Node> right;
-        std::shared_ptr<Node> next;
-        // if or for
-        std::shared_ptr<Node> condition;
-        std::shared_ptr<Node> then;
-        std::shared_ptr<Node> els;
-        std::shared_ptr<Node> init;
-        std::shared_ptr<Node> inc;
-        // block or statement expression
-        std::shared_ptr<Node> body;
-        std::shared_ptr<Object> variable;
-        // function call
-        std::string functionName;
-        std::shared_ptr<Node> arguments;
-
-        Node(NodeType type, std::shared_ptr<Token> token): nodeType(type), value(0), token(token) {}
     };
 
 } // namespace yoctocc

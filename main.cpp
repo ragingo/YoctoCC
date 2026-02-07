@@ -33,17 +33,17 @@ int main(int argc, char* argv[]) {
 
     std::println("Tokenizing...");
     Log::sourceFileName = sourceFile;
-    auto token = tokenize(ifs);
+    auto tokenChain = tokenize(ifs);
 
     std::println("Parsing...");
     Parser parser{};
-    auto program = parser.parse(token);
+    auto program = parser.parse(tokenChain.get());
 
     std::println("Generating...");
     Generator generator{};
     AssemblyWriter writer{};
     writer.addLine(directive::file(1, sourceFile));
-    writer.compile(generator.run(program));
+    writer.compile(generator.run(program.get()));
 
     std::println("Writing...");
     for (const auto& line : writer.getCode()) {

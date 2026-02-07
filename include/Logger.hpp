@@ -45,7 +45,7 @@ struct SourceInfo {
 
     SourceInfo(size_t loc) : location(loc), line(0) {}
     SourceInfo(size_t loc, size_t line) : location(loc), line(line) {}
-    SourceInfo(const std::shared_ptr<yoctocc::Token>& token) : location(token->location), line(token->line) {}
+    SourceInfo(const yoctocc::Token* token) : location(token->location), line(token->line) {}
 };
 
 inline void error(std::string_view message, std::optional<SourceInfo> sourceInfo = std::nullopt, bool exit = true) {

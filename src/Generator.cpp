@@ -17,7 +17,7 @@ using enum GasDirective;
 using enum Register;
 using namespace std::string_view_literals;
 
-std::vector<std::string> Generator::run(const std::shared_ptr<Object>& obj) {
+std::vector<std::string> Generator::run(Object* obj) {
     assert(obj);
     assignLocalVariableOffsets(obj);
     emitData(obj);
@@ -25,7 +25,7 @@ std::vector<std::string> Generator::run(const std::shared_ptr<Object>& obj) {
     return lines;
 }
 
-void Generator::load(const std::shared_ptr<Type>& type) {
+void Generator::load(const Type* type) {
     assert(type);
     if (type->kind == TypeKind::ARRAY) {
         // 何もしない
@@ -38,7 +38,7 @@ void Generator::load(const std::shared_ptr<Type>& type) {
     }
 }
 
-void Generator::store(const std::shared_ptr<Type>& type) {
+void Generator::store(const Type* type) {
     addCode(pop(RDI));
     if (type->size == 1) {
         addCode(mov(Address{RDI}, AL));
@@ -47,23 +47,23 @@ void Generator::store(const std::shared_ptr<Type>& type) {
     }
 }
 
-void Generator::assignLocalVariableOffsets(const std::shared_ptr<Object>& obj) {
+void Generator::assignLocalVariableOffsets(Object* obj) {
     assert(obj);
 
-    for (auto fn = obj; fn; fn = fn->next) {
+    for (Object* fn = obj; fn; fn = fn->next.get()) {
         if (!fn->isFunction) {
             continue;
         }
         int offset = 0;
-        for (auto obj = fn->locals; obj; obj = obj->next) {
-            offset += obj->type->size;
-            obj->offset = -offset;
+        for (Object* local = fn->locals.get(); local; local = local->next.get()) {
+            offset += local->type->size;
+            local->offset = -offset;
         }
         fn->stackSize = alignTo(offset, STACK_ALIGNMENT);
     }
 }
 
-void Generator::generateAddress(const std::shared_ptr<Node>& node) {
+void Generator::generateAddress(const Node* node) {
     assert(node);
 
     if (node->nodeType == NodeType::VARIABLE) {
@@ -76,20 +76,20 @@ void Generator::generateAddress(const std::shared_ptr<Node>& node) {
     }
 
     if (node->nodeType == NodeType::DEREFERENCE) {
-        generateExpression(node->left);
+        generateExpression(node->left.get());
         return;
     }
 
     if (node->nodeType == NodeType::COMMA) {
-        generateExpression(node->left);
-        generateAddress(node->right);
+        generateExpression(node->left.get());
+        generateAddress(node->right.get());
         return;
     }
 
     Log::error("Not an lvalue"sv, node->token);
 }
 
-void Generator::generateStatement(const std::shared_ptr<Node>& node) {
+void Generator::generateStatement(const Node* node) {
     assert(node);
     addCode(directive::loc(1, node->token->line));
 
@@ -98,17 +98,17 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
         auto elseLabel = makeElseLabel(count);
         auto endLabel = makeEndLabel(count);
 
-        generateExpression(node->condition);
+        generateExpression(node->condition.get());
         // if
         addCode(cmp(RAX, 0));
         addCode(je(elseLabel.ref()));
         // then
-        generateStatement(node->then);
+        generateStatement(node->then.get());
         addCode(jmp(endLabel.ref()));
         // else
         addCode(elseLabel.def());
         if (node->els) {
-            generateStatement(node->els);
+            generateStatement(node->els.get());
         }
         addCode(endLabel.def());
         return;
@@ -119,37 +119,35 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
         auto endLabel = makeEndLabel(count);
 
         if (node->init) {
-            generateStatement(node->init);
+            generateStatement(node->init.get());
         }
         addCode(beginLabel.def());
         if (node->condition) {
-            generateExpression(node->condition);
+            generateExpression(node->condition.get());
             addCode(cmp(RAX, 0));
             addCode(je(endLabel.ref()));
         }
-        generateStatement(node->then);
+        generateStatement(node->then.get());
         if (node->inc) {
-            generateExpression(node->inc);
+            generateExpression(node->inc.get());
         }
         addCode(jmp(beginLabel.ref()));
         addCode(endLabel.def());
         return;
     }
     if (node->nodeType == NodeType::BLOCK) {
-        auto statement = node->body;
-        while (statement) {
+        for (const Node* statement = node->body.get(); statement; statement = statement->next.get()) {
             generateStatement(statement);
-            statement = statement->next;
         }
         return;
     }
     if (node->nodeType == NodeType::RETURN) {
-        generateExpression(node->left);
+        generateExpression(node->left.get());
         addCode(jmp(makeLabel("return", currentFunction->name).ref()));
         return;
     }
     if (node->nodeType == NodeType::EXPRESSION_STATEMENT) {
-        generateExpression(node->left);
+        generateExpression(node->left.get());
         return;
     }
 
@@ -157,7 +155,7 @@ void Generator::generateStatement(const std::shared_ptr<Node>& node) {
     Log::error("Invalid statement"sv, node->token);
 }
 
-void Generator::generateExpression(const std::shared_ptr<Node>& node) {
+void Generator::generateExpression(const Node* node) {
     assert(node);
     addCode(directive::loc(1, node->token->line));
 
@@ -166,39 +164,39 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
             addCode(mov(RAX, node->value));
             return;
         case NodeType::NEGATE:
-            generateExpression(node->left);
+            generateExpression(node->left.get());
             addCode(neg(RAX));
             return;
         case NodeType::VARIABLE:
             generateAddress(node);
-            load(node->type);
+            load(node->type.get());
             return;
         case NodeType::ADDRESS:
-            generateAddress(node->left);
+            generateAddress(node->left.get());
             return;
         case NodeType::DEREFERENCE:
-            generateExpression(node->left);
-            load(node->type);
+            generateExpression(node->left.get());
+            load(node->type.get());
             return;
         case NodeType::ASSIGN:
-            generateAddress(node->left);
+            generateAddress(node->left.get());
             addCode(push(RAX));
-            generateExpression(node->right);
-            store(node->type);
+            generateExpression(node->right.get());
+            store(node->type.get());
             return;
         case NodeType::STATEMENT_EXPRESSION:
-            for (auto stmt = node->body; stmt; stmt = stmt->next) {
+            for (const Node* stmt = node->body.get(); stmt; stmt = stmt->next.get()) {
                 generateStatement(stmt);
             }
             return;
         case NodeType::COMMA:
-            generateExpression(node->left);
-            generateExpression(node->right);
+            generateExpression(node->left.get());
+            generateExpression(node->right.get());
             return;
         case NodeType::FUNCTION_CALL:
             {
                 int argCount = 0;
-                for (auto arg = node->arguments; arg; arg = arg->next) {
+                for (const Node* arg = node->arguments.get(); arg; arg = arg->next.get()) {
                     generateExpression(arg);
                     addCode(push(RAX));
                     argCount++;
@@ -215,10 +213,10 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
             break;
     }
 
-    generateExpression(node->right);
+    generateExpression(node->right.get());
     addCode(push(RAX));
 
-    generateExpression(node->left);
+    generateExpression(node->left.get());
     addCode(pop(RDI));
 
     switch (node->nodeType) {
@@ -287,7 +285,7 @@ void Generator::generateExpression(const std::shared_ptr<Node>& node) {
     Log::error("Invalid expression"sv, node->token);
 }
 
-void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
+void Generator::generateFunction(const Object* obj) {
     assert(obj);
     currentFunction = obj;
 
@@ -303,7 +301,7 @@ void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
     }
 
     int i = 0;
-    for (auto param = obj->parameters; param; param = param->next) {
+    for (const Object* param = obj->parameters; param; param = param->next.get()) {
         if (param->type->size == 1) {
             addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS8[i++]));
         } else {
@@ -311,7 +309,7 @@ void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
         }
     }
 
-    generateStatement(obj->body);
+    generateStatement(obj->body.get());
     // Epilogue
     addCode(
         makeLabel("return", obj->name).def(),
@@ -321,10 +319,10 @@ void Generator::generateFunction(const std::shared_ptr<Object>& obj) {
     );
 }
 
-void Generator::emitData(std::shared_ptr<Object> obj) {
+void Generator::emitData(const Object* obj) {
     assert(obj);
 
-    for (auto var = obj; var; var = var->next) {
+    for (const Object* var = obj; var; var = var->next.get()) {
         if (var->isFunction) {
             continue;
         }
@@ -344,12 +342,12 @@ void Generator::emitData(std::shared_ptr<Object> obj) {
     }
 }
 
-void Generator::emitText(std::shared_ptr<Object> obj) {
+void Generator::emitText(const Object* obj) {
     assert(obj);
 
     addCode(to_string(TEXT));
 
-    for (auto fn = obj; fn; fn = fn->next) {
+    for (const Object* fn = obj; fn; fn = fn->next.get()) {
         if (!fn->isFunction) {
             continue;
         }

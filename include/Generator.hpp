@@ -13,21 +13,21 @@ struct Type;
 
 class Generator final {
 public:
-    std::vector<std::string> run(const std::shared_ptr<Object>& obj);
+    std::vector<std::string> run(Object* obj);
 
 private:
     static constexpr size_t alignTo(size_t n, size_t align) {
         return (n + align - 1) / align * align;
     }
-    void load(const std::shared_ptr<Type>& type);
-    void store(const std::shared_ptr<Type>& type);
-    void assignLocalVariableOffsets(const std::shared_ptr<Object>& obj);
-    void generateAddress(const std::shared_ptr<Node>& node);
-    void generateStatement(const std::shared_ptr<Node>& node);
-    void generateExpression(const std::shared_ptr<Node>& node);
-    void generateFunction(const std::shared_ptr<Object>& obj);
-    void emitData(std::shared_ptr<Object> obj);
-    void emitText(std::shared_ptr<Object> obj);
+    void load(const Type* type);
+    void store(const Type* type);
+    void assignLocalVariableOffsets(Object* obj);
+    void generateAddress(const Node* node);
+    void generateStatement(const Node* node);
+    void generateExpression(const Node* node);
+    void generateFunction(const Object* obj);
+    void emitData(const Object* obj);
+    void emitText(const Object* obj);
 
     inline void addCode(std::string&& line) {
         lines.emplace_back(std::move(line));
@@ -40,7 +40,7 @@ private:
 
 private:
     std::vector<std::string> lines{};
-    std::shared_ptr<Object> currentFunction;
+    const Object* currentFunction = nullptr;
     uint64_t labelCount = 0UL;
 };
 

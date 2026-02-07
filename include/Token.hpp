@@ -1,6 +1,5 @@
 #pragma once
 #include <format>
-#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -54,26 +53,19 @@ struct Token {
     size_t location;
     size_t line;
     std::shared_ptr<Type> type;
-    std::shared_ptr<Token> next;
+    std::unique_ptr<Token> next;
 
     Token(TokenKind kind = TokenKind::UNKNOWN) : kind(kind), numberValue(0), location(0), line(0) {}
 };
 
 namespace token {
-    inline bool is(const std::shared_ptr<Token>& token, std::string_view originalValue) {
+    inline bool is(const Token* token, std::string_view originalValue) {
         return token && token->originalValue == originalValue;
     }
 
-    inline std::shared_ptr<Token> skipIf(const std::shared_ptr<Token>& token, std::string_view originalValue) {
+    inline Token* skipIf(Token* token, std::string_view originalValue) {
         if (token && token->originalValue == originalValue) {
-            return token->next;
-        }
-        return token;
-    }
-
-    inline std::shared_ptr<Token> skipIf(const std::shared_ptr<Token>& token, std::function<bool(const std::shared_ptr<Token>&)> predicate) {
-        if (token && predicate(token)) {
-            return token->next;
+            return token->next.get();
         }
         return token;
     }

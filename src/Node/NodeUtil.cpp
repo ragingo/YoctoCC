@@ -9,44 +9,44 @@ using namespace std::literals;
 
 namespace yoctocc {
 
-std::shared_ptr<Node> createNumberNode(const std::shared_ptr<Token>& token, int value) {
-    auto node = std::make_shared<Node>(NodeType::NUMBER, token);
+std::unique_ptr<Node> createNumberNode(const Token* token, int value) {
+    auto node = std::make_unique<Node>(NodeType::NUMBER, token);
     node->value = value;
     return node;
 }
 
-std::shared_ptr<Node> createUnaryNode(NodeType type, const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& operand) {
-    auto node = std::make_shared<Node>(type, token);
-    node->left = operand;
+std::unique_ptr<Node> createUnaryNode(NodeType type, const Token* token, std::unique_ptr<Node> operand) {
+    auto node = std::make_unique<Node>(type, token);
+    node->left = std::move(operand);
     return node;
 }
 
-std::shared_ptr<Node> createBinaryNode(NodeType type, const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& left, const std::shared_ptr<Node>& right) {
-    auto node = std::make_shared<Node>(type, token);
-    node->left = left;
-    node->right = right;
+std::unique_ptr<Node> createBinaryNode(NodeType type, const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right) {
+    auto node = std::make_unique<Node>(type, token);
+    node->left = std::move(left);
+    node->right = std::move(right);
     return node;
 }
 
-std::shared_ptr<Node> createVariableNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Object>& variable) {
-    auto node = std::make_shared<Node>(NodeType::VARIABLE, token);
+std::unique_ptr<Node> createVariableNode(const Token* token, Object* variable) {
+    auto node = std::make_unique<Node>(NodeType::VARIABLE, token);
     node->variable = variable;
     return node;
 }
 
-std::shared_ptr<Node> createBlockNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& body) {
-    auto node = std::make_shared<Node>(NodeType::BLOCK, token);
-    node->body = body;
+std::unique_ptr<Node> createBlockNode(const Token* token, std::unique_ptr<Node> body) {
+    auto node = std::make_unique<Node>(NodeType::BLOCK, token);
+    node->body = std::move(body);
     return node;
 }
 
-std::shared_ptr<Node> createAddNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& left, const std::shared_ptr<Node>& right) {
-    type::addType(left);
-    type::addType(right);
+std::unique_ptr<Node> createAddNode(const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right) {
+    type::addType(left.get());
+    type::addType(right.get());
 
     // number + number
     if (type::isInteger(left->type) && type::isInteger(right->type)) {
-        return createBinaryNode(NodeType::ADD, token, left, right);
+        return createBinaryNode(NodeType::ADD, token, std::move(left), std::move(right));
     }
 
     // pointer + pointer (error)
@@ -56,40 +56,40 @@ std::shared_ptr<Node> createAddNode(const std::shared_ptr<Token>& token, const s
     }
 
     // not pointer + pointer (swap)
-    auto newLeft = left;
-    auto newRight = right;
     if (!left->type->base && right->type->base) {
-        std::swap(newLeft, newRight);
+        std::swap(left, right);
     }
 
     // pointer + number
-    newRight = createBinaryNode(NodeType::MUL, token, newRight, createNumberNode(token, newLeft->type->base->size));
-    return createBinaryNode(NodeType::ADD, token, newLeft, newRight);
+    auto newRight = createBinaryNode(NodeType::MUL, token, std::move(right), createNumberNode(token, left->type->base->size));
+    return createBinaryNode(NodeType::ADD, token, std::move(left), std::move(newRight));
 }
 
-std::shared_ptr<Node> createSubNode(const std::shared_ptr<Token>& token, const std::shared_ptr<Node>& left, const std::shared_ptr<Node>& right) {
-    type::addType(left);
-    type::addType(right);
+std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right) {
+    type::addType(left.get());
+    type::addType(right.get());
 
     // number - number
     if (type::isInteger(left->type) && type::isInteger(right->type)) {
-        return createBinaryNode(NodeType::SUB, token, left, right);
+        return createBinaryNode(NodeType::SUB, token, std::move(left), std::move(right));
     }
 
     // pointer - number
     if (left->type->base && type::isInteger(right->type)) {
-        auto newRight = createBinaryNode(NodeType::MUL, token, right, createNumberNode(token, left->type->base->size));
-        type::addType(newRight);
-        auto node = createBinaryNode(NodeType::SUB, token, left, newRight);
-        node->type = left->type;
+        auto resultType = left->type;
+        auto newRight = createBinaryNode(NodeType::MUL, token, std::move(right), createNumberNode(token, left->type->base->size));
+        type::addType(newRight.get());
+        auto node = createBinaryNode(NodeType::SUB, token, std::move(left), std::move(newRight));
+        node->type = resultType;
         return node;
     }
 
     // pointer - pointer
     if (left->type->base && right->type->base) {
-        auto node = createBinaryNode(NodeType::SUB, token, left, right);
+        int baseSize = left->type->base->size;
+        auto node = createBinaryNode(NodeType::SUB, token, std::move(left), std::move(right));
         node->type = std::make_shared<Type>(TypeKind::INT);
-        return createBinaryNode(NodeType::DIV, token, node, createNumberNode(token, left->type->base->size));
+        return createBinaryNode(NodeType::DIV, token, std::move(node), createNumberNode(token, baseSize));
     }
 
     Log::error("Invalid subtraction involving pointers"sv, token);

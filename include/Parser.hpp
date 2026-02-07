@@ -8,34 +8,39 @@ struct Object;
 struct Token;
 struct Type;
 
+struct ParseResult {
+    std::unique_ptr<Node> node;
+    Token* rest;
+};
+
 class Parser final {
 public:
-    std::shared_ptr<Object> parse(std::shared_ptr<Token>& token);
+    std::unique_ptr<Object> parse(Token* token);
 
 private:
-    std::shared_ptr<Object> findVariable(std::shared_ptr<Token>& token);
-    std::shared_ptr<Object> createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type);
-    std::shared_ptr<Object> createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type);
-    std::shared_ptr<Node> declaration(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseExpression(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseAssignment(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseCompoundStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseExpressionStatement(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseEquality(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseRelational(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseAdditive(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseMultiply(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseUnary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parsePostfix(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Node> parseFunctionCall(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
-    std::shared_ptr<Token> parseFunction(std::shared_ptr<Token>& result, std::shared_ptr<Type>& baseType);
-    std::shared_ptr<Token> parseGlobalVariable(std::shared_ptr<Token>& token, std::shared_ptr<Type>& baseType);
-    std::shared_ptr<Node> parsePrimary(std::shared_ptr<Token>& result, std::shared_ptr<Token>& token);
+    Object* findVariable(const Token* token);
+    Object* createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type);
+    Object* createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type);
+    ParseResult declaration(Token* token);
+    ParseResult parseExpression(Token* token);
+    ParseResult parseAssignment(Token* token);
+    ParseResult parseStatement(Token* token);
+    ParseResult parseCompoundStatement(Token* token);
+    ParseResult parseExpressionStatement(Token* token);
+    ParseResult parseEquality(Token* token);
+    ParseResult parseRelational(Token* token);
+    ParseResult parseAdditive(Token* token);
+    ParseResult parseMultiply(Token* token);
+    ParseResult parseUnary(Token* token);
+    ParseResult parsePostfix(Token* token);
+    ParseResult parseFunctionCall(Token* token);
+    Token* parseFunction(Token* token, std::shared_ptr<Type>& baseType);
+    Token* parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType);
+    ParseResult parsePrimary(Token* token);
     void applyParamLVars(const std::shared_ptr<Type>& parameter);
 private:
-    std::shared_ptr<Object> _locals;
-    std::shared_ptr<Object> _globals;
+    std::unique_ptr<Object> _locals;
+    std::unique_ptr<Object> _globals;
 };
 
 } // namespace yoctocc

@@ -27,24 +27,24 @@ namespace yoctocc::type {
         return type;
     }
 
-    void addType(const std::shared_ptr<Node>& node) {
+    void addType(Node* node) {
         if (!node || node->type) {
             return;
         }
 
-        addType(node->left);
-        addType(node->right);
-        addType(node->condition);
-        addType(node->then);
-        addType(node->els);
-        addType(node->init);
-        addType(node->inc);
+        addType(node->left.get());
+        addType(node->right.get());
+        addType(node->condition.get());
+        addType(node->then.get());
+        addType(node->els.get());
+        addType(node->init.get());
+        addType(node->inc.get());
 
-        for (auto body = node->body; body; body = body->next) {
+        for (Node* body = node->body.get(); body; body = body->next.get()) {
             addType(body);
         }
 
-        for (auto arguments = node->arguments; arguments; arguments = arguments->next) {
+        for (Node* arguments = node->arguments.get(); arguments; arguments = arguments->next.get()) {
             addType(arguments);
         }
 
@@ -95,9 +95,9 @@ namespace yoctocc::type {
                 return;
             case NodeType::STATEMENT_EXPRESSION:
                 if (node->body) {
-                    auto stmt = node->body;
+                    Node* stmt = node->body.get();
                     while (stmt->next) {
-                        stmt = stmt->next;
+                        stmt = stmt->next.get();
                     }
                     if (stmt->nodeType == NodeType::EXPRESSION_STATEMENT) {
                         node->type = stmt->left->type;
