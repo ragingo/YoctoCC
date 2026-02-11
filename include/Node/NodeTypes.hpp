@@ -3,6 +3,7 @@
 
 namespace yoctocc {
 
+    struct Member;
     struct Node;
     struct Object;
     struct Token;
@@ -23,6 +24,7 @@ namespace yoctocc {
         GREATER_EQUAL, // >=
         ASSIGN,        // =
         COMMA,         // ,
+        MEMBER,        // .
         ADDRESS,       // unary &
         DEREFERENCE,   // unary *
         RETURN,        // return
@@ -53,6 +55,8 @@ namespace yoctocc {
         // block or statement expression
         std::unique_ptr<Node> body;
         Object* variable = nullptr;
+        // struct
+        std::unique_ptr<Member> member;
         // function call
         std::string functionName;
         std::unique_ptr<Node> arguments;
@@ -79,6 +83,13 @@ namespace yoctocc {
         int stackSize = 0;
 
         std::unique_ptr<Object> next;
+    };
+
+    struct Member {
+        const Token* name = nullptr;
+        std::shared_ptr<Type> type;
+        int offset = 0;
+        std::unique_ptr<Member> next;
     };
 
     inline std::unique_ptr<Object> makeVariable(const std::string& name, const std::shared_ptr<Type>& type, bool isLocal) {

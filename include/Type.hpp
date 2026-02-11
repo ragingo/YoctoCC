@@ -4,6 +4,7 @@
 
 namespace yoctocc {
 
+struct Member;
 struct Node;
 
 enum class TypeKind {
@@ -12,6 +13,7 @@ enum class TypeKind {
     POINTER,
     FUNCTION,
     ARRAY,
+    STRUCT,
     UNKNOWN,
 };
 
@@ -30,6 +32,9 @@ struct Type {
     // declaration
     const Token* name = nullptr;
 
+    // struct type
+    std::shared_ptr<Member> members;
+
     // function type
     std::shared_ptr<Type> returnType;
     std::shared_ptr<Type> parameters;
@@ -41,6 +46,7 @@ struct Type {
 enum class DataType {
     CHAR,
     INT,
+    STRUCT,
     UNKNOWN,
 };
 
@@ -50,6 +56,8 @@ constexpr std::string to_string(DataType type) {
             return "char";
         case DataType::INT:
             return "int";
+        case DataType::STRUCT:
+            return "struct";
         default:
             return "???";
     }
@@ -60,6 +68,8 @@ constexpr DataType to_data_type(const std::string& str) {
         return DataType::CHAR;
     } else if (str == "int") {
         return DataType::INT;
+    } else if (str == "struct") {
+        return DataType::STRUCT;
     } else {
         return DataType::UNKNOWN;
     }
@@ -76,6 +86,10 @@ namespace type {
 
     inline bool isInteger(const std::shared_ptr<Type>& type) {
         return type && (type->kind == TypeKind::CHAR || type->kind == TypeKind::INT);
+    }
+
+    inline bool isStruct(const std::shared_ptr<Type>& type) {
+        return type && type->kind == TypeKind::STRUCT;
     }
 
     inline bool isTypeName(const Token* token) {

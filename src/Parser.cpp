@@ -61,13 +61,96 @@ namespace {
         return token->numberValue;
     }
 
+    std::unique_ptr<Member> findStructMember(const std::shared_ptr<Type>& structType, const Token* memberName) {
+        for (auto member = structType->members.get(); member; member = member->next.get()) {
+            if (member->name->originalValue == memberName->originalValue) {
+                auto found = std::make_unique<Member>();
+                found->name = member->name;
+                found->type = member->type;
+                found->offset = member->offset;
+                return found;
+            }
+        }
+        return nullptr;
+    }
+
+    std::unique_ptr<Node> createStructRefNode(const Token* token, std::unique_ptr<Node> left) {
+        type::addType(left.get());
+
+        if (!type::isStruct(left->type)) {
+            Log::error("Left operand is not a struct type"sv, token);
+            return nullptr;
+        }
+
+        auto node = createUnaryNode(NodeType::MEMBER, token, std::move(left));
+        node->member = findStructMember(node->left->type, token);
+
+        return node;
+    }
+
+    const std::shared_ptr<Type> declSpec(Token*& token);
+    const std::shared_ptr<Type> declarator(Token*& token, std::shared_ptr<Type>& type);
+
+    // struct-members = (declspec declarator (","  declarator)* ";")*
+    void structMembers(Token*& token, std::shared_ptr<Type>& structType) {
+        auto head = std::make_unique<Member>();
+        Member* current = head.get();
+
+        while (!token::is(token, "}")) {
+            auto baseType = declSpec(token);
+
+            int i = 0;
+            while (!consumeToken(token, ";")) {
+                if (i++ > 0) {
+                    token = token::skipIf(token, ",");
+                }
+                auto memberType = declarator(token, baseType);
+                auto member = std::make_unique<Member>();
+                member->type = memberType;
+                member->name = memberType->name;
+                current->next = std::move(member);
+                current = current->next.get();
+            }
+        }
+
+        token = token->next.get();
+        structType->members = std::move(head->next);
+    }
+
+    // struct-decl = "{" struct-members
+    const std::shared_ptr<Type> structDecl(Token*& token) {
+        token = token::skipIf(token, "{");
+
+        auto type = std::make_shared<Type>(TypeKind::STRUCT);
+        structMembers(token, type);
+
+        int offset = 0;
+        for (auto member = type->members.get(); member; member = member->next.get()) {
+            member->offset = offset;
+            offset += member->type->size;
+        }
+
+        type->size = offset;
+
+        return type;
+    }
+
+    // declspec = "char" | "int" | struct-decl
     const std::shared_ptr<Type> declSpec(Token*& token) {
         if (token::is(token, "char")) {
             token = token->next.get();
             return type::charType();
         }
-        token = token::skipIf(token, "int");
-        return type::intType();
+        if (token::is(token, "int")) {
+            token = token->next.get();
+            return type::intType();
+        }
+        if (token::is(token, "struct")) {
+            token = token->next.get();
+            return structDecl(token);
+        }
+        Log::error("Expected a type specifier"sv, token);
+        return std::make_shared<Type>(TypeKind::UNKNOWN);
     }
 
     const std::shared_ptr<Type> typeSuffix(Token*& token, std::shared_ptr<Type>& type);
@@ -503,19 +586,27 @@ ParseResult Parser::parseUnary(Token* token) {
     return parsePostfix(token);
 }
 
-// postfix = primary ("[" expr "]")*
+// postfix = primary ("[" expr "]" | "." ident)*
 ParseResult Parser::parsePostfix(Token* token) {
     auto [node, rest] = parsePrimary(token);
     token = rest;
 
-    while (token::is(token, "[")) {
-        auto start = token;
-        auto [index, r] = parseExpression(token->next.get());
-        node = createAddNode(start, std::move(node), std::move(index));
-        node = createUnaryNode(NodeType::DEREFERENCE, start, std::move(node));
-        token = token::skipIf(r, "]");
+    while (true) {
+        if (token::is(token, "[")) {
+            auto start = token;
+            auto [index, rest] = parseExpression(token->next.get());
+            token = token::skipIf(rest, "]");
+            node = createAddNode(start, std::move(node), std::move(index));
+            node = createUnaryNode(NodeType::DEREFERENCE, start, std::move(node));
+            continue;
+        }
+        if (token::is(token, ".")) {
+            node = createStructRefNode(token->next.get(), std::move(node));
+            token = token->next.get()->next.get();
+            continue;
+        }
+        return {std::move(node), token};
     }
-    return {std::move(node), token};
 }
 
 // funcall = ident "(" (assign ("," assign)*)? ")"

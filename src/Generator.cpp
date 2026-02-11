@@ -66,24 +66,27 @@ void Generator::assignLocalVariableOffsets(Object* obj) {
 void Generator::generateAddress(const Node* node) {
     assert(node);
 
-    if (node->nodeType == NodeType::VARIABLE) {
-        if (node->variable->isLocal) {
-            addCode(lea(RAX, Address{RBP, node->variable->offset}));
-        } else {
-            addCode(lea(RAX, RipRelativeAddress{node->variable->name}));
-        }
-        return;
-    }
-
-    if (node->nodeType == NodeType::DEREFERENCE) {
-        generateExpression(node->left.get());
-        return;
-    }
-
-    if (node->nodeType == NodeType::COMMA) {
-        generateExpression(node->left.get());
-        generateAddress(node->right.get());
-        return;
+    switch (node->nodeType) {
+        case NodeType::VARIABLE:
+            if (node->variable->isLocal) {
+                addCode(lea(RAX, Address{RBP, node->variable->offset}));
+            } else {
+                addCode(lea(RAX, RipRelativeAddress{node->variable->name}));
+            }
+            return;
+        case NodeType::DEREFERENCE:
+            generateExpression(node->left.get());
+            return;
+        case NodeType::MEMBER:
+            generateAddress(node->left.get());
+            addCode(add(RAX, node->member->offset));
+            return;
+        case NodeType::COMMA:
+            generateExpression(node->left.get());
+            generateAddress(node->right.get());
+            return;
+        default:
+            break;
     }
 
     Log::error("Not an lvalue"sv, node->token);
@@ -168,6 +171,7 @@ void Generator::generateExpression(const Node* node) {
             addCode(neg(RAX));
             return;
         case NodeType::VARIABLE:
+        case NodeType::MEMBER:
             generateAddress(node);
             load(node->type.get());
             return;
