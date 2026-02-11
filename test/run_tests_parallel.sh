@@ -75,18 +75,21 @@ run_single_test() {
     # コンパイラ実行（出力先を直接指定）
     if ! "$COMPILER" "$test_file" "$asm_file" > "$test_work/compiler.log" 2>&1; then
         echo "FAIL compile" > "$result_file"
+        cp "$test_work/compiler.log" "$test_work/error.log"
         return
     fi
 
     # アセンブル
-    if ! gcc -c -o "$obj_file" "$asm_file" 2>/dev/null; then
+    if ! gcc -c -o "$obj_file" "$asm_file" > "$test_work/assemble.log" 2>&1; then
         echo "FAIL assemble" > "$result_file"
+        cp "$test_work/assemble.log" "$test_work/error.log"
         return
     fi
 
     # リンク
-    if ! gcc -nostdlib -no-pie -o "$bin_file" "$obj_file" "$TEST_HELPER_O" 2>/dev/null; then
+    if ! gcc -nostdlib -no-pie -o "$bin_file" "$obj_file" "$TEST_HELPER_O" > "$test_work/link.log" 2>&1; then
         echo "FAIL link" > "$result_file"
+        cp "$test_work/link.log" "$test_work/error.log"
         return
     fi
 
@@ -186,15 +189,28 @@ for i in $(seq 1 $TOTAL_TESTS); do
             PASSED_TESTS=$((PASSED_TESTS + 1))
         else
             reason=$(echo "$result" | awk '{print $2}')
+            error_log="$WORK_DIR/test_$i/error.log"
             case "$reason" in
                 compile)
                     echo -e "Testing #$i: ${RED}✗ FAILED (compile error): $test_name${NC}"
+                    if [ -f "$error_log" ] && [ -s "$error_log" ]; then
+                        echo -e "${YELLOW}  Error details:${NC}"
+                        sed 's/^/    /' "$error_log"
+                    fi
                     ;;
                 assemble)
                     echo -e "Testing #$i: ${RED}✗ FAILED (assemble error): $test_name${NC}"
+                    if [ -f "$error_log" ] && [ -s "$error_log" ]; then
+                        echo -e "${YELLOW}  Error details:${NC}"
+                        sed 's/^/    /' "$error_log"
+                    fi
                     ;;
                 link)
                     echo -e "Testing #$i: ${RED}✗ FAILED (link error): $test_name${NC}"
+                    if [ -f "$error_log" ] && [ -s "$error_log" ]; then
+                        echo -e "${YELLOW}  Error details:${NC}"
+                        sed 's/^/    /' "$error_log"
+                    fi
                     ;;
                 result)
                     expected=$(echo "$result" | awk '{print $3}')
