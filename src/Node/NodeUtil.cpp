@@ -7,6 +7,23 @@
 
 using namespace std::literals;
 
+namespace {
+    using namespace yoctocc;
+
+    std::unique_ptr<Member> findStructMember(const std::shared_ptr<Type>& structType, const Token* memberName) {
+        for (auto member = structType->members.get(); member; member = member->next.get()) {
+            if (member->name->originalValue == memberName->originalValue) {
+                auto found = std::make_unique<Member>();
+                found->name = member->name;
+                found->type = member->type;
+                found->offset = member->offset;
+                return found;
+            }
+        }
+        return nullptr;
+    }
+}
+
 namespace yoctocc {
 
 std::unique_ptr<Node> createNumberNode(const Token* token, int value) {
@@ -94,6 +111,20 @@ std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> le
 
     Log::error("Invalid subtraction involving pointers"sv, token);
     return nullptr;
+}
+
+std::unique_ptr<Node> createStructRefNode(const Token* token, std::unique_ptr<Node> left) {
+    type::addType(left.get());
+
+    if (!type::isStruct(left->type)) {
+        Log::error("Left operand is not a struct type"sv, token);
+        return nullptr;
+    }
+
+    auto node = createUnaryNode(NodeType::MEMBER, token, std::move(left));
+    node->member = findStructMember(node->left->type, token);
+
+    return node;
 }
 
 } // namespace yoctocc
