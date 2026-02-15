@@ -58,6 +58,7 @@ void Generator::assignLocalVariableOffsets(Object* obj) {
         int offset = 0;
         for (Object* local = fn->locals.get(); local; local = local->next.get()) {
             offset += local->type->size;
+            offset = alignTo(offset, local->type->alignment);
             local->offset = -offset;
         }
         fn->stackSize = alignTo(offset, STACK_ALIGNMENT);
