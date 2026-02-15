@@ -12,56 +12,6 @@ using namespace std::string_view_literals;
 namespace {
     using namespace yoctocc;
 
-    struct VariableScope {
-        std::string name;
-        std::unique_ptr<VariableScope> next;
-        Object* variable = nullptr;
-    };
-
-    struct Scope {
-        std::unique_ptr<VariableScope> variable;
-        std::unique_ptr<Scope> next;
-    };
-
-    std::unique_ptr<Scope> currentScope = std::make_unique<Scope>();
-
-    void enterScope() {
-        auto scope = std::make_unique<Scope>();
-        scope->next = std::move(currentScope);
-        currentScope = std::move(scope);
-    }
-
-    void leaveScope() {
-        assert(currentScope);
-        currentScope = std::move(currentScope->next);
-    }
-
-    void pushVariableScope(const std::string& name, Object* variable) {
-        auto variableScope = std::make_unique<VariableScope>();
-        variableScope->name = name;
-        variableScope->variable = variable;
-        variableScope->next = std::move(currentScope->variable);
-        currentScope->variable = std::move(variableScope);
-    }
-
-    bool consumeToken(Token*& token, std::string_view value) {
-        if (token::is(token, value)) {
-            token = token->next.get();
-            return true;
-        }
-        return false;
-    }
-
-    inline const std::string& getIdentifier(const Token* token) {
-        assert(token && token->kind == TokenKind::IDENTIFIER);
-        return token->originalValue;
-    }
-
-    inline int getNumber(const Token* token) {
-        assert(token && token->kind == TokenKind::DIGIT);
-        return token->numberValue;
-    }
-
     std::unique_ptr<Member> findStructMember(const std::shared_ptr<Type>& structType, const Token* memberName) {
         for (auto member = structType->members.get(); member; member = member->next.get()) {
             if (member->name->originalValue == memberName->originalValue) {
@@ -101,7 +51,7 @@ namespace {
             auto baseType = declSpec(token);
 
             int i = 0;
-            while (!consumeToken(token, ";")) {
+            while (!token::consume(token, ";")) {
                 if (i++ > 0) {
                     token = token::skipIf(token, ",");
                 }
@@ -161,7 +111,7 @@ namespace {
 
     // declarator = "*"* ident type-suffix
     const std::shared_ptr<Type> declarator(Token*& token, std::shared_ptr<Type>& type) {
-        while (consumeToken(token, "*")) {
+        while (token::consume(token, "*")) {
             type = type::pointerTo(type);
         }
 
@@ -210,7 +160,7 @@ namespace {
         }
 
         if (token::is(token, "[")) {
-            int size = getNumber(token->next.get());
+            int size = token::getNumber(token->next.get());
             token = token->next.get()->next.get();
             token = token::skipIf(token, "]");
             type = typeSuffix(token, type);
@@ -253,7 +203,7 @@ std::unique_ptr<Object> Parser::parse(Token* token) {
 }
 
 Object* Parser::findVariable(const Token* token) {
-    for (Scope* scope = currentScope.get(); scope; scope = scope->next.get()) {
+    for (Scope* scope = _currentScope.get(); scope; scope = scope->next.get()) {
         for (VariableScope* vs = scope->variable.get(); vs; vs = vs->next.get()) {
             if (vs->name == token->originalValue) {
                 return vs->variable;
@@ -294,7 +244,7 @@ ParseResult Parser::declaration(Token* token) {
             token = token::skipIf(token, ",");
         }
         auto varType = declarator(token, type);
-        auto varName = getIdentifier(varType->name);
+        auto varName = token::getIdentifier(varType->name);
         auto var = createLocalVariable(varName, varType);
 
         if (!token::is(token, "=")) {
@@ -633,7 +583,7 @@ ParseResult Parser::parseFunctionCall(Token* token) {
     token = token::skipIf(token, ")");
 
     auto node = std::make_unique<Node>(NodeType::FUNCTION_CALL, start);
-    node->functionName = getIdentifier(start);
+    node->functionName = token::getIdentifier(start);
     node->arguments = std::move(head->next);
 
     return {std::move(node), token};
@@ -641,7 +591,7 @@ ParseResult Parser::parseFunctionCall(Token* token) {
 
 Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
     auto funcType = declarator(token, baseType);
-    auto name = getIdentifier(funcType->name);
+    auto name = token::getIdentifier(funcType->name);
     auto func = makeFunction(name, funcType);
     _locals.reset();
 
@@ -667,13 +617,13 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
 Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType) {
     bool isFirst = true;
 
-    while (!consumeToken(token, ";")) {
+    while (!token::consume(token, ";")) {
         if (!isFirst) {
             token = token::skipIf(token, ",");
         }
         isFirst = false;
         auto varType = declarator(token, baseType);
-        auto varName = getIdentifier(varType->name);
+        auto varName = token::getIdentifier(varType->name);
         createGlobalVariable(varName, varType);
     }
 
@@ -737,7 +687,7 @@ ParseResult Parser::parsePrimary(Token* token) {
 void Parser::applyParamLVars(const std::shared_ptr<Type>& parameter) {
     if (parameter) {
         applyParamLVars(parameter->next);
-        createLocalVariable(getIdentifier(parameter->name), parameter);
+        createLocalVariable(token::getIdentifier(parameter->name), parameter);
     }
 }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <format>
 #include <memory>
 #include <string>
@@ -64,10 +65,28 @@ namespace token {
     }
 
     inline Token* skipIf(Token* token, std::string_view originalValue) {
-        if (token && token->originalValue == originalValue) {
+        if (is(token, originalValue)) {
             return token->next.get();
         }
         return token;
+    }
+
+    inline bool consume(Token*& token, std::string_view originalValue) {
+        if (is(token, originalValue)) {
+            token = token->next.get();
+            return true;
+        }
+        return false;
+    }
+
+    inline const std::string& getIdentifier(const Token* token) {
+        assert(token && token->kind == TokenKind::IDENTIFIER);
+        return token->originalValue;
+    }
+
+    inline int getNumber(const Token* token) {
+        assert(token && token->kind == TokenKind::DIGIT);
+        return token->numberValue;
     }
 }
 
