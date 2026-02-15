@@ -23,6 +23,8 @@ struct Type {
     // sizeof()
     int size;
 
+    int alignment;
+
     // array type
     int arraySize;
 
@@ -40,7 +42,7 @@ struct Type {
     std::shared_ptr<Type> parameters;
     std::shared_ptr<Type> next;
 
-    Type(TypeKind kind, int size = 0): kind(kind), size(size), arraySize(0), base(nullptr) {}
+    Type(TypeKind kind, int size = 0, int alignment = 0): kind(kind), size(size), alignment(alignment), arraySize(0), base(nullptr) {}
 };
 
 enum class DataType {
@@ -77,11 +79,11 @@ constexpr DataType to_data_type(const std::string& str) {
 
 namespace type {
     inline std::shared_ptr<Type> charType() {
-        return std::make_shared<Type>(TypeKind::CHAR, 1);
+        return std::make_shared<Type>(TypeKind::CHAR, 1, 1);
     }
 
     inline std::shared_ptr<Type> intType() {
-        return std::make_shared<Type>(TypeKind::INT, 8);
+        return std::make_shared<Type>(TypeKind::INT, 8, 8);
     }
 
     inline bool isInteger(const std::shared_ptr<Type>& type) {

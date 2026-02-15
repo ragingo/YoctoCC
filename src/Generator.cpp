@@ -6,6 +6,7 @@
 #include "Node/Node.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
+#include "Utility.hpp"
 
 namespace {
     constexpr size_t STACK_ALIGNMENT = 16;

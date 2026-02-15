@@ -9,7 +9,7 @@ using namespace std::literals;
 namespace yoctocc::type {
 
     std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base) {
-        auto type = std::make_shared<Type>(TypeKind::POINTER, 8);
+        auto type = std::make_shared<Type>(TypeKind::POINTER, 8, 8);
         type->base = base;
         return type;
     }
@@ -21,7 +21,7 @@ namespace yoctocc::type {
     }
 
     std::shared_ptr<Type> arrayOf(const std::shared_ptr<Type>& base, int size) {
-        auto type = std::make_shared<Type>(TypeKind::ARRAY, base->size * size);
+        auto type = std::make_shared<Type>(TypeKind::ARRAY, base->size * size, base->alignment);
         type->base = base;
         type->arraySize = size;
         return type;

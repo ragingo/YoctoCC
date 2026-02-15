@@ -5,6 +5,7 @@
 #include "Node/Node.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
+#include "Utility.hpp"
 
 using namespace std::string_view_literals;
 
@@ -123,14 +124,17 @@ namespace {
 
         auto type = std::make_shared<Type>(TypeKind::STRUCT);
         structMembers(token, type);
+        type->alignment = 1;
 
         int offset = 0;
         for (auto member = type->members.get(); member; member = member->next.get()) {
+            offset = alignTo(offset, member->type->alignment);
             member->offset = offset;
             offset += member->type->size;
+            type->alignment = std::max(type->alignment, member->type->alignment);
         }
 
-        type->size = offset;
+        type->size = alignTo(offset, type->alignment);
 
         return type;
     }
