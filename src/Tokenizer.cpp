@@ -2,6 +2,7 @@
 
 #include <format>
 #include <fstream>
+#include <ranges>
 #include <string>
 #include "Logger.hpp"
 #include "Node/Keywords.hpp"
@@ -145,10 +146,10 @@ namespace {
 
     std::unique_ptr<Token> parsePunctuator(char ch, ParseContext& context) {
         auto nextCh = hasNext(context) ? *std::next(context.it) : '\0';
-        std::array<char, 2> chars = { ch, nextCh };
+        std::string chars{ ch, nextCh };
+        static const std::array operators = { "==", "!=", "<=", ">=", "->" };
 
-        if (chars == std::array{ '=', '=' } || chars == std::array{ '!', '=' } ||
-            chars == std::array{ '<', '=' } || chars == std::array{ '>', '=' }) {
+        if (std::ranges::find(operators, chars) != operators.end()) {
             auto token = std::make_unique<Token>(TokenKind::PUNCTUATOR);
             token->originalValue = std::string{ ch, nextCh };
             token->location = std::distance(context.begin, context.it - token->originalValue.size());

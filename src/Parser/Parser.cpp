@@ -369,7 +369,7 @@ ParseResult Parser::parseUnary(Token* token) {
     return parsePostfix(token);
 }
 
-// postfix = primary ("[" expr "]" | "." ident)*
+// postfix = primary ("[" expr "]" | "." ident | "->" ident)*
 ParseResult Parser::parsePostfix(Token* token) {
     auto [node, rest] = parsePrimary(token);
     token = rest;
@@ -384,6 +384,12 @@ ParseResult Parser::parsePostfix(Token* token) {
             continue;
         }
         if (token::is(token, ".")) {
+            node = createStructRefNode(token->next.get(), std::move(node));
+            token = token->next.get()->next.get();
+            continue;
+        }
+        if (token::is(token, "->")) {
+            node = createUnaryNode(NodeType::DEREFERENCE, token, std::move(node));
             node = createStructRefNode(token->next.get(), std::move(node));
             token = token->next.get()->next.get();
             continue;
