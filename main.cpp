@@ -8,7 +8,7 @@
 #include "Node/Node.hpp"
 #include "Token.hpp"
 #include "Tokenizer.hpp"
-#include "Parser.hpp"
+#include "Parser/Parser.hpp"
 
 using namespace yoctocc;
 

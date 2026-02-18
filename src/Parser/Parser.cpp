@@ -1,4 +1,4 @@
-#include "Parser.hpp"
+#include "Parser/Parser.hpp"
 
 #include <cassert>
 #include "Logger.hpp"
@@ -10,147 +10,6 @@
 using namespace std::string_view_literals;
 
 namespace {
-    using namespace yoctocc;
-
-    const std::shared_ptr<Type> declSpec(Token*& token);
-    const std::shared_ptr<Type> declarator(Token*& token, std::shared_ptr<Type>& type);
-    const std::shared_ptr<Type> typeSuffix(Token*& token, std::shared_ptr<Type>& type);
-
-    // struct-members = (declspec declarator (","  declarator)* ";")*
-    void structMembers(Token*& token, std::shared_ptr<Type>& structType) {
-        auto head = std::make_unique<Member>();
-        Member* current = head.get();
-
-        while (!token::is(token, "}")) {
-            auto baseType = declSpec(token);
-
-            int i = 0;
-            while (!token::consume(token, ";")) {
-                if (i++ > 0) {
-                    token = token::skipIf(token, ",");
-                }
-                auto memberType = declarator(token, baseType);
-                auto member = std::make_unique<Member>();
-                member->type = memberType;
-                member->name = memberType->name;
-                current->next = std::move(member);
-                current = current->next.get();
-            }
-        }
-
-        token = token->next.get();
-        structType->members = std::move(head->next);
-    }
-
-    // struct-decl = "{" struct-members
-    const std::shared_ptr<Type> structDecl(Token*& token) {
-        token = token::skipIf(token, "{");
-
-        auto type = std::make_shared<Type>(TypeKind::STRUCT);
-        structMembers(token, type);
-        type->alignment = 1;
-
-        int offset = 0;
-        for (auto member = type->members.get(); member; member = member->next.get()) {
-            offset = alignTo(offset, member->type->alignment);
-            member->offset = offset;
-            offset += member->type->size;
-            type->alignment = std::max(type->alignment, member->type->alignment);
-        }
-
-        type->size = alignTo(offset, type->alignment);
-
-        return type;
-    }
-
-    // declspec = "char" | "int" | struct-decl
-    const std::shared_ptr<Type> declSpec(Token*& token) {
-        if (token::is(token, "char")) {
-            token = token->next.get();
-            return type::charType();
-        }
-        if (token::is(token, "int")) {
-            token = token->next.get();
-            return type::intType();
-        }
-        if (token::is(token, "struct")) {
-            token = token->next.get();
-            return structDecl(token);
-        }
-        Log::error("Expected a type specifier"sv, token);
-        return std::make_shared<Type>(TypeKind::UNKNOWN);
-    }
-
-    // declarator = "*"* ident type-suffix
-    const std::shared_ptr<Type> declarator(Token*& token, std::shared_ptr<Type>& type) {
-        while (token::consume(token, "*")) {
-            type = type::pointerTo(type);
-        }
-
-        if (token->kind == TokenKind::IDENTIFIER) {
-            auto name = token;
-            token = token->next.get();
-            type = typeSuffix(token, type);
-            type->name = name;
-        } else {
-            Log::error("Expected an identifier"sv, token);
-        }
-
-        return type;
-    }
-
-    // func-params = (param ("," param)*)? ")"
-    // param       = declspec declarator
-    const std::shared_ptr<Type> functionParameters(Token*& token, std::shared_ptr<Type>& type) {
-        std::shared_ptr<Type> head;
-        auto current = &head;
-
-        while (!token::is(token, ")")) {
-            if (head) {
-                token = token::skipIf(token, ",");
-            }
-            auto paramType = declSpec(token);
-            paramType = declarator(token, paramType);
-            *current = paramType;
-            current = &paramType->next;
-        }
-
-        type = type::functionType(type);
-        type->parameters = head;
-        token = token->next.get();
-
-        return type;
-    }
-
-    // type-suffix = "(" func-params
-    //             | "[" num "]" type-suffix
-    //             | ε
-    const std::shared_ptr<Type> typeSuffix(Token*& token, std::shared_ptr<Type>& type) {
-        if (token::is(token, "(")) {
-            token = token->next.get();
-            return functionParameters(token, type);
-        }
-
-        if (token::is(token, "[")) {
-            int size = token::getNumber(token->next.get());
-            token = token->next.get()->next.get();
-            token = token::skipIf(token, "]");
-            type = typeSuffix(token, type);
-            return type::arrayOf(type, size);
-        }
-
-        return type;
-    }
-
-    bool isFunction(Token* token) {
-        if (token::is(token, ";")) {
-            return false;
-        }
-        auto dummy = std::make_shared<Type>(TypeKind::UNKNOWN);
-        auto type = declarator(token, dummy);
-        return type->kind == TypeKind::FUNCTION;
-    }
-
     std::string makeUniqueName() {
         static int count = 0;
         return std::format(".L..{}", count++);
@@ -159,12 +18,21 @@ namespace {
 
 namespace yoctocc {
 
+bool Parser::isFunction(Token* token) {
+    if (token::is(token, ";")) {
+        return false;
+    }
+    auto dummy = std::make_shared<Type>(TypeKind::UNKNOWN);
+    auto type = _parseDecl.declarator(token, dummy);
+    return type->kind == TypeKind::FUNCTION;
+}
+
 // program = (function-definition | global-variable)*
 std::unique_ptr<Object> Parser::parse(Token* token) {
     assert(token);
     _globals = nullptr;
     while (token->kind != TokenKind::TERMINATOR) {
-        auto baseType = declSpec(token);
+        auto baseType = _parseDecl.declSpec(token);
         if (isFunction(token)) {
             token = parseFunction(token, baseType);
             continue;
@@ -205,7 +73,7 @@ Object* Parser::createGlobalVariable(const std::string& name, const std::shared_
 
 // declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 ParseResult Parser::declaration(Token* token) {
-    auto type = declSpec(token);
+    auto type = _parseDecl.declSpec(token);
     auto head = std::make_unique<Node>(NodeType::UNKNOWN, token);
     Node* current = head.get();
 
@@ -215,7 +83,7 @@ ParseResult Parser::declaration(Token* token) {
         if (i++ > 0) {
             token = token::skipIf(token, ",");
         }
-        auto varType = declarator(token, type);
+        auto varType = _parseDecl.declarator(token, type);
         auto varName = token::getIdentifier(varType->name);
         auto var = createLocalVariable(varName, varType);
 
@@ -562,7 +430,7 @@ ParseResult Parser::parseFunctionCall(Token* token) {
 }
 
 Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
-    auto funcType = declarator(token, baseType);
+    auto funcType = _parseDecl.declarator(token, baseType);
     auto name = token::getIdentifier(funcType->name);
     auto func = makeFunction(name, funcType);
     _locals.reset();
@@ -594,7 +462,7 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
             token = token::skipIf(token, ",");
         }
         isFirst = false;
-        auto varType = declarator(token, baseType);
+        auto varType = _parseDecl.declarator(token, baseType);
         auto varName = token::getIdentifier(varType->name);
         createGlobalVariable(varName, varType);
     }

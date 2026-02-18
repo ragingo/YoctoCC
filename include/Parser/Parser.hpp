@@ -1,6 +1,7 @@
 #pragma once
 #include <cassert>
 #include <memory>
+#include "ParseDecl.hpp"
 
 namespace yoctocc {
 
@@ -19,6 +20,7 @@ public:
     std::unique_ptr<Object> parse(Token* token);
 
 private:
+    bool isFunction(Token* token);
     Object* findVariable(const Token* token);
     Object* createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type);
     Object* createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type);
@@ -81,6 +83,7 @@ private:
     std::unique_ptr<Object> _locals;
     std::unique_ptr<Object> _globals;
     std::unique_ptr<Scope> _currentScope;
+    ParseDecl _parseDecl;
 };
 
 } // namespace yoctocc
