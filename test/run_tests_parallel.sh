@@ -93,8 +93,8 @@ run_single_test() {
         return
     fi
 
-    # 実行
-    "$bin_file" > /dev/null 2>&1
+    # 実行（stderr をキャプチャ）
+    "$bin_file" > /dev/null 2>"$test_work/stderr.log"
     local actual_exit=$?
 
     if [ "$actual_exit" -eq "$expected_exit" ]; then
@@ -113,8 +113,13 @@ test_num=0
 # casesディレクトリから.cファイルを収集（ソート済み）
 if [ -d "$CASES_DIR" ]; then
     while IFS= read -r test_file; do
-        # ファイルから期待値を抽出（先頭のコメントから）
-        expected_exit=$(grep -m1 '^// EXPECTED:' "$test_file" | sed 's|^// EXPECTED: *||')
+        # ASSERT マクロを使用しているファイルは expected=0（成功時 return 0）
+        if grep -q 'ASSERT(' "$test_file"; then
+            expected_exit=0
+        else
+            # ASSERT を使わないファイルは先頭コメントから期待値を抽出
+            expected_exit=$(grep -m1 '^// EXPECTED:' "$test_file" | sed 's|^// EXPECTED: *||')
+        fi
 
         if [ -n "$expected_exit" ]; then
             test_num=$((test_num + 1))
@@ -216,6 +221,53 @@ for i in $(seq 1 $TOTAL_TESTS); do
                     expected=$(echo "$result" | awk '{print $3}')
                     actual=$(echo "$result" | awk '{print $4}')
                     echo -e "Testing #$i: ${RED}$test_name => expected: $expected, actual: $actual${NC}"
+
+                    # ASSERT サブケースの詳細表示
+                    _tf="${TEST_FILES[$i]}"
+                    _sl="$WORK_DIR/test_$i/stderr.log"
+                    if [ -f "$_sl" ] && [ -s "$_sl" ] && [ -f "$_tf" ]; then
+                        # ソースから ASSERT() 呼び出し行を抽出
+                        mapfile -t assert_exprs < <(grep 'ASSERT(' "$_tf" | grep -v '^\s*//' | grep -v '^#')
+                        _ta=${#assert_exprs[@]}
+
+                        if [ "$_ta" -gt 0 ]; then
+                            # stderr から ASSERT_RESULT を解析
+                            declare -A _ar_status
+                            declare -A _ar_detail
+                            while IFS= read -r sline; do
+                                if [[ "$sline" =~ ^ASSERT_RESULT\ PASS\ #([0-9]+)\ expected\ (-?[0-9]+)\ actual\ (-?[0-9]+) ]]; then
+                                    _ar_status[${BASH_REMATCH[1]}]="PASS"
+                                    _ar_detail[${BASH_REMATCH[1]}]="expected: ${BASH_REMATCH[2]}, actual: ${BASH_REMATCH[3]}"
+                                elif [[ "$sline" =~ ^ASSERT_RESULT\ FAIL\ #([0-9]+)\ expected\ (-?[0-9]+)\ actual\ (-?[0-9]+) ]]; then
+                                    _ar_status[${BASH_REMATCH[1]}]="FAIL"
+                                    _ar_detail[${BASH_REMATCH[1]}]="expected: ${BASH_REMATCH[2]}, actual: ${BASH_REMATCH[3]}"
+                                fi
+                            done < "$_sl"
+
+                            # 各 ASSERT を表示
+                            for idx in $(seq 1 "$_ta"); do
+                                _src="${assert_exprs[$((idx-1))]}"
+                                # ASSERT(N, expr); → expr を抽出
+                                _expr=$(echo "$_src" | sed 's/^[[:space:]]*ASSERT([^,]*, //' | sed 's/);[[:space:]]*$//')
+
+                                _st="${_ar_status[$idx]:-SKIP}"
+                                case "$_st" in
+                                    PASS)
+                                        echo -e "    ${GREEN}#$idx $_expr => ${_ar_detail[$idx]}${NC}"
+                                        ;;
+                                    FAIL)
+                                        echo -e "    ${RED}#$idx $_expr => ${_ar_detail[$idx]}${NC}"
+                                        ;;
+                                    SKIP)
+                                        echo -e "    ${YELLOW}#$idx $_expr => (skipped)${NC}"
+                                        ;;
+                                esac
+                            done
+
+                            unset _ar_status
+                            unset _ar_detail
+                        fi
+                    fi
                     ;;
             esac
             FAILED_TESTS=$((FAILED_TESTS + 1))

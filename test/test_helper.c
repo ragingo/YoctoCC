@@ -77,12 +77,27 @@ static void write_int(int fd, int n) {
 //  ASSERT: 期待値と実際の値を比較し、不一致なら即終了
 // ============================================================
 
-void ASSERT(int expected, int actual) {
-    if (expected == actual) return;
+static int _assert_num = 0;
 
-    write_str(2, "ASSERT failed: expected ");
+void ASSERT(int expected, int actual) {
+    _assert_num++;
+
+    if (expected == actual) {
+        write_str(2, "ASSERT_RESULT PASS #");
+        write_int(2, _assert_num);
+        write_str(2, " expected ");
+        write_int(2, expected);
+        write_str(2, " actual ");
+        write_int(2, actual);
+        write_str(2, "\n");
+        return;
+    }
+
+    write_str(2, "ASSERT_RESULT FAIL #");
+    write_int(2, _assert_num);
+    write_str(2, " expected ");
     write_int(2, expected);
-    write_str(2, ", actual ");
+    write_str(2, " actual ");
     write_int(2, actual);
     write_str(2, "\n");
 

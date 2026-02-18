@@ -1,5 +1,3 @@
-// EXPECTED: 0
-
 int g1, g2[4];
 
 int main() {
