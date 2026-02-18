@@ -43,7 +43,7 @@ std::unique_ptr<Object> Parser::parse(Token* token) {
 }
 
 Object* Parser::findVariable(const Token* token) {
-    for (Scope* scope = _currentScope.get(); scope; scope = scope->next.get()) {
+    for (Scope* scope = _parseScope.currentScope(); scope; scope = scope->next.get()) {
         for (VariableScope* vs = scope->variable.get(); vs; vs = vs->next.get()) {
             if (vs->name == token->originalValue) {
                 return vs->variable;
@@ -57,7 +57,7 @@ Object* Parser::createLocalVariable(const std::string& name, const std::shared_p
     auto var = makeVariable(name, type, true);
     Object* raw = var.get();
     var->next = std::move(_locals);
-    pushVariableScope(name, raw);
+    _parseScope.pushVariableScope(name, raw);
     _locals = std::move(var);
     return raw;
 }
@@ -66,7 +66,7 @@ Object* Parser::createGlobalVariable(const std::string& name, const std::shared_
     auto var = makeVariable(name, type, false);
     Object* raw = var.get();
     var->next = std::move(_globals);
-    pushVariableScope(name, raw);
+    _parseScope.pushVariableScope(name, raw);
     _globals = std::move(var);
     return raw;
 }
@@ -214,7 +214,7 @@ ParseResult Parser::parseCompoundStatement(Token* token) {
     auto head = std::make_unique<Node>(NodeType::UNKNOWN, token);
     Node* current = head.get();
 
-    enterScope();
+    _parseScope.enterScope();
 
     while (token->kind != TokenKind::TERMINATOR && !token::is(token, "}")) {
         if (type::isTypeName(token)) {
@@ -230,7 +230,7 @@ ParseResult Parser::parseCompoundStatement(Token* token) {
         type::addType(current);
     }
 
-    leaveScope();
+    _parseScope.leaveScope();
 
     auto node = createBlockNode(token, std::move(head->next));
     return {std::move(node), token->next.get()};
@@ -435,7 +435,7 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
     auto func = makeFunction(name, funcType);
     _locals.reset();
 
-    enterScope();
+    _parseScope.enterScope();
 
     token = token::skipIf(token, "{");
     applyParamLVars(funcType->parameters);
@@ -449,7 +449,7 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
     func->next = std::move(_globals);
     _globals = std::move(func);
 
-    leaveScope();
+    _parseScope.leaveScope();
 
     return token;
 }
