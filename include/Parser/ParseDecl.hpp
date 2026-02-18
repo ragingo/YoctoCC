@@ -13,8 +13,12 @@ public:
 
     // struct-members = (declspec declarator (","  declarator)* ";")*
     void structMembers(Token*& token, std::shared_ptr<Type>& structType);
-    // struct-decl = ident? "{" struct-members
+    // struct-decl = struct-union-decl
     const std::shared_ptr<Type> structDecl(Token*& token);
+    // union-decl = struct-union-decl
+    const std::shared_ptr<Type> unionDecl(Token*& token);
+    // struct-union-decl = ident? ("{" struct-members)?
+    const std::shared_ptr<Type> structUnionDecl(Token*& token);
     // declspec = "char" | "int" | struct-decl
     const std::shared_ptr<Type> declSpec(Token*& token);
     // declarator = "*"* ident type-suffix

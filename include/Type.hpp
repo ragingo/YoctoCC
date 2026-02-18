@@ -14,6 +14,7 @@ enum class TypeKind {
     FUNCTION,
     ARRAY,
     STRUCT,
+    UNION,
     UNKNOWN,
 };
 
@@ -49,6 +50,7 @@ enum class DataType {
     CHAR,
     INT,
     STRUCT,
+    UNION,
     UNKNOWN,
 };
 
@@ -60,6 +62,8 @@ constexpr std::string to_string(DataType type) {
             return "int";
         case DataType::STRUCT:
             return "struct";
+        case DataType::UNION:
+            return "union";
         default:
             return "???";
     }
@@ -72,6 +76,8 @@ constexpr DataType to_data_type(const std::string& str) {
         return DataType::INT;
     } else if (str == "struct") {
         return DataType::STRUCT;
+    } else if (str == "union") {
+        return DataType::UNION;
     } else {
         return DataType::UNKNOWN;
     }
@@ -92,6 +98,10 @@ namespace type {
 
     inline bool isStruct(const std::shared_ptr<Type>& type) {
         return type && type->kind == TypeKind::STRUCT;
+    }
+
+    inline bool isUnion(const std::shared_ptr<Type>& type) {
+        return type && type->kind == TypeKind::UNION;
     }
 
     inline bool isTypeName(const Token* token) {

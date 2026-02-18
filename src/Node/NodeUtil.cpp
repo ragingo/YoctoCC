@@ -116,8 +116,8 @@ std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> le
 std::unique_ptr<Node> createStructRefNode(const Token* token, std::unique_ptr<Node> left) {
     type::addType(left.get());
 
-    if (!type::isStruct(left->type)) {
-        Log::error("Left operand is not a struct type"sv, token);
+    if (!type::isStruct(left->type) && !type::isUnion(left->type)) {
+        Log::error("Left operand is not a struct or union type"sv, token);
         return nullptr;
     }
 

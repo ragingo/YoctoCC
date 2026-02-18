@@ -36,8 +36,8 @@ void ParseDecl::structMembers(Token*& token, std::shared_ptr<Type>& structType) 
     structType->members = std::move(head->next);
 }
 
-// struct-decl = ident? "{" struct-members
-const std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
+// struct-union-decl = ident? ("{" struct-members)?
+const std::shared_ptr<Type> ParseDecl::structUnionDecl(Token*& token) {
     Token* tag = nullptr;
     if (token->kind == TokenKind::IDENTIFIER) {
         tag = token;
@@ -48,7 +48,7 @@ const std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
         if (auto type = _scope.findTag(tag)) {
             return type;
         } else {
-            Log::error("Unknown struct type"sv, tag);
+            Log::error("Unknown struct/union type"sv, tag);
             return std::make_shared<Type>(TypeKind::UNKNOWN);
         }
     }
@@ -58,6 +58,18 @@ const std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
     auto type = std::make_shared<Type>(TypeKind::STRUCT);
     structMembers(token, type);
     type->alignment = 1;
+
+    if (tag) {
+        _scope.pushTagScope(tag->originalValue, type);
+    }
+
+    return type;
+}
+
+// struct-decl = struct-union-decl
+const std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
+    auto type = structUnionDecl(token);
+    type->kind = TypeKind::STRUCT;
 
     int offset = 0;
     for (auto member = type->members.get(); member; member = member->next.get()) {
@@ -69,14 +81,25 @@ const std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
 
     type->size = alignTo(offset, type->alignment);
 
-    if (tag) {
-        _scope.pushTagScope(tag->originalValue, type);
+    return type;
+}
+
+// union-decl = struct-union-decl
+const std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
+    auto type = structUnionDecl(token);
+    type->kind = TypeKind::UNION;
+
+    for (auto member = type->members.get(); member; member = member->next.get()) {
+        type->size = std::max(type->size, member->type->size);
+        type->alignment = std::max(type->alignment, member->type->alignment);
     }
+
+    type->size = alignTo(type->size, type->alignment);
 
     return type;
 }
 
-// declspec = "char" | "int" | struct-decl
+// declspec = "char" | "int" | struct-decl | union-decl
 const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
     if (token::is(token, "char")) {
         token = token->next.get();
@@ -89,6 +112,10 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
     if (token::is(token, "struct")) {
         token = token->next.get();
         return structDecl(token);
+    }
+    if (token::is(token, "union")) {
+        token = token->next.get();
+        return unionDecl(token);
     }
     Log::error("Expected a type specifier"sv, token);
     return std::make_shared<Type>(TypeKind::UNKNOWN);

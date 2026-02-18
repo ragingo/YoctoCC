@@ -14,6 +14,7 @@ namespace yoctocc {
         CHAR,
         SIZEOF,
         STRUCT,
+        UNION,
     };
 
     inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
@@ -26,6 +27,7 @@ namespace yoctocc {
         { "char", Keyword::CHAR },
         { "sizeof", Keyword::SIZEOF },
         { "struct", Keyword::STRUCT },
+        { "union", Keyword::UNION },
     };
 
 } // namespace yoctocc
