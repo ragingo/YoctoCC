@@ -26,6 +26,8 @@ namespace {
 
 namespace yoctocc {
 
+using enum TypeKind;
+
 std::unique_ptr<Node> createNumberNode(const Token* token, int value) {
     auto node = std::make_unique<Node>(NodeType::NUMBER, token);
     node->value = value;
@@ -116,7 +118,7 @@ std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> le
 std::unique_ptr<Node> createStructRefNode(const Token* token, std::unique_ptr<Node> left) {
     type::addType(left.get());
 
-    if (!type::isStruct(left->type) && !type::isUnion(left->type)) {
+    if (!type::is(left->type, STRUCT) && !type::is(left->type, UNION)) {
         Log::error("Left operand is not a struct or union type"sv, token);
         return nullptr;
     }

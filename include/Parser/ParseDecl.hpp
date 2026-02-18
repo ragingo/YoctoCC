@@ -22,7 +22,7 @@ public:
     // declspec = "char" | "int" | struct-decl
     const std::shared_ptr<Type> declSpec(Token*& token);
     // declarator = "*"* ident type-suffix
-    const std::shared_ptr<Type> declarator(Token*& token, std::shared_ptr<Type>& type);
+    const std::shared_ptr<Type> declarator(Token*& token, const std::shared_ptr<Type>& baseType);
     // func-params = (param ("," param)*)? ")"
     // param       = declspec declarator
     const std::shared_ptr<Type> functionParameters(Token*& token, std::shared_ptr<Type>& type);

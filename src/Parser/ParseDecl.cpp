@@ -122,7 +122,8 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
 }
 
 // declarator = "*"* ident type-suffix
-const std::shared_ptr<Type> ParseDecl::declarator(Token*& token, std::shared_ptr<Type>& type) {
+const std::shared_ptr<Type> ParseDecl::declarator(Token*& token, const std::shared_ptr<Type>& baseType) {
+    auto type = baseType;
     while (token::consume(token, "*")) {
         type = type::pointerTo(type);
     }
