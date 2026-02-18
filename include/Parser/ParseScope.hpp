@@ -6,6 +6,8 @@
 namespace yoctocc {
 
 struct Object;
+struct Token;
+struct Type;
 
 struct VariableScope {
     std::string name;
@@ -13,40 +15,30 @@ struct VariableScope {
     Object* variable = nullptr;
 };
 
+struct TagScope {
+    std::string name;
+    std::shared_ptr<Type> type;
+    std::unique_ptr<TagScope> next;
+};
+
 struct Scope {
-    std::unique_ptr<VariableScope> variable;
+    std::unique_ptr<VariableScope> variables;
+    std::unique_ptr<TagScope> tags;
     std::unique_ptr<Scope> next;
 };
 
 class ParseScope final {
 public:
-    void enterScope() {
-        if (!_currentScope) {
-            _currentScope = std::make_unique<Scope>();
-            return;
-        }
-        auto scope = std::make_unique<Scope>();
-        scope->next = std::move(_currentScope);
-        _currentScope = std::move(scope);
-    }
+    void enterScope();
+    void leaveScope();
 
-    void leaveScope() {
-        assert(_currentScope);
-        _currentScope = std::move(_currentScope->next);
-    }
+    void pushVariableScope(const std::string& name, Object* variable);
+    Object* findVariable(const Token* token);
 
-    void pushVariableScope(const std::string& name, Object* variable) {
-        if (!_currentScope) {
-            _currentScope = std::make_unique<Scope>();
-        }
-        auto variableScope = std::make_unique<VariableScope>();
-        variableScope->name = name;
-        variableScope->variable = variable;
-        variableScope->next = std::move(_currentScope->variable);
-        _currentScope->variable = std::move(variableScope);
-    }
+    void pushTagScope(const std::string& name, std::shared_ptr<Type> type);
+    std::shared_ptr<Type> findTag(const Token* token);
 
-    Scope* currentScope() const {
+    inline Scope* currentScope() const {
         return _currentScope.get();
     }
 

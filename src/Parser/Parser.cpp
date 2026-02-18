@@ -42,17 +42,6 @@ std::unique_ptr<Object> Parser::parse(Token* token) {
     return std::move(_globals);
 }
 
-Object* Parser::findVariable(const Token* token) {
-    for (Scope* scope = _parseScope.currentScope(); scope; scope = scope->next.get()) {
-        for (VariableScope* vs = scope->variable.get(); vs; vs = vs->next.get()) {
-            if (vs->name == token->originalValue) {
-                return vs->variable;
-            }
-        }
-    }
-    return nullptr;
-}
-
 Object* Parser::createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type) {
     auto var = makeVariable(name, type, true);
     Object* raw = var.get();
@@ -502,7 +491,7 @@ ParseResult Parser::parsePrimary(Token* token) {
         }
 
         // variable
-        auto var = findVariable(token);
+        auto var = _parseScope.findVariable(token);
         if (!var) {
             Log::error(std::format("Undefined variable: {}", token->originalValue), token);
             return {nullptr, token};

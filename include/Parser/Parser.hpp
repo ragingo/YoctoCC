@@ -22,7 +22,6 @@ public:
 
 private:
     bool isFunction(Token* token);
-    Object* findVariable(const Token* token);
     Object* createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type);
     Object* createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type);
     ParseResult declaration(Token* token);
@@ -46,8 +45,8 @@ private:
 private:
     std::unique_ptr<Object> _locals;
     std::unique_ptr<Object> _globals;
-    ParseDecl _parseDecl;
     ParseScope _parseScope;
+    ParseDecl _parseDecl {_parseScope};
 };
 
 } // namespace yoctocc

@@ -36,8 +36,23 @@ void ParseDecl::structMembers(Token*& token, std::shared_ptr<Type>& structType) 
     structType->members = std::move(head->next);
 }
 
-// struct-decl = "{" struct-members
+// struct-decl = ident? "{" struct-members
 const std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
+    Token* tag = nullptr;
+    if (token->kind == TokenKind::IDENTIFIER) {
+        tag = token;
+        token = token->next.get();
+    }
+
+    if (tag && !token::is(token, "{")) {
+        if (auto type = _scope.findTag(tag)) {
+            return type;
+        } else {
+            Log::error("Unknown struct type"sv, tag);
+            return std::make_shared<Type>(TypeKind::UNKNOWN);
+        }
+    }
+
     token = token::skipIf(token, "{");
 
     auto type = std::make_shared<Type>(TypeKind::STRUCT);
@@ -53,6 +68,10 @@ const std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
     }
 
     type->size = alignTo(offset, type->alignment);
+
+    if (tag) {
+        _scope.pushTagScope(tag->originalValue, type);
+    }
 
     return type;
 }
