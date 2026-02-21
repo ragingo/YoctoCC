@@ -92,7 +92,7 @@ namespace type {
     }
 
     inline std::shared_ptr<Type> intType() {
-        return std::make_shared<Type>(INT, 8, 8);
+        return std::make_shared<Type>(INT, 4, 4);
     }
 
     template <typename T>

@@ -1,6 +1,7 @@
 #pragma once
 #include <optional>
 #include <print>
+#include <source_location>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -60,6 +61,10 @@ inline void error(std::string_view message, std::optional<SourceInfo> sourceInfo
     if (exit) {
         std::exit(1);
     }
+}
+
+inline void unreachable(std::source_location loc = std::source_location::current()) {
+    error(std::format("internal error at {}:{}", loc.file_name(), loc.line()));
 }
 
 } // namespace yoctocc::Log

@@ -35,6 +35,8 @@ void Generator::load(const Type* type) {
     }
     if (type->size == 1) {
         addCode(movsbq(RAX, Address{RAX}));
+    } else if (type->size == 4) {
+        addCode(movsxd(RAX, Address{RAX}));
     } else {
         addCode(mov(RAX, Address{RAX}));
     }
@@ -61,6 +63,8 @@ void Generator::store(const Type* type) {
 
     if (type->size == 1) {
         addCode(mov(Address{RDI}, AL));
+    } else if (type->size == 4) {
+        addCode(mov(Address{RDI}, EAX));
     } else {
         addCode(mov(Address{RDI}, RAX));
     }
@@ -326,10 +330,19 @@ void Generator::generateFunction(const Object* obj) {
 
     int i = 0;
     for (const Object* param = obj->parameters; param; param = param->next.get()) {
-        if (param->type->size == 1) {
-            addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS8[i++]));
-        } else {
-            addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS64[i++]));
+        switch (param->type->size) {
+            case 1:
+                addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS8[i++]));
+                break;
+            case 4:
+                addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS32[i++]));
+                break;
+            case 8:
+                addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS64[i++]));
+                break;
+            default:
+                Log::unreachable();
+                break;
         }
     }
 

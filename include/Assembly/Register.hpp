@@ -40,7 +40,7 @@ namespace {
     using enum Register;
 }
 
-static constexpr std::array<Register, 6> ARG_REGISTERS8 = {
+static constexpr std::array ARG_REGISTERS8 = {
     DIL,
     SIL,
     DL,
@@ -49,7 +49,16 @@ static constexpr std::array<Register, 6> ARG_REGISTERS8 = {
     R9B,
 };
 
-static constexpr std::array<Register, 6> ARG_REGISTERS64 = {
+static constexpr std::array ARG_REGISTERS32 = {
+    EDI,
+    ESI,
+    EDX,
+    ECX,
+    R8D,
+    R9D,
+};
+
+static constexpr std::array ARG_REGISTERS64 = {
     RDI,
     RSI,
     RDX,
