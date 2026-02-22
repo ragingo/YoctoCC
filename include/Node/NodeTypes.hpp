@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <memory>
 
 namespace yoctocc {
@@ -40,7 +41,7 @@ namespace yoctocc {
 
     struct Node {
         NodeType nodeType;
-        int value = 0;
+        int64_t value = 0;
         std::shared_ptr<Type> type;
         const Token* token = nullptr;
         std::unique_ptr<Node> left;

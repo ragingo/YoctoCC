@@ -28,7 +28,7 @@ namespace yoctocc {
 
 using enum TypeKind;
 
-std::unique_ptr<Node> createNumberNode(const Token* token, int value) {
+std::unique_ptr<Node> createNumberNode(const Token* token, int64_t value) {
     auto node = std::make_unique<Node>(NodeType::NUMBER, token);
     node->value = value;
     return node;

@@ -1,5 +1,6 @@
 #pragma once
 #include <cassert>
+#include <cstdint>
 #include <format>
 #include <memory>
 #include <string>
@@ -50,7 +51,7 @@ struct Type;
 struct Token {
     TokenKind kind;
     std::string originalValue;
-    int numberValue;
+    int64_t numberValue;
     size_t location;
     size_t line;
     std::shared_ptr<Type> type;
@@ -84,7 +85,7 @@ namespace token {
         return token->originalValue;
     }
 
-    inline int getNumber(const Token* token) {
+    inline int64_t getNumber(const Token* token) {
         assert(token && token->kind == TokenKind::DIGIT);
         return token->numberValue;
     }

@@ -11,6 +11,7 @@ struct Node;
 enum class TypeKind {
     CHAR,
     INT,
+    LONG,
     POINTER,
     FUNCTION,
     ARRAY,
@@ -50,6 +51,7 @@ struct Type {
 enum class DataType {
     CHAR,
     INT,
+    LONG,
     STRUCT,
     UNION,
     UNKNOWN,
@@ -61,6 +63,8 @@ constexpr std::string to_string(DataType type) {
             return "char";
         case DataType::INT:
             return "int";
+        case DataType::LONG:
+            return "long";
         case DataType::STRUCT:
             return "struct";
         case DataType::UNION:
@@ -75,6 +79,8 @@ constexpr DataType to_data_type(const std::string& str) {
         return DataType::CHAR;
     } else if (str == "int") {
         return DataType::INT;
+    } else if (str == "long") {
+        return DataType::LONG;
     } else if (str == "struct") {
         return DataType::STRUCT;
     } else if (str == "union") {
@@ -95,6 +101,10 @@ namespace type {
         return std::make_shared<Type>(INT, 4, 4);
     }
 
+    inline std::shared_ptr<Type> longType() {
+        return std::make_shared<Type>(LONG, 8, 8);
+    }
+
     template <typename T>
         requires std::same_as<std::remove_cv_t<T>, Type*>
             || std::same_as<std::remove_cv_t<T>, const Type*>
@@ -112,7 +122,7 @@ namespace type {
     }
 
     inline bool isInteger(const std::shared_ptr<Type>& type) {
-        return is(type, [](TypeKind kind) { return kind == CHAR || kind == INT; });
+        return is(type, [](TypeKind kind) { return kind == CHAR || kind == INT || kind == LONG; });
     }
 
     inline bool isTypeName(const Token* token) {

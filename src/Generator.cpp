@@ -16,7 +16,6 @@ namespace yoctocc {
 
 using enum GasDirective;
 using enum Register;
-using enum TypeKind;
 using namespace std::string_view_literals;
 
 std::vector<std::string> Generator::run(Object* obj) {
@@ -28,6 +27,7 @@ std::vector<std::string> Generator::run(Object* obj) {
 }
 
 void Generator::load(const Type* type) {
+    using enum TypeKind;
     assert(type);
     if (type::is(type, ARRAY) || type::is(type, STRUCT) || type::is(type, UNION)) {
         // 何もしない
@@ -43,6 +43,7 @@ void Generator::load(const Type* type) {
 }
 
 void Generator::store(const Type* type) {
+    using enum TypeKind;
     assert(type);
     addCode(pop(RDI));
 

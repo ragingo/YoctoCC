@@ -99,7 +99,7 @@ const std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
     return type;
 }
 
-// declspec = "char" | "int" | struct-decl | union-decl
+// declspec = "char" | "short" | "int" | "long" | struct-decl | union-decl
 const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
     if (token::is(token, "char")) {
         token = token->next.get();
@@ -108,6 +108,10 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
     if (token::is(token, "int")) {
         token = token->next.get();
         return type::intType();
+    }
+    if (token::is(token, "long")) {
+        token = token->next.get();
+        return type::longType();
     }
     if (token::is(token, "struct")) {
         token = token->next.get();
