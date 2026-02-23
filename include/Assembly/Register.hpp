@@ -49,6 +49,15 @@ static constexpr std::array ARG_REGISTERS8 = {
     R9B,
 };
 
+static constexpr std::array ARG_REGISTERS16 = {
+    DI,
+    SI,
+    DX,
+    CX,
+    R8W,
+    R9W,
+};
+
 static constexpr std::array ARG_REGISTERS32 = {
     EDI,
     ESI,

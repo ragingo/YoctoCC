@@ -35,6 +35,8 @@ void Generator::load(const Type* type) {
     }
     if (type->size == 1) {
         addCode(movsbq(RAX, Address{RAX}));
+    } else if (type->size == 2) {
+        addCode(movswq(RAX, Address{RAX}));
     } else if (type->size == 4) {
         addCode(movsxd(RAX, Address{RAX}));
     } else {
@@ -64,6 +66,8 @@ void Generator::store(const Type* type) {
 
     if (type->size == 1) {
         addCode(mov(Address{RDI}, AL));
+    } else if (type->size == 2) {
+        addCode(mov(Address{RDI}, AX));
     } else if (type->size == 4) {
         addCode(mov(Address{RDI}, EAX));
     } else {
@@ -334,6 +338,9 @@ void Generator::generateFunction(const Object* obj) {
         switch (param->type->size) {
             case 1:
                 addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS8[i++]));
+                break;
+            case 2:
+                addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS16[i++]));
                 break;
             case 4:
                 addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS32[i++]));

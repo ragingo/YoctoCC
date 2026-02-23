@@ -105,6 +105,10 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
         token = token->next.get();
         return type::charType();
     }
+    if (token::is(token, "short")) {
+        token = token->next.get();
+        return type::shortType();
+    }
     if (token::is(token, "int")) {
         token = token->next.get();
         return type::intType();

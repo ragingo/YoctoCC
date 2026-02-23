@@ -75,6 +75,7 @@ namespace yoctocc {
     inline constexpr Instruction<MOV> mov;
     inline constexpr Instruction<MOVZX> movzx;
     inline constexpr Instruction<MOVSBQ> movsbq;
+    inline constexpr Instruction<MOVSWQ> movswq;
     inline constexpr Instruction<MOVSXD> movsxd;
     inline constexpr Instruction<LEA> lea;
     inline constexpr Instruction<ADD> add;

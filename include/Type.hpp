@@ -10,6 +10,7 @@ struct Node;
 
 enum class TypeKind {
     CHAR,
+    SHORT,
     INT,
     LONG,
     POINTER,
@@ -50,6 +51,7 @@ struct Type {
 
 enum class DataType {
     CHAR,
+    SHORT,
     INT,
     LONG,
     STRUCT,
@@ -61,6 +63,8 @@ constexpr std::string to_string(DataType type) {
     switch (type) {
         case DataType::CHAR:
             return "char";
+        case DataType::SHORT:
+            return "short";
         case DataType::INT:
             return "int";
         case DataType::LONG:
@@ -77,6 +81,8 @@ constexpr std::string to_string(DataType type) {
 constexpr DataType to_data_type(const std::string& str) {
     if (str == "char") {
         return DataType::CHAR;
+    } else if (str == "short") {
+        return DataType::SHORT;
     } else if (str == "int") {
         return DataType::INT;
     } else if (str == "long") {
@@ -95,6 +101,10 @@ namespace type {
 
     inline std::shared_ptr<Type> charType() {
         return std::make_shared<Type>(CHAR, 1, 1);
+    }
+
+    inline std::shared_ptr<Type> shortType() {
+        return std::make_shared<Type>(SHORT, 2, 2);
     }
 
     inline std::shared_ptr<Type> intType() {
@@ -122,7 +132,7 @@ namespace type {
     }
 
     inline bool isInteger(const std::shared_ptr<Type>& type) {
-        return is(type, [](TypeKind kind) { return kind == CHAR || kind == INT || kind == LONG; });
+        return is(type, [](TypeKind kind) { return kind == CHAR || kind == SHORT || kind == INT || kind == LONG; });
     }
 
     inline bool isTypeName(const Token* token) {
