@@ -129,11 +129,23 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
     return std::make_shared<Type>(TypeKind::UNKNOWN);
 }
 
-// declarator = "*"* ident type-suffix
+// declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
 const std::shared_ptr<Type> ParseDecl::declarator(Token*& token, const std::shared_ptr<Type>& baseType) {
     auto type = baseType;
     while (token::consume(token, "*")) {
         type = type::pointerTo(type);
+    }
+
+    if (token::is(token, "(")) {
+        auto start = token;
+        auto next = start->next.get();
+        auto dummyType = std::make_shared<Type>(TypeKind::UNKNOWN);
+        declarator(next, dummyType);
+        token = token::skipIf(next, ")");
+        type = typeSuffix(token, type);
+        next = start->next.get();
+        type = declarator(next, type);
+        return type;
     }
 
     if (token->kind == TokenKind::IDENTIFIER) {
