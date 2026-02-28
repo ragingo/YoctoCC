@@ -1,140 +1,101 @@
-# Yoctocc テストフレームワーク
+# YoctoCC テストフレームワーク
 
-このディレクトリには、chibiccスタイルのユニットテスト機構が含まれています。
+このディレクトリには、[chibicc](https://github.com/rui314/chibicc) スタイルのユニットテストが含まれています。
 
-## 使用方法
+テストケースは chibicc コミット [`a817b23`](https://github.com/rui314/chibicc/commit/a817b23da3c6f39f22bc57c0a53169978d97d7fa) 時点のものと一致しています。
 
-### テストの実行
+## テストの実行
 
-プロジェクトルートから以下のコマンドを実行:
+プロジェクトルートから:
 
 ```bash
+# 全テスト実行（並列）
 make test
-```
 
-### テストの追加
+# 特定のテストのみ
+bash test/run_tests_parallel.sh arith
 
-テストは2つの方法で追加できます:
+# 複数フィルタ
+bash test/run_tests_parallel.sh arith pointer
 
-#### 方法1: ファイルベース (推奨)
-
-`test/cases/` ディレクトリ以下に `.c` ファイルを作成します。
-
-**ファイル構造**:
-```
-test/
-├── cases/
-│   ├── basic/           # 基本的なテスト
-│   ├── comment/         # コメント関連
-│   ├── control_flow/    # 制御構文
-│   ├── function/        # 関数呼び出し
-│   ├── gnu/             # GNU拡張
-│   └── ...
-```
-
-**ファイルフォーマット**:
-```c
-// EXPECTED: <期待される終了コード>
-int main() {
-    return 42;
-}
-```
-
-**例** (`test/cases/basic/return_42.c`):
-```c
-// EXPECTED: 42
-int main() { return 42; }
-```
-
-**メリット**:
-- 可読性が高い (シンタックスハイライト、整形)
-- 複雑な複数行のテストケースに対応
-- エディタで編集しやすい
-- カテゴリ別に整理できる
-
-#### 方法2: インラインテスト (後方互換)
-
-`test/tests.conf` に1行で記述します。
-
-**フォーマット**: `<期待される終了コード> <コード>`
-
-**例**:
-```
-42 int main() { return 42; }
-8 int main() { int a=3; int z=5; return a+z; }
-```
-
-### テストの実行順序
-
-1. `test/cases/` 内の `.c` ファイル (アルファベット順)
-2. `test/tests.conf` のインラインテスト (記述順)
-
-### 並列実行
-
-テストは自動的に並列実行されます。並列数は CPU コア数に基づいて決定されます。
-カスタマイズする場合:
-
-```bash
+# 並列数を指定
 PARALLEL_JOBS=4 make test
 ```
 
+## テストケース
+
+`test/cases/` ディレクトリに `.c` ファイルとして配置されています。
+
+| ファイル | 内容 | ケース数 |
+|---|---|---|
+| `arith.c` | 算術演算・比較演算 | 26 |
+| `control.c` | if / for / while / ブロック / カンマ演算子 | 13 |
+| `function.c` | 関数定義・呼び出し・再帰 | 12 |
+| `pointer.c` | ポインタ・配列・添字 | 32 |
+| `string.c` | 文字列リテラル・エスケープシーケンス | 28 |
+| `struct.c` | 構造体・アライメント・代入 | 40 |
+| `union.c` | 共用体 | 7 |
+| `variable.c` | 変数・sizeof・スコープ・型宣言 | 48 |
+| **合計** | | **206** |
+
+## テストの仕組み
+
+各テストファイルは `ASSERT(expected, actual)` マクロを使用します。
+
+```c
+int main() {
+    ASSERT(3, 1+2);
+    ASSERT(10, 2*5);
+    return 0;
+}
+```
+
+- `ASSERT` は `test_helper.c` / `test_helper.h` で定義
+- `-nostdlib` 環境で動作（syscall ベース）
+- 失敗時は stderr にエラーを出力し、プロセスが非ゼロで終了
+
 ## ファイル構成
 
-- `cases/` - ファイルベースのテストケース
-- `tests.conf` - インラインテスト設定ファイル (後方互換)
-- `run_tests_parallel.sh` - 並列テスト実行スクリプト
-- `test_helper.c`, `test_helper.h` - テストヘルパー関数
-- `README.md` - このファイル
-test/test1.txt 100 "基本的な式と制御構文のテスト"
-test/test2.txt 0 "正常終了のテスト(return 0)"
-test/test3.txt 1 "return 1のテスト"
+```
+test/
+├── cases/           # テストケース（.c ファイル）
+├── run_tests_parallel.sh  # 並列テスト実行スクリプト
+├── test_helper.c    # ASSERT マクロ実装（syscall ベース）
+├── test_helper.h    # ASSERT マクロ宣言
+└── README.md        # このファイル
 ```
 
 ## 出力例
 
 ```
 ========================================
-      Yoctocc テストスイート
+      Yoctocc テストスイート (並列)
 ========================================
+Cコンパイラ: cc
+並列数: 8
+タイムアウト: 10s
 
 コンパイラをビルド中...
 コンパイラのビルドが完了しました
 
-テスト #1: test/test1.txt
-  説明: 基本的な式と制御構文のテスト
-  ✓ PASSED: 終了コード 100 (期待値: 100)
+テスト実行中... (206 ケース / 8 ファイル)
 
-テスト #2: test/test2.txt
-  説明: 正常終了のテスト(return 0)
-  ✓ PASSED: 終了コード 0 (期待値: 0)
+[arith.c]
+    #1 0 => expected: 0, actual: 0
+    #2 42 => expected: 42, actual: 42
+    ...
 
 ========================================
       テスト結果サマリー
 ========================================
-総テスト数:   2
-成功:         2
-失敗:         0
+ファイル数:   8 (失敗: 0)
+総ケース数:   206
+成功:         206
 
-すべてのテストが成功しました!
+すべてのテストが成功しました! (206/206)
 ```
 
 ## 終了コード
 
 - `0` - すべてのテストが成功
 - `1` - 一部またはすべてのテストが失敗
-
-## Tips
-
-- テストファイルの期待値を確認するには:
-  ```bash
-  make clean; make INPUT=test/testX.txt; make run; echo $?
-  ```
-
-- 個別のテストファイルをデバッグするには:
-  ```bash
-  make clean
-  make INPUT=test/testX.txt
-  cat ./build/program.asm  # アセンブリを確認
-  make run
-  echo $?                   # 終了コードを確認
-  ```

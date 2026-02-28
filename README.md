@@ -36,7 +36,7 @@ make CXX=clang++ CC=clang
 # Apple Clang（古いバージョン）の場合
 make CXX=clang++ CC=clang CXX_STD=-std=c++2b
 
-# テスト実行（並列）
+# テスト実行（並列、206 ケース / 8 ファイル）
 make test
 
 # clang でテスト
