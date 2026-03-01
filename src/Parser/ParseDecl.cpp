@@ -162,6 +162,8 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
                 break;
             case LONG:
             case LONG + INT:
+            case LONG + LONG:
+            case LONG + LONG + INT:
                 type = type::longType();
                 break;
             default:
