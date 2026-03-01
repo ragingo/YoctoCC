@@ -73,6 +73,10 @@ ParseResult Parser::declaration(Token* token) {
             token = token::skipIf(token, ",");
         }
         auto varType = _parseDecl.declarator(token, type);
+        if (varType->kind == TypeKind::VOID) {
+            Log::error("Variable cannot be of type void"sv, token);
+            return {};
+        }
         auto varName = token::getIdentifier(varType->name);
         auto var = createLocalVariable(varName, varType);
 

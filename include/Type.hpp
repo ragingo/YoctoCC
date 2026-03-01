@@ -9,6 +9,7 @@ struct Member;
 struct Node;
 
 enum class TypeKind {
+    VOID,
     CHAR,
     SHORT,
     INT,
@@ -50,6 +51,7 @@ struct Type {
 };
 
 enum class DataType {
+    VOID,
     CHAR,
     SHORT,
     INT,
@@ -61,6 +63,8 @@ enum class DataType {
 
 constexpr std::string to_string(DataType type) {
     switch (type) {
+        case DataType::VOID:
+            return "void";
         case DataType::CHAR:
             return "char";
         case DataType::SHORT:
@@ -79,7 +83,9 @@ constexpr std::string to_string(DataType type) {
 }
 
 constexpr DataType to_data_type(const std::string& str) {
-    if (str == "char") {
+    if (str == "void") {
+        return DataType::VOID;
+    } else if (str == "char") {
         return DataType::CHAR;
     } else if (str == "short") {
         return DataType::SHORT;
@@ -98,6 +104,10 @@ constexpr DataType to_data_type(const std::string& str) {
 
 namespace type {
     using enum TypeKind;
+
+    inline std::shared_ptr<Type> voidType() {
+        return std::make_shared<Type>(VOID, 1, 1);
+    }
 
     inline std::shared_ptr<Type> charType() {
         return std::make_shared<Type>(CHAR, 1, 1);

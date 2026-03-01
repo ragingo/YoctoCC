@@ -5,6 +5,7 @@
 namespace yoctocc {
 
     enum class Keyword {
+        VOID,
         CHAR,
         SHORT,
         INT,
@@ -20,6 +21,7 @@ namespace yoctocc {
     };
 
     inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
+        { "void", Keyword::VOID },
         { "char", Keyword::CHAR },
         { "short", Keyword::SHORT },
         { "int", Keyword::INT },

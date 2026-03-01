@@ -94,6 +94,10 @@ namespace yoctocc::type {
                     Log::error("Invalid pointer dereference"sv, node->token);
                     return;
                 }
+                if (node->left->type->kind == TypeKind::VOID) {
+                    Log::error("cannot dereference void pointer"sv, node->token);
+                    return;
+                }
                 node->type = node->left->type->base;
                 return;
             case NodeType::STATEMENT_EXPRESSION:

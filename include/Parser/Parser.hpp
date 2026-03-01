@@ -13,7 +13,7 @@ struct Type;
 
 struct ParseResult {
     std::unique_ptr<Node> node;
-    Token* rest;
+    Token* rest = nullptr;
 };
 
 class Parser final {
