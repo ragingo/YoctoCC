@@ -70,6 +70,7 @@ namespace yoctocc {
         bool isLocal = false;
         // global variable or function
         bool isFunction = false;
+        bool isDefinition = false;
         // global variable
         std::string initialData;
         // local variable

@@ -428,6 +428,12 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
     auto funcType = _parseDecl.declarator(token, baseType);
     auto name = token::getIdentifier(funcType->name);
     auto func = makeFunction(name, funcType);
+    func->isDefinition = !token::consume(token, ";");
+
+    if (!func->isDefinition) {
+        return token;
+    }
+
     _locals.reset();
 
     _parseScope.enterScope();

@@ -393,7 +393,7 @@ void Generator::emitText(const Object* obj) {
     addCode(to_string(TEXT));
 
     for (const Object* fn = obj; fn; fn = fn->next.get()) {
-        if (!fn->isFunction) {
+        if (!fn->isFunction || !fn->isDefinition) {
             continue;
         }
         generateFunction(fn);
