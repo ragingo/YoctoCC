@@ -99,39 +99,80 @@ const std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
     return type;
 }
 
-// declspec = "void" | "char" | "short" | "int" | "long"
-//          | struct-decl | union-decl
+// declspec = ("void" | "char" | "short" | "int" | "long"
+//             | struct-decl | union-decl)+
 const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
-    if (token::is(token, "void")) {
+    enum {
+        VOID  = 1 <<  0,
+        CHAR  = 1 <<  2,
+        SHORT = 1 <<  4,
+        INT   = 1 <<  6,
+        LONG  = 1 <<  8,
+        OTHER = 1 << 10,
+    };
+    auto type = std::make_shared<Type>(TypeKind::UNKNOWN);
+    int counter = 0;
+
+    while (type::isTypeName(token)) {
+        if (token::is(token, "struct")) {
+            token = token->next.get();
+            type = structDecl(token);
+            counter += OTHER;
+            continue;
+        }
+        else if (token::is(token, "union")) {
+            token = token->next.get();
+            type = unionDecl(token);
+            counter += OTHER;
+            continue;
+        }
+        else if (token::is(token, "void")) {
+            counter += VOID;
+        }
+        else if (token::is(token, "char")) {
+            counter += CHAR;
+        }
+        else if (token::is(token, "short")) {
+            counter += SHORT;
+        }
+        else if (token::is(token, "int")) {
+            counter += INT;
+        }
+        else if (token::is(token, "long")) {
+            counter += LONG;
+        }
+        else {
+            Log::unreachable();
+            return nullptr;
+        }
+
+        switch (counter) {
+            case VOID:
+                type = type::voidType();
+                break;
+            case CHAR:
+                type = type::charType();
+                break;
+            case SHORT:
+            case SHORT + INT:
+                type = type::shortType();
+                break;
+            case INT:
+                type = type::intType();
+                break;
+            case LONG:
+            case LONG + INT:
+                type = type::longType();
+                break;
+            default:
+                Log::error("Invalid type specifier"sv, token);
+                return nullptr;
+        }
+
         token = token->next.get();
-        return type::voidType();
     }
-    if (token::is(token, "char")) {
-        token = token->next.get();
-        return type::charType();
-    }
-    if (token::is(token, "short")) {
-        token = token->next.get();
-        return type::shortType();
-    }
-    if (token::is(token, "int")) {
-        token = token->next.get();
-        return type::intType();
-    }
-    if (token::is(token, "long")) {
-        token = token->next.get();
-        return type::longType();
-    }
-    if (token::is(token, "struct")) {
-        token = token->next.get();
-        return structDecl(token);
-    }
-    if (token::is(token, "union")) {
-        token = token->next.get();
-        return unionDecl(token);
-    }
-    Log::error("Expected a type specifier"sv, token);
-    return std::make_shared<Type>(TypeKind::UNKNOWN);
+
+    return type;
 }
 
 // declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix

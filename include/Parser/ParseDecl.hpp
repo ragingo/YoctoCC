@@ -19,7 +19,8 @@ public:
     const std::shared_ptr<Type> unionDecl(Token*& token);
     // struct-union-decl = ident? ("{" struct-members)?
     const std::shared_ptr<Type> structUnionDecl(Token*& token);
-    // declspec = "char" | "int" | struct-decl
+    // declspec = ("void" | "char" | "short" | "int" | "long"
+    //             | struct-decl | union-decl)+
     const std::shared_ptr<Type> declSpec(Token*& token);
     // declarator = "*"* ident type-suffix
     const std::shared_ptr<Type> declarator(Token*& token, const std::shared_ptr<Type>& baseType);
