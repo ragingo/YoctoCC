@@ -508,6 +508,7 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
 
 // primary = "(" "{" stmt+ "}" ")"
 //         | "(" expr ")"
+//         | "sizeof" "(" type-name ")"
 //         | "sizeof" unary
 //         | ident func-args?
 //         | str
@@ -523,6 +524,18 @@ ParseResult Parser::parsePrimary(Token* token) {
     if (token::is(token, "(")) {
         auto [expr, rest] = parseExpression(token->next.get());
         return {std::move(expr), token::skipIf(rest, ")")};
+    }
+
+    if (token::is(token, "sizeof") && token::is(token->next.get(), "(") && parser::isTypeName(token->next.get()->next.get(), _parseScope)) {
+        auto start = token;
+        token = token->next.get()->next.get();
+        auto type = _parseDecl.typeName(token);
+        if (!type) {
+            Log::error("Expected a type name after sizeof"sv, token);
+            return {};
+        }
+        token = token::skipIf(token, ")");
+        return {createNumberNode(start, type->size), token};
     }
 
     if (token::is(token, "sizeof")) {

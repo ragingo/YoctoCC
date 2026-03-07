@@ -24,8 +24,12 @@ public:
     //             | "typedef"
     //             | struct-decl | union-decl | typedef-name)+
     const std::shared_ptr<Type> declSpec(Token*& token, VariableAttribute* attr);
+    // abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
+    const std::shared_ptr<Type> abstractDeclarator(Token*& token, std::shared_ptr<Type>& type);
     // declarator = "*"* ident type-suffix
     const std::shared_ptr<Type> declarator(Token*& token, const std::shared_ptr<Type>& baseType);
+    // type-name = declspec abstract-declarator
+    const std::shared_ptr<Type> typeName(Token*& token);
     // func-params = (param ("," param)*)? ")"
     // param       = declspec declarator
     const std::shared_ptr<Type> functionParameters(Token*& token, std::shared_ptr<Type>& type);

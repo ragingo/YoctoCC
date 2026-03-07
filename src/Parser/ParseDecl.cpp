@@ -201,6 +201,29 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute
     return type;
 }
 
+// abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
+const std::shared_ptr<Type> ParseDecl::abstractDeclarator(Token*& token, std::shared_ptr<Type>& type) {
+    while (token::is(token, "*")) {
+        type = type::pointerTo(type);
+        token = token->next.get();
+    }
+
+    if (token::is(token, "(")) {
+        auto start = token;
+        auto next = start->next.get();
+        auto dummyType = std::make_shared<Type>(TypeKind::UNKNOWN);
+        abstractDeclarator(next, dummyType);
+        token = token::skipIf(next, ")");
+        type = typeSuffix(token, type);
+        next = start->next.get();
+        type = abstractDeclarator(next, type);
+    } else {
+        type = typeSuffix(token, type);
+    }
+
+    return type;
+}
+
 // declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
 const std::shared_ptr<Type> ParseDecl::declarator(Token*& token, const std::shared_ptr<Type>& baseType) {
     auto type = baseType;
@@ -230,6 +253,12 @@ const std::shared_ptr<Type> ParseDecl::declarator(Token*& token, const std::shar
     }
 
     return type;
+}
+
+// type-name = declspec abstract-declarator
+const std::shared_ptr<Type> ParseDecl::typeName(Token*& token) {
+    auto baseType = declSpec(token, nullptr);
+    return abstractDeclarator(token, baseType);
 }
 
 // func-params = (param ("," param)*)? ")"
