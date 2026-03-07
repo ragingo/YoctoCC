@@ -43,6 +43,7 @@ namespace yoctocc {
         EXPRESSION_STATEMENT,
         STATEMENT_EXPRESSION,
         NUMBER,
+        CAST,
     };
 
     struct Node {

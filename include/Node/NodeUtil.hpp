@@ -15,5 +15,6 @@ std::unique_ptr<Node> createBlockNode(const Token* token, std::unique_ptr<Node> 
 std::unique_ptr<Node> createAddNode(const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right);
 std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right);
 std::unique_ptr<Node> createStructRefNode(const Token* token, std::unique_ptr<Node> left);
+std::unique_ptr<Node> createCastNode(const Token* token, std::unique_ptr<Node> expression, const std::shared_ptr<Type>& targetType);
 
 } // namespace yoctocc

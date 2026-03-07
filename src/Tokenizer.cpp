@@ -64,7 +64,7 @@ namespace {
         }
         auto token = std::make_unique<Token>(TokenKind::DIGIT);
         token->originalValue = number;
-        token->numberValue = std::stoi(number);
+        token->numberValue = std::stoll(number);
         token->location = std::distance(context.begin, context.it - token->originalValue.size());
         token->line = context.line;
         return token;

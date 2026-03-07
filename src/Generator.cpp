@@ -26,6 +26,38 @@ std::vector<std::string> Generator::run(Object* obj) {
     return lines;
 }
 
+void Generator::cast(const Node* node) {
+    using enum TypeKind;
+    auto from = node->left->type.get();
+    auto to = node->type.get();
+
+    if (type::is(from, to)) {
+        return;
+    }
+    if (type::is(to, VOID)) {
+        return;
+    }
+    if (from->size == to->size) {
+        return;
+    }
+
+    switch (to->kind) {
+        case CHAR:
+            addCode(movsbl(EAX, AL));
+            break;
+        case SHORT:
+            addCode(movswl(EAX, AX));
+            break;
+        case INT:
+            // 何もしない
+            break;
+        default:
+            assert(to->size == 8);
+            addCode(movsxd(RAX, EAX));
+            break;
+    }
+}
+
 void Generator::load(const Type* type) {
     using enum TypeKind;
     assert(type);
@@ -225,6 +257,10 @@ void Generator::generateExpression(const Node* node) {
         case NodeType::COMMA:
             generateExpression(node->left.get());
             generateExpression(node->right.get());
+            return;
+        case NodeType::CAST:
+            generateExpression(node->left.get());
+            cast(node);
             return;
         case NodeType::FUNCTION_CALL:
             {

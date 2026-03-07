@@ -87,6 +87,14 @@ namespace type {
         requires std::same_as<std::remove_cv_t<T>, Type*>
             || std::same_as<std::remove_cv_t<T>, const Type*>
             || std::same_as<std::remove_cv_t<T>, std::shared_ptr<Type>>
+    inline bool is(const T& type1, const T& type2) {
+        return type1 && type2 && type1->kind == type2->kind;
+    }
+
+    template <typename T>
+        requires std::same_as<std::remove_cv_t<T>, Type*>
+            || std::same_as<std::remove_cv_t<T>, const Type*>
+            || std::same_as<std::remove_cv_t<T>, std::shared_ptr<Type>>
     inline bool is(const T& type, std::function<bool(TypeKind)> predicate) {
         return type && predicate(type->kind);
     }

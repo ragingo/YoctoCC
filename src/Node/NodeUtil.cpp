@@ -129,4 +129,12 @@ std::unique_ptr<Node> createStructRefNode(const Token* token, std::unique_ptr<No
     return node;
 }
 
+std::unique_ptr<Node> createCastNode(const Token* token, std::unique_ptr<Node> expression, const std::shared_ptr<Type>& targetType) {
+    type::addType(expression.get());
+
+    auto node = createUnaryNode(NodeType::CAST, token, std::move(expression));
+    node->type = targetType;
+    return node;
+}
+
 } // namespace yoctocc

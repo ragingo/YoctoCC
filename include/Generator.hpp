@@ -16,6 +16,7 @@ public:
     std::vector<std::string> run(Object* obj);
 
 private:
+    void cast(const Node* node);
     void load(const Type* type);
     void store(const Type* type);
     void assignLocalVariableOffsets(Object* obj);

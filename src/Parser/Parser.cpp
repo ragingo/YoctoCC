@@ -340,22 +340,22 @@ ParseResult Parser::parseAdditive(Token* token) {
     }
 }
 
-// mul = unary ("*" unary | "/" unary)*
+// mul = cast ("*" cast | "/" cast)*
 ParseResult Parser::parseMultiply(Token* token) {
-    auto [node, rest] = parseUnary(token);
+    auto [node, rest] = parseCast(token);
     token = rest;
 
     while (true) {
         if (token::is(token, "*")) {
             auto start = token;
-            auto [right, r] = parseUnary(token->next.get());
+            auto [right, r] = parseCast(token->next.get());
             node = createBinaryNode(NodeType::MUL, start, std::move(node), std::move(right));
             token = r;
             continue;
         }
         if (token::is(token, "/")) {
             auto start = token;
-            auto [right, r] = parseUnary(token->next.get());
+            auto [right, r] = parseCast(token->next.get());
             node = createBinaryNode(NodeType::DIV, start, std::move(node), std::move(right));
             token = r;
             continue;
@@ -364,25 +364,38 @@ ParseResult Parser::parseMultiply(Token* token) {
     }
 }
 
-// unary = ("+" | "-" | "*" | "&") unary
+// cast = "(" type-name ")" cast | unary
+ParseResult Parser::parseCast(Token* token) {
+    if (token::is(token, "(") && parser::isTypeName(token->next.get(), _parseScope)) {
+        auto start = token;
+        auto next = token->next.get();
+        auto type = _parseDecl.typeName(next);
+        token = token::skipIf(next, ")");
+        auto [expr, rest] = parseCast(token);
+        return {createCastNode(start, std::move(expr), type), rest};
+    }
+    return parseUnary(token);
+}
+
+// unary = ("+" | "-" | "*" | "&") cast
 //       | postfix
 ParseResult Parser::parseUnary(Token* token) {
     if (token::is(token, "+")) {
-        return parsePrimary(token->next.get());
+        return parseCast(token->next.get());
     }
     if (token::is(token, "-")) {
         auto start = token;
-        auto [operand, rest] = parseUnary(token->next.get());
+        auto [operand, rest] = parseCast(token->next.get());
         return {createUnaryNode(NodeType::NEGATE, start, std::move(operand)), rest};
     }
     if (token::is(token, "&")) {
         auto start = token;
-        auto [operand, rest] = parseUnary(token->next.get());
+        auto [operand, rest] = parseCast(token->next.get());
         return {createUnaryNode(NodeType::ADDRESS, start, std::move(operand)), rest};
     }
     if (token::is(token, "*")) {
         auto start = token;
-        auto [operand, rest] = parseUnary(token->next.get());
+        auto [operand, rest] = parseCast(token->next.get());
         return {createUnaryNode(NodeType::DEREFERENCE, start, std::move(operand)), rest};
     }
     return parsePostfix(token);

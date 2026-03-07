@@ -34,6 +34,7 @@ private:
     ParseResult parseRelational(Token* token);
     ParseResult parseAdditive(Token* token);
     ParseResult parseMultiply(Token* token);
+    ParseResult parseCast(Token* token);
     ParseResult parseUnary(Token* token);
     ParseResult parsePostfix(Token* token);
     ParseResult parseFunctionCall(Token* token);
