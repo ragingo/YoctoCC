@@ -86,6 +86,7 @@ namespace yoctocc {
     inline constexpr Instruction<MUL> mul;
     inline constexpr Instruction<IDIV> idiv;
     inline constexpr Instruction<CQO> cqo;
+    inline constexpr Instruction<CDQ> cdq;
     inline constexpr Instruction<NEG> neg;
     inline constexpr Instruction<CMP> cmp;
     inline constexpr Instruction<SETE> sete;

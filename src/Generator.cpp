@@ -252,60 +252,74 @@ void Generator::generateExpression(const Node* node) {
     generateExpression(node->left.get());
     addCode(pop(RDI));
 
+    Register ax, di;
+
+    if (node->type->kind == TypeKind::LONG || node->left->type->base) {
+        ax = RAX;
+        di = RDI;
+    } else {
+        ax = EAX;
+        di = EDI;
+    }
+
     switch (node->nodeType) {
         case NodeType::ADD:
-            addCode(add(RAX, RDI));
+            addCode(add(ax, di));
             return;
         case NodeType::SUB:
-            addCode(sub(RAX, RDI));
+            addCode(sub(ax, di));
             return;
         case NodeType::MUL:
-            addCode(imul(RAX, RDI));
+            addCode(imul(ax, di));
             return;
         case NodeType::DIV:
-            addCode(
-                cqo(),
-                idiv(RDI)
-            );
+            {
+                if (node->left->type->size == 8) {
+                    addCode(cqo());
+                } else {
+                    addCode(cdq());
+                }
+                addCode(idiv(di));
+            }
             return;
         case NodeType::EQUAL:
             addCode(
-                cmp(RAX, RDI),
+                cmp(ax, di),
                 sete(AL),
                 movzx(RAX, AL)
             );
             return;
         case NodeType::NOT_EQUAL:
             addCode(
-                 cmp(RAX, RDI),
+                 cmp(ax, di),
                  setne(AL),
                  movzx(RAX, AL)
             );
             return;
         case NodeType::LESS:
             addCode(
-                cmp(RAX, RDI),
+                cmp(ax, di),
                 setl(AL),
                 movzx(RAX, AL)
             );
             return;
         case NodeType::LESS_EQUAL:
             addCode(
-                cmp(RAX, RDI),
+                cmp(ax, di),
                 setle(AL),
                 movzx(RAX, AL)
             );
             return;
         case NodeType::GREATER:
             addCode(
-                cmp(RAX, RDI),
+                cmp(ax, di),
                 setg(AL),
                 movzx(RAX, AL)
             );
             return;
         case NodeType::GREATER_EQUAL:
             addCode(
-                cmp(RAX, RDI),
+                cmp(ax, di),
                 setge(AL),
                 movzx(RAX, AL)
             );
@@ -314,7 +328,6 @@ void Generator::generateExpression(const Node* node) {
             break;
     }
 
-    using namespace std::literals;
     Log::error("Invalid expression"sv, node->token);
 }
 

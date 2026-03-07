@@ -18,6 +18,7 @@ enum class OpCode {
     INC,
     DEC,
     CQO,
+    CDQ,
     NEG,
     CMP,
     SETE,
@@ -57,6 +58,7 @@ constexpr std::string to_string(OpCode op) {
         case INC: return "inc";
         case DEC: return "dec";
         case CQO: return "cqo";
+        case CDQ: return "cdq";
         case NEG: return "neg";
         case CMP: return "cmp";
         case SETE: return "sete";
