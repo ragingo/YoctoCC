@@ -3,6 +3,7 @@
 #include <cassert>
 #include "Logger.hpp"
 #include "Node/Node.hpp"
+#include "Parser/Util.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
 #include "Utility.hpp"
@@ -27,16 +28,24 @@ bool Parser::isFunction(Token* token) {
     return type->kind == TypeKind::FUNCTION;
 }
 
-// program = (function-definition | global-variable)*
+// program = (typedef | function-definition | global-variable)*
 std::unique_ptr<Object> Parser::parse(Token* token) {
     assert(token);
     _globals = nullptr;
     while (token->kind != TokenKind::TERMINATOR) {
-        auto baseType = _parseDecl.declSpec(token);
+        VariableAttribute attr{};
+        auto baseType = _parseDecl.declSpec(token, &attr);
+
+        if (attr.isTypeDef) {
+            token = parseTypeDef(token, baseType);
+            continue;
+        }
+
         if (isFunction(token)) {
             token = parseFunction(token, baseType);
             continue;
         }
+
         token = parseGlobalVariable(token, baseType);
     }
     return std::move(_globals);
@@ -46,7 +55,7 @@ Object* Parser::createLocalVariable(const std::string& name, const std::shared_p
     auto var = makeVariable(name, type, true);
     Object* raw = var.get();
     var->next = std::move(_locals);
-    _parseScope.pushVariableScope(name, raw);
+    _parseScope.pushVariableScope(name)->variable = raw;
     _locals = std::move(var);
     return raw;
 }
@@ -55,14 +64,13 @@ Object* Parser::createGlobalVariable(const std::string& name, const std::shared_
     auto var = makeVariable(name, type, false);
     Object* raw = var.get();
     var->next = std::move(_globals);
-    _parseScope.pushVariableScope(name, raw);
+    _parseScope.pushVariableScope(name)->variable = raw;
     _globals = std::move(var);
     return raw;
 }
 
 // declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
-ParseResult Parser::declaration(Token* token) {
-    auto type = _parseDecl.declSpec(token);
+ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseType) {
     auto head = std::make_unique<Node>(NodeType::UNKNOWN, token);
     Node* current = head.get();
 
@@ -72,7 +80,7 @@ ParseResult Parser::declaration(Token* token) {
         if (i++ > 0) {
             token = token::skipIf(token, ",");
         }
-        auto varType = _parseDecl.declarator(token, type);
+        auto varType = _parseDecl.declarator(token, baseType);
         if (varType->kind == TypeKind::VOID) {
             Log::error("Variable cannot be of type void"sv, token);
             return {};
@@ -202,7 +210,7 @@ ParseResult Parser::parseStatement(Token* token) {
     return parseExpressionStatement(token);
 }
 
-// compound-stmt = (declaration | stmt)* "}"
+// compound-stmt = (typedef | declaration | stmt)* "}"
 ParseResult Parser::parseCompoundStatement(Token* token) {
     auto head = std::make_unique<Node>(NodeType::UNKNOWN, token);
     Node* current = head.get();
@@ -210,8 +218,15 @@ ParseResult Parser::parseCompoundStatement(Token* token) {
     _parseScope.enterScope();
 
     while (token->kind != TokenKind::TERMINATOR && !token::is(token, "}")) {
-        if (type::isTypeName(token)) {
-            auto [decl, rest] = declaration(token);
+        if (parser::isTypeName(token, _parseScope)) {
+            VariableAttribute attr{};
+            auto baseType = _parseDecl.declSpec(token, &attr);
+            if (attr.isTypeDef) {
+                token = parseTypeDef(token, baseType);
+                continue;
+            }
+
+            auto [decl, rest] = declaration(token, baseType);
             current->next = std::move(decl);
             token = rest;
         } else {
@@ -428,6 +443,22 @@ ParseResult Parser::parseFunctionCall(Token* token) {
     return {std::move(node), token};
 }
 
+Token* Parser::parseTypeDef(Token* token, std::shared_ptr<Type>& baseType) {
+    bool isFirst = true;
+
+    while (!token::consume(token, ";")) {
+        if (!isFirst) {
+            token = token::skipIf(token, ",");
+        }
+        isFirst = false;
+        auto type = _parseDecl.declarator(token, baseType);
+        auto name = token::getIdentifier(type->name);
+        _parseScope.pushVariableScope(name)->typeDef = type;
+    }
+
+    return token;
+}
+
 Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
     auto funcType = _parseDecl.declarator(token, baseType);
     auto name = token::getIdentifier(funcType->name);
@@ -512,7 +543,7 @@ ParseResult Parser::parsePrimary(Token* token) {
             Log::error(std::format("Undefined variable: {}", token->originalValue), token);
             return {nullptr, token};
         }
-        return {createVariableNode(token, var), token->next.get()};
+        return {createVariableNode(token, var->variable), token->next.get()};
     }
 
     if (token->kind == TokenKind::STRING) {

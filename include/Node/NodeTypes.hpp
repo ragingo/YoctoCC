@@ -4,11 +4,17 @@
 
 namespace yoctocc {
 
-    struct Member;
     struct Node;
     struct Object;
     struct Token;
     struct Type;
+
+    struct Member {
+        const Token* name = nullptr;
+        std::shared_ptr<Type> type;
+        int offset = 0;
+        std::unique_ptr<Member> next;
+    };
 
     enum class NodeType {
         UNKNOWN,
@@ -85,13 +91,6 @@ namespace yoctocc {
         int stackSize = 0;
 
         std::unique_ptr<Object> next;
-    };
-
-    struct Member {
-        const Token* name = nullptr;
-        std::shared_ptr<Type> type;
-        int offset = 0;
-        std::unique_ptr<Member> next;
     };
 
     inline std::unique_ptr<Object> makeVariable(const std::string& name, const std::shared_ptr<Type>& type, bool isLocal) {

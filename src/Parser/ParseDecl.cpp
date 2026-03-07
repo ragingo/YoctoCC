@@ -2,6 +2,7 @@
 
 #include "Logger.hpp"
 #include "Node/Node.hpp"
+#include "Parser/Util.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
 #include "Utility.hpp"
@@ -16,7 +17,7 @@ void ParseDecl::structMembers(Token*& token, std::shared_ptr<Type>& structType) 
     Member* current = head.get();
 
     while (!token::is(token, "}")) {
-        auto baseType = declSpec(token);
+        auto baseType = declSpec(token, nullptr);
 
         int i = 0;
         while (!token::consume(token, ";")) {
@@ -100,8 +101,9 @@ const std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
 }
 
 // declspec = ("void" | "char" | "short" | "int" | "long"
-//             | struct-decl | union-decl)+
-const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
+//             | "typedef"
+//             | struct-decl | union-decl | typedef-name)+
+const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr) {
     enum {
         VOID  = 1 <<  0,
         CHAR  = 1 <<  2,
@@ -110,21 +112,43 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token) {
         LONG  = 1 <<  8,
         OTHER = 1 << 10,
     };
-    auto type = std::make_shared<Type>(TypeKind::UNKNOWN);
+    auto type = type::intType();
     int counter = 0;
 
-    while (type::isTypeName(token)) {
-        if (token::is(token, "struct")) {
+    while (parser::isTypeName(token, _scope)) {
+        if (token::is(token, "typedef")) {
+            if (!attr) {
+                Log::error("typedef is not allowed here"sv, token);
+                return nullptr;
+            }
+            attr->isTypeDef = true;
             token = token->next.get();
-            type = structDecl(token);
-            counter += OTHER;
             continue;
         }
-        else if (token::is(token, "union")) {
-            token = token->next.get();
-            type = unionDecl(token);
-            counter += OTHER;
-            continue;
+
+        auto typeDefType = _scope.findTypeDef(token);
+
+        if (token::is(token, "struct") || token::is(token, "union") || typeDefType) {
+            if (counter) {
+                break;
+            }
+            if (token::is(token, "struct")) {
+                token = token->next.get();
+                type = structDecl(token);
+                counter += OTHER;
+                continue;
+            }
+            else if (token::is(token, "union")) {
+                token = token->next.get();
+                type = unionDecl(token);
+                counter += OTHER;
+                continue;
+            } else {
+                type = typeDefType;
+                token = token->next.get();
+                counter += OTHER;
+                continue;
+            }
         }
         else if (token::is(token, "void")) {
             counter += VOID;
@@ -218,7 +242,7 @@ const std::shared_ptr<Type> ParseDecl::functionParameters(Token*& token, std::sh
         if (head) {
             token = token::skipIf(token, ",");
         }
-        auto paramType = declSpec(token);
+        auto paramType = declSpec(token, nullptr);
         paramType = declarator(token, paramType);
         *current = paramType;
         current = &paramType->next;

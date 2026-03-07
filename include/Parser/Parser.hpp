@@ -24,7 +24,7 @@ private:
     bool isFunction(Token* token);
     Object* createLocalVariable(const std::string& name, const std::shared_ptr<Type>& type);
     Object* createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type);
-    ParseResult declaration(Token* token);
+    ParseResult declaration(Token* token, const std::shared_ptr<Type>& baseType);
     ParseResult parseExpression(Token* token);
     ParseResult parseAssignment(Token* token);
     ParseResult parseStatement(Token* token);
@@ -37,6 +37,7 @@ private:
     ParseResult parseUnary(Token* token);
     ParseResult parsePostfix(Token* token);
     ParseResult parseFunctionCall(Token* token);
+    Token* parseTypeDef(Token* token, std::shared_ptr<Type>& baseType);
     Token* parseFunction(Token* token, std::shared_ptr<Type>& baseType);
     Token* parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType);
     ParseResult parsePrimary(Token* token);

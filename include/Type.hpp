@@ -1,6 +1,8 @@
 #pragma once
 #include <functional>
 #include <memory>
+#include <string_view>
+#include <unordered_set>
 #include "Token.hpp"
 
 namespace yoctocc {
@@ -50,58 +52,6 @@ struct Type {
     Type(TypeKind kind, int size = 0, int alignment = 0): kind(kind), size(size), alignment(alignment), arraySize(0), base(nullptr) {}
 };
 
-enum class DataType {
-    VOID,
-    CHAR,
-    SHORT,
-    INT,
-    LONG,
-    STRUCT,
-    UNION,
-    UNKNOWN,
-};
-
-constexpr std::string to_string(DataType type) {
-    switch (type) {
-        case DataType::VOID:
-            return "void";
-        case DataType::CHAR:
-            return "char";
-        case DataType::SHORT:
-            return "short";
-        case DataType::INT:
-            return "int";
-        case DataType::LONG:
-            return "long";
-        case DataType::STRUCT:
-            return "struct";
-        case DataType::UNION:
-            return "union";
-        default:
-            return "???";
-    }
-}
-
-constexpr DataType to_data_type(const std::string& str) {
-    if (str == "void") {
-        return DataType::VOID;
-    } else if (str == "char") {
-        return DataType::CHAR;
-    } else if (str == "short") {
-        return DataType::SHORT;
-    } else if (str == "int") {
-        return DataType::INT;
-    } else if (str == "long") {
-        return DataType::LONG;
-    } else if (str == "struct") {
-        return DataType::STRUCT;
-    } else if (str == "union") {
-        return DataType::UNION;
-    } else {
-        return DataType::UNKNOWN;
-    }
-}
-
 namespace type {
     using enum TypeKind;
 
@@ -149,7 +99,11 @@ namespace type {
         if (!token) {
             return false;
         }
-        return to_data_type(token->originalValue) != DataType::UNKNOWN;
+        static const std::unordered_set<std::string_view> TYPE_NAMES = {
+            "void", "char", "short", "int", "long",
+            "struct", "union", "typedef",
+        };
+        return TYPE_NAMES.contains(token->originalValue);
     }
 
     std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base);

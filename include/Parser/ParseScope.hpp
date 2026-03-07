@@ -13,6 +13,7 @@ struct VariableScope {
     std::string name;
     std::unique_ptr<VariableScope> next;
     Object* variable = nullptr;
+    std::shared_ptr<Type> typeDef;
 };
 
 struct TagScope {
@@ -32,11 +33,13 @@ public:
     void enterScope();
     void leaveScope();
 
-    void pushVariableScope(const std::string& name, Object* variable);
-    Object* findVariable(const Token* token);
+    VariableScope* pushVariableScope(const std::string& name);
+    VariableScope* findVariable(const Token* token) const;
 
     void pushTagScope(const std::string& name, std::shared_ptr<Type> type);
-    std::shared_ptr<Type> findTag(const Token* token);
+    std::shared_ptr<Type> findTag(const Token* token) const;
+
+    std::shared_ptr<Type> findTypeDef(const Token* token) const;
 
     inline Scope* currentScope() const {
         return _currentScope.get();

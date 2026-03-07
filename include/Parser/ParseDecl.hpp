@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "Common.hpp"
 #include "ParseScope.hpp"
 
 namespace yoctocc {
@@ -20,8 +21,9 @@ public:
     // struct-union-decl = ident? ("{" struct-members)?
     const std::shared_ptr<Type> structUnionDecl(Token*& token);
     // declspec = ("void" | "char" | "short" | "int" | "long"
-    //             | struct-decl | union-decl)+
-    const std::shared_ptr<Type> declSpec(Token*& token);
+    //             | "typedef"
+    //             | struct-decl | union-decl | typedef-name)+
+    const std::shared_ptr<Type> declSpec(Token*& token, VariableAttribute* attr);
     // declarator = "*"* ident type-suffix
     const std::shared_ptr<Type> declarator(Token*& token, const std::shared_ptr<Type>& baseType);
     // func-params = (param ("," param)*)? ")"
