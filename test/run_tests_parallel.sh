@@ -213,6 +213,7 @@ show_assert_details() {
     local test_num="$1"
     local test_file="$2"
     local count_file="$3"
+    local skip_reason="${4:-}"  # オプショナル: スキップ理由
     local stderr_log="$WORK_DIR/test_$test_num/stderr.log"
     local pass=0 fail=0 skip=0
 
@@ -253,7 +254,11 @@ show_assert_details() {
                 fail=$((fail + 1))
                 ;;
             SKIP)
-                echo -e "    ${YELLOW}#$idx $_expr => (skipped)${NC}"
+                if [ -n "$skip_reason" ]; then
+                    echo -e "    ${YELLOW}#$idx $_expr => (skipped: $skip_reason)${NC}"
+                else
+                    echo -e "    ${YELLOW}#$idx $_expr => (skipped)${NC}"
+                fi
                 skip=$((skip + 1))
                 ;;
         esac
@@ -323,16 +328,40 @@ for i in $(seq 1 $TOTAL_TESTS); do
                 echo -e "${RED}[$test_name] FAILED (timeout: ${TEST_TIMEOUT}s)${NC}"
                 ;;
             result)
-                local _exp _act
                 _exp=$(echo "$result" | awk '{print $3}')
                 _act=$(echo "$result" | awk '{print $4}')
                 echo -e "${RED}[$test_name] FAILED (exit code: expected=$_exp, actual=$_act)${NC}"
                 ;;
         esac
 
-        # 失敗時もケース詳細を表示
+        # 失敗時もケース詳細を表示（クラッシュ理由を計算）
+        _skip_reason=""
+        if [ "$reason" = "result" ]; then
+            _act=$(echo "$result" | awk '{print $4}')
+            if [ "$_act" -gt 128 ] 2>/dev/null; then
+                _sig=$((_act - 128))
+                case $_sig in
+                    4)  _signame="SIGILL" ;;
+                    6)  _signame="SIGABRT" ;;
+                    8)  _signame="SIGFPE" ;;
+                    9)  _signame="SIGKILL" ;;
+                    11) _signame="SIGSEGV" ;;
+                    13) _signame="SIGPIPE" ;;
+                    14) _signame="SIGALRM" ;;
+                    15) _signame="SIGTERM" ;;
+                    *)  _signame="signal $_sig" ;;
+                esac
+                _skip_reason="program crashed with $_signame"
+            else
+                _skip_reason="program exited with code $_act"
+            fi
+        elif [ "$reason" = "timeout" ]; then
+            _skip_reason="program timed out"
+        elif [ "$reason" = "compile" ] || [ "$reason" = "assemble" ] || [ "$reason" = "link" ]; then
+            _skip_reason="$reason failed"
+        fi
         local_count_file="$WORK_DIR/test_${i}_counts"
-        show_assert_details "$i" "$test_file" "$local_count_file"
+        show_assert_details "$i" "$test_file" "$local_count_file" "$_skip_reason"
         read -r p f s < "$local_count_file"
         PASSED_CASES=$((PASSED_CASES + p))
         FAILED_CASES=$((FAILED_CASES + f))
