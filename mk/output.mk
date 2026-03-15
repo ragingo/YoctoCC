@@ -26,11 +26,11 @@ $(ASM): $(COMPILER)
 
 # アセンブル（.s → .o）
 $(OBJ): $(ASM)
-	$(CC) -c -o $@ $<
+	$(CC) -g -c -o $@ $<
 
 # テスト用ヘルパーのコンパイル（C23/C2X 対応、-nostdlib 環境用）
 $(TEST_HELPER_O): $(TEST_HELPER_C) | $(BUILD_DIR)
-	$(CC) -std=c2x -O2 -fno-builtin -fno-stack-protector -c -o $@ $<
+	$(CC) -g -std=c2x -O2 -fno-builtin -fno-stack-protector -c -o $@ $<
 
 # yoctocc が生成したコード + テストヘルパーをリンク（nostdlib で独自の _start を使用）
 $(BIN): $(OBJ) $(TEST_HELPER_O)

@@ -13,7 +13,7 @@
 include mk/output.mk
 include mk/test.mk
 
-.PHONY: all clean run compile test rebuild profile help
+.PHONY: all clean run compile execute debug test rebuild profile help
 
 # --- デフォルトターゲット ---
 all: $(COMPILER)
@@ -25,6 +25,16 @@ compile: $(ASM)
 # 使用例: make run ARGS="input.c output.s"
 run: $(COMPILER)
 	./$(COMPILER) $(ARGS)
+
+# --- コンパイル → アセンブル → リンク → 実行 ---
+# 使用例: make execute INPUT=test/cases/arith.c
+execute: $(BIN)
+	./$(BIN)
+
+# --- コンパイル → アセンブル → リンク → GDB でデバッグ ---
+# 使用例: make debug INPUT=test/cases/debug.c
+debug: $(BIN)
+	gdb -q ./$(BIN)
 
 # --- クリーン ---
 clean:
@@ -48,6 +58,8 @@ help:
 	@echo "  all         - Build the compiler (default)"
 	@echo "  compile     - Compile input file to assembly (INPUT=filename.c)"
 	@echo "  run         - Run the compiler"
+	@echo "  execute     - Compile, assemble, link, and run (INPUT=filename.c)"
+	@echo "  debug       - Compile, assemble, link, and debug with GDB (INPUT=filename.c)"
 	@echo "  test        - Run test suite"
 	@echo "  profile     - Profile compiler with gprof"
 	@echo "  rebuild     - Clean and rebuild"
