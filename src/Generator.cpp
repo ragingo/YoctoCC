@@ -9,7 +9,37 @@
 #include "Utility.hpp"
 
 namespace {
+    using namespace yoctocc;
+
     constexpr size_t STACK_ALIGNMENT = 16;
+
+    enum TypeID { I8, I16, I32, I64 };
+
+    TypeID getTypeID(const Type* type) {
+        using enum TypeKind;
+        switch (type->kind) {
+            case CHAR:
+                return I8;
+            case SHORT:
+                return I16;
+            case INT:
+                return I32;
+            default:
+                return I64;
+        }
+    }
+
+    const std::string i32i8 = movsbl(EAX, AL);
+    const std::string i32i16 = movswl(EAX, AX);
+    const std::string i32i64 = movsxd(RAX, EAX);
+
+    // cast_table[from][to]
+    const std::string castTable[4][4] = {
+        {"", "", "", i32i64},
+        {i32i8, "", "", i32i64},
+        {i32i8, i32i16, "", i32i64},
+        {i32i8, i32i16, "", ""},
+    };
 }
 
 namespace yoctocc {
@@ -31,30 +61,13 @@ void Generator::cast(const Node* node) {
     auto from = node->left->type.get();
     auto to = node->type.get();
 
-    if (type::is(from, to)) {
-        return;
-    }
     if (type::is(to, VOID)) {
         return;
     }
-    if (from->size == to->size) {
-        return;
-    }
 
-    switch (to->kind) {
-        case CHAR:
-            addCode(movsbl(EAX, AL));
-            break;
-        case SHORT:
-            addCode(movswl(EAX, AX));
-            break;
-        case INT:
-            // 何もしない
-            break;
-        default:
-            assert(to->size == 8);
-            addCode(movsxd(RAX, EAX));
-            break;
+    auto code = castTable[getTypeID(from)][getTypeID(to)];
+    if (!code.empty()) {
+        addCode(code);
     }
 }
 
@@ -66,9 +79,9 @@ void Generator::load(const Type* type) {
         return;
     }
     if (type->size == 1) {
-        addCode(movsbq(RAX, Address{RAX}));
+        addCode(movsbl(EAX, byte_ptr(Address{RAX})));
     } else if (type->size == 2) {
-        addCode(movswq(RAX, Address{RAX}));
+        addCode(movswl(EAX, word_ptr(Address{RAX})));
     } else if (type->size == 4) {
         addCode(movsxd(RAX, Address{RAX}));
     } else {

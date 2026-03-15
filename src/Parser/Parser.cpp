@@ -372,7 +372,9 @@ ParseResult Parser::parseCast(Token* token) {
         auto type = _parseDecl.typeName(next);
         token = token::skipIf(next, ")");
         auto [expr, rest] = parseCast(token);
-        return {createCastNode(start, std::move(expr), type), rest};
+        auto node = createCastNode(std::move(expr), type);
+        node->token = start;
+        return {std::move(node), rest};
     }
     return parseUnary(token);
 }

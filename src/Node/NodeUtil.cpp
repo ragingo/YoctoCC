@@ -34,6 +34,13 @@ std::unique_ptr<Node> createNumberNode(const Token* token, int64_t value) {
     return node;
 }
 
+std::unique_ptr<Node> createLongNode(const Token* token, int64_t value) {
+    auto node = std::make_unique<Node>(NodeType::NUMBER, token);
+    node->value = value;
+    node->type = type::longType();
+    return node;
+}
+
 std::unique_ptr<Node> createUnaryNode(NodeType type, const Token* token, std::unique_ptr<Node> operand) {
     auto node = std::make_unique<Node>(type, token);
     node->left = std::move(operand);
@@ -80,7 +87,7 @@ std::unique_ptr<Node> createAddNode(const Token* token, std::unique_ptr<Node> le
     }
 
     // pointer + number
-    auto newRight = createBinaryNode(NodeType::MUL, token, std::move(right), createNumberNode(token, left->type->base->size));
+    auto newRight = createBinaryNode(NodeType::MUL, token, std::move(right), createLongNode(token, left->type->base->size));
     return createBinaryNode(NodeType::ADD, token, std::move(left), std::move(newRight));
 }
 
@@ -96,7 +103,7 @@ std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> le
     // pointer - number
     if (left->type->base && type::isInteger(right->type)) {
         auto resultType = left->type;
-        auto newRight = createBinaryNode(NodeType::MUL, token, std::move(right), createNumberNode(token, left->type->base->size));
+        auto newRight = createBinaryNode(NodeType::MUL, token, std::move(right), createLongNode(token, left->type->base->size));
         type::addType(newRight.get());
         auto node = createBinaryNode(NodeType::SUB, token, std::move(left), std::move(newRight));
         node->type = resultType;
@@ -129,9 +136,10 @@ std::unique_ptr<Node> createStructRefNode(const Token* token, std::unique_ptr<No
     return node;
 }
 
-std::unique_ptr<Node> createCastNode(const Token* token, std::unique_ptr<Node> expression, const std::shared_ptr<Type>& targetType) {
+std::unique_ptr<Node> createCastNode(std::unique_ptr<Node> expression, const std::shared_ptr<Type>& targetType) {
     type::addType(expression.get());
 
+    auto token = expression->token;
     auto node = createUnaryNode(NodeType::CAST, token, std::move(expression));
     node->type = targetType;
     return node;

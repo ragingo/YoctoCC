@@ -32,6 +32,19 @@ inline constexpr std::string to_string(Address<Register>&& addr) {
     }
 }
 
+// Intel syntax サイズ修飾子付きアドレス (movsx 等で必要)
+inline constexpr std::string byte_ptr(Address<Register>&& addr) {
+    return "BYTE PTR " + to_string(std::move(addr));
+}
+
+inline constexpr std::string word_ptr(Address<Register>&& addr) {
+    return "WORD PTR " + to_string(std::move(addr));
+}
+
+inline constexpr std::string dword_ptr(Address<Register>&& addr) {
+    return "DWORD PTR " + to_string(std::move(addr));
+}
+
 // RIP相対アドレッシング用 (グローバル変数用)
 struct RipRelativeAddress {
     std::string symbol;

@@ -1,3 +1,5 @@
 build/
 gmon.out
 profile.log
+
+test/cases/debug.c

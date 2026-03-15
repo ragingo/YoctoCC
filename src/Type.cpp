@@ -1,10 +1,32 @@
 #include "Type.hpp"
 
+#include <tuple>
 #include "Logger.hpp"
 #include "Node/Node.hpp"
 #include "Token.hpp"
 
 using namespace std::literals;
+
+namespace {
+    using namespace yoctocc;
+
+    std::shared_ptr<Type> getCommonType(const std::shared_ptr<Type>& type1, const std::shared_ptr<Type>& type2) {
+        if (type1->base) {
+            return type::pointerTo(type1->base);
+        }
+        if (type1->size == 8 || type2->size == 8) {
+            return type::longType();
+        }
+        return type::intType();
+    }
+
+    std::tuple<std::unique_ptr<Node>, std::unique_ptr<Node>> convertUsualArithmetic(std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs) {
+        auto type = getCommonType(lhs->type, rhs->type);
+        auto newLhsNode = createCastNode(std::move(lhs), type);
+        auto newRhsNode = createCastNode(std::move(rhs), type);
+        return {std::move(newLhsNode), std::move(newRhsNode)};
+    }
+}
 
 namespace yoctocc::type {
 
@@ -49,17 +71,34 @@ namespace yoctocc::type {
         }
 
         switch (node->nodeType) {
+            case NodeType::NUMBER:
+                node->type = (node->value == static_cast<int64_t>(static_cast<int32_t>(node->value))) ? type::intType() : type::longType();
+                return;
             case NodeType::ADD:
             case NodeType::SUB:
             case NodeType::MUL:
             case NodeType::DIV:
+                {
+                    auto [newLhsNode, newRhsNode] = convertUsualArithmetic(std::move(node->left), std::move(node->right));
+                    node->left = std::move(newLhsNode);
+                    node->right = std::move(newRhsNode);
+                    node->type = node->left->type;
+                }
+                return;
             case NodeType::NEGATE:
-                node->type = node->left->type;
+                {
+                    auto type = getCommonType(type::intType(), node->left->type);
+                    node->left = createCastNode(std::move(node->left), type);
+                    node->type = type;
+                }
                 return;
             case NodeType::ASSIGN:
                 if (node->left->type->kind == TypeKind::ARRAY) {
                     Log::error("not an lvalue"sv, node->token);
                     return;
+                }
+                if (node->left->type->kind != TypeKind::STRUCT) {
+                    node->right = createCastNode(std::move(node->right), node->left->type);
                 }
                 node->type = node->left->type;
                 return;
@@ -69,7 +108,13 @@ namespace yoctocc::type {
             case NodeType::LESS_EQUAL:
             case NodeType::GREATER:
             case NodeType::GREATER_EQUAL:
-            case NodeType::NUMBER:
+                {
+                    auto [newLhsNode, newRhsNode] = convertUsualArithmetic(std::move(node->left), std::move(node->right));
+                    node->left = std::move(newLhsNode);
+                    node->right = std::move(newRhsNode);
+                }
+                node->type = type::intType();
+                break;
             case NodeType::FUNCTION_CALL:
                 node->type = type::longType();
                 return;
@@ -119,6 +164,7 @@ namespace yoctocc::type {
             case NodeType::EXPRESSION_STATEMENT:
             case NodeType::RETURN:
             case NodeType::UNKNOWN:
+            case NodeType::CAST:
                 // skip
                 return;
         }
