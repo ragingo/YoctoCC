@@ -36,10 +36,13 @@ private:
         (lines.emplace_back(std::forward<Args>(args)), ...);
     }
 
+    void emitLocation(const Node* node);
+
 private:
     std::vector<std::string> lines{};
     const Object* currentFunction = nullptr;
     uint64_t labelCount = 0UL;
+    size_t lastEmittedLine = 0;
 };
 
 } // namespace yoctocc

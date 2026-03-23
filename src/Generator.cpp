@@ -166,9 +166,24 @@ void Generator::generateAddress(const Node* node) {
     Log::error("Not an lvalue"sv, node->token);
 }
 
+void Generator::emitLocation(const Node* node) {
+    if (node->token->line != lastEmittedLine) {
+        addCode(directive::loc(1, static_cast<int>(node->token->line)));
+        lastEmittedLine = node->token->line;
+    }
+}
+
 void Generator::generateStatement(const Node* node) {
     assert(node);
-    addCode(directive::loc(1, node->token->line));
+
+    emitLocation(node);
+
+    if (node->nodeType == NodeType::BLOCK) {
+        for (const Node* statement = node->body.get(); statement; statement = statement->next.get()) {
+            generateStatement(statement);
+        }
+        return;
+    }
 
     if (node->nodeType == NodeType::IF) {
         uint64_t count = labelCount++;
@@ -212,12 +227,6 @@ void Generator::generateStatement(const Node* node) {
         addCode(endLabel.def());
         return;
     }
-    if (node->nodeType == NodeType::BLOCK) {
-        for (const Node* statement = node->body.get(); statement; statement = statement->next.get()) {
-            generateStatement(statement);
-        }
-        return;
-    }
     if (node->nodeType == NodeType::RETURN) {
         generateExpression(node->left.get());
         addCode(jmp(makeLabel("return", currentFunction->name).ref()));
@@ -234,7 +243,7 @@ void Generator::generateStatement(const Node* node) {
 
 void Generator::generateExpression(const Node* node) {
     assert(node);
-    addCode(directive::loc(1, node->token->line));
+    emitLocation(node);
 
     switch (node->nodeType) {
         case NodeType::NUMBER:
@@ -383,6 +392,7 @@ void Generator::generateExpression(const Node* node) {
 void Generator::generateFunction(const Object* obj) {
     assert(obj);
     currentFunction = obj;
+    lastEmittedLine = 0;
 
     addCode(
         directive::global(obj->name),

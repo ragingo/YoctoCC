@@ -240,7 +240,7 @@ ParseResult Parser::parseCompoundStatement(Token* token) {
 
     _parseScope.leaveScope();
 
-    auto node = createBlockNode(token, std::move(head->next));
+    auto node = createBlockNode(head->token, std::move(head->next));
     return {std::move(node), token->next.get()};
 }
 
@@ -488,10 +488,10 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
 
     _parseScope.enterScope();
 
-    token = token::skipIf(token, "{");
     applyParamLVars(funcType->parameters);
     func->parameters = _locals.get();
 
+    token = token::skipIf(token, "{");
     auto [body, rest] = parseCompoundStatement(token);
     func->body = std::move(body);
     token = rest;
