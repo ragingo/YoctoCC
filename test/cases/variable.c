@@ -1,3 +1,4 @@
+void ASSERT(int expected, int actual);
 int g1, g2[4];
 
 int main() {

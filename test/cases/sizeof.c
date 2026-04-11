@@ -1,3 +1,4 @@
+void ASSERT(int expected, int actual);
 int main() {
     ASSERT(1, sizeof(char));
     ASSERT(2, sizeof(short));

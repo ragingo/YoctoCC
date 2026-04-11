@@ -1,3 +1,4 @@
+void ASSERT(int expected, int actual);
 int ret3() {
     return 3;
     return 5;

@@ -1,3 +1,4 @@
+void ASSERT(int expected, int actual);
 typedef int MyInt, MyInt2[4];
 typedef int;
 

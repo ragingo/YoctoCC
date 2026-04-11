@@ -1,3 +1,4 @@
+void ASSERT(int expected, int actual);
 int main() {
     ASSERT(0, 0);
     ASSERT(42, 42);

@@ -1,3 +1,4 @@
+void ASSERT(int expected, int actual);
 /*
  * This is a block comment.
  */

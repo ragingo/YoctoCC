@@ -1,3 +1,4 @@
+void ASSERT(int expected, int actual);
 int main() {
     ASSERT(1, ({ struct {int a; int b;} x; x.a=1; x.b=2; x.a; }));
     ASSERT(2, ({ struct {int a; int b;} x; x.a=1; x.b=2; x.b; }));

@@ -1,3 +1,4 @@
+void ASSERT(int expected, int actual);
 int main() {
     ASSERT(3, ({ int x=3; *&x; }));
     ASSERT(3, ({ int x=3; int *y=&x; int **z=&y; **z; }));

@@ -1,3 +1,4 @@
+void ASSERT(int expected, int actual);
 int main() {
     ASSERT((long)-5, -10 + (long)5);
     ASSERT((long)-15, -10 - (long)5);
