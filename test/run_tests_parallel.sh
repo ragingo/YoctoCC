@@ -185,7 +185,7 @@ TOTAL_TESTS=$test_num
 # 実行前にテストケース総数を集計
 ESTIMATED_CASES=0
 for i in $(seq 1 $TOTAL_TESTS); do
-    _n=$(grep -v '^\s*//' "${TEST_FILES[$i]}" | grep -c 'ASSERT(' || true)
+    _n=$(grep -v '^\s*//' "${TEST_FILES[$i]}" | grep 'ASSERT(' | grep -cv '^void ' || true)
     ESTIMATED_CASES=$((ESTIMATED_CASES + _n))
 done
 
@@ -218,7 +218,7 @@ show_assert_details() {
     local pass=0 fail=0 skip=0
 
     # ソースから ASSERT() 呼び出し行を抽出
-    mapfile -t assert_exprs < <(grep 'ASSERT(' "$test_file" | grep -v '^\s*//' | grep -v '^#')
+    mapfile -t assert_exprs < <(grep 'ASSERT(' "$test_file" | grep -v '^\s*//' | grep -v '^#' | grep -v '^void ')
     local total=${#assert_exprs[@]}
 
     if [ "$total" -eq 0 ]; then
@@ -284,7 +284,7 @@ for i in $(seq 1 $TOTAL_TESTS); do
     if [ ! -f "$result_file" ]; then
         echo -e "${RED}[$test_name] FAILED (no result)${NC}"
         # ソース中の ASSERT 数を失敗としてカウント（コメント行を除外）
-        _fc=$(grep -v '^\s*//' "$test_file" 2>/dev/null | grep -c 'ASSERT(' || echo 0)
+        _fc=$(grep -v '^\s*//' "$test_file" 2>/dev/null | grep 'ASSERT(' | grep -cv '^void ' || echo 0)
         [ "$_fc" -eq 0 ] && _fc=1
         FAILED_CASES=$(( FAILED_CASES + _fc ))
         TOTAL_CASES=$(( TOTAL_CASES + _fc ))
