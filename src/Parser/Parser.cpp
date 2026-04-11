@@ -436,6 +436,19 @@ ParseResult Parser::parsePostfix(Token* token) {
 ParseResult Parser::parseFunctionCall(Token* token) {
     auto start = token;
     token = token->next.get()->next.get(); // 関数名と"("をスキップ
+
+    auto varScope = _parseScope.findVariable(start);
+    if (!varScope) {
+        Log::error("implicit declaration of function", start);
+        return {};
+    }
+    if (!varScope->variable || !varScope->variable->isFunction) {
+        Log::error("not a function", start);
+        return {};
+    }
+
+    auto type = varScope->variable->type->returnType;
+
     auto head = std::make_unique<Node>(NodeType::UNKNOWN, token);
     Node* current = head.get();
 
@@ -447,12 +460,14 @@ ParseResult Parser::parseFunctionCall(Token* token) {
         current->next = std::move(arg);
         current = current->next.get();
         token = rest;
+        type::addType(current);
     }
 
     token = token::skipIf(token, ")");
 
     auto node = std::make_unique<Node>(NodeType::FUNCTION_CALL, start);
     node->functionName = token::getIdentifier(start);
+    node->type = type;
     node->arguments = std::move(head->next);
 
     return {std::move(node), token};
