@@ -21,7 +21,7 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Clang 20 でプロジェクトをビルドします"
+            "detail": "Clang でプロジェクトをビルドします"
         },
         {
             "type": "shell",

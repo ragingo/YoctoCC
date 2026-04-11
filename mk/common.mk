@@ -11,8 +11,8 @@ CC       ?= gcc
 MODE     ?= debug
 PROFILE  ?= 0
 
-# C++23 フラグ（Apple Clang は -std=c++2b が必要な場合あり）
-CXX_STD  ?= -std=c++23
+# C++26 フラグ
+CXX_STD  ?= -std=c++26
 
 # ディレクトリ
 BUILD_DIR := build

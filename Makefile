@@ -74,6 +74,6 @@ help:
 	@echo "  make CXX=clang++      - Use Clang"
 	@echo "  make CXX=g++          - Use GCC"
 	@echo ""
-	@echo "C++ standard (default: -std=c++23):"
-	@echo "  make CXX_STD=-std=c++2b  - For older Clang versions"
+	@echo "C++ standard (default: -std=c++26):"
+	@echo "  make CXX_STD=-std=c++23  - For older compiler versions"
 
