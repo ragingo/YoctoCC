@@ -20,6 +20,8 @@ namespace {
                 return found;
             }
         }
+
+        Log::error("No such member"sv, memberName);
         return nullptr;
     }
 }
