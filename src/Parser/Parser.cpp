@@ -137,10 +137,13 @@ ParseResult Parser::parseAssignment(Token* token) {
 //      | expr-stmt
 ParseResult Parser::parseStatement(Token* token) {
     if (token::is(token, "return")) {
+        assert(_currentFunction);
         auto start = token;
         auto [expr, rest] = parseExpression(token->next.get());
         rest = token::skipIf(rest, ";");
-        return {createUnaryNode(NodeType::RETURN, start, std::move(expr)), rest};
+        type::addType(expr.get());
+        auto lhsNode = createCastNode(std::move(expr), _currentFunction->type->returnType);
+        return {createUnaryNode(NodeType::RETURN, start, std::move(lhsNode)), rest};
     }
 
     if (token::is(token, "if")) {
@@ -503,21 +506,22 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
         return token;
     }
 
+    _currentFunction = std::move(func);
     _locals.reset();
 
     _parseScope.enterScope();
 
     applyParamLVars(funcType->parameters);
-    func->parameters = _locals.get();
+    _currentFunction->parameters = _locals.get();
 
     token = token::skipIf(token, "{");
     auto [body, rest] = parseCompoundStatement(token);
-    func->body = std::move(body);
+    _currentFunction->body = std::move(body);
     token = rest;
 
-    func->locals = std::move(_locals);
-    func->next = std::move(_globals);
-    _globals = std::move(func);
+    _currentFunction->locals = std::move(_locals);
+    _currentFunction->next = std::move(_globals);
+    _globals = std::move(_currentFunction);
 
     _parseScope.leaveScope();
 
