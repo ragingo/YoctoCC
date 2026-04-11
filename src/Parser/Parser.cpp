@@ -495,7 +495,11 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
     auto func = makeFunction(name, funcType);
     func->isDefinition = !token::consume(token, ";");
 
+    _parseScope.pushVariableScope(name)->variable = func.get();
+
     if (!func->isDefinition) {
+        func->next = std::move(_globals);
+        _globals = std::move(func);
         return token;
     }
 
