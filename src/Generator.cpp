@@ -443,11 +443,11 @@ void Generator::emitData(const Object* obj) {
         if (var->isFunction) {
             continue;
         }
-        addCode(
-            to_string(DATA),
-            directive::global(var->name),
-            makeLabel(var->name).def()
-        );
+        addCode(to_string(DATA));
+        if (!var->name.starts_with(".L")) {
+            addCode(directive::global(var->name));
+        }
+        addCode(makeLabel(var->name).def());
         if (var->initialData.empty()) {
             addCode(directive::zero(var->type->size));
         } else {
