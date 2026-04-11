@@ -450,7 +450,8 @@ ParseResult Parser::parseFunctionCall(Token* token) {
         return {};
     }
 
-    auto type = varScope->variable->type->returnType;
+    auto type = varScope->variable->type;
+    auto parameterType = type->parameters;
 
     auto head = std::make_unique<Node>(NodeType::UNKNOWN, token);
     Node* current = head.get();
@@ -460,6 +461,17 @@ ParseResult Parser::parseFunctionCall(Token* token) {
             token = token::skipIf(token, ",");
         }
         auto [arg, rest] = parseAssignment(token);
+        type::addType(arg.get());
+
+        if (parameterType) {
+            if (parameterType->kind == TypeKind::STRUCT || parameterType->kind == TypeKind::UNION) {
+                Log::error("Passing struct/union is not supported yet"sv, token);
+                return {};
+            }
+            arg = createCastNode(std::move(arg), parameterType);
+            parameterType = parameterType->next;
+        }
+
         current->next = std::move(arg);
         current = current->next.get();
         token = rest;
@@ -470,7 +482,8 @@ ParseResult Parser::parseFunctionCall(Token* token) {
 
     auto node = std::make_unique<Node>(NodeType::FUNCTION_CALL, start);
     node->functionName = token::getIdentifier(start);
-    node->type = type;
+    node->functionType = type;
+    node->type = type->returnType;
     node->arguments = std::move(head->next);
 
     return {std::move(node), token};

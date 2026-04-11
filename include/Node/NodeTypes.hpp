@@ -67,6 +67,7 @@ namespace yoctocc {
         std::unique_ptr<Member> member;
         // function call
         std::string functionName;
+        std::shared_ptr<Type> functionType;
         std::unique_ptr<Node> arguments;
 
         Node(NodeType type, const Token* token): nodeType(type), token(token) {}
