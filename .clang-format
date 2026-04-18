@@ -1,0 +1,86 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+
+# インデント
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+IndentCaseLabels: true
+NamespaceIndentation: None
+IndentWrappedFunctionNames: false
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+
+# 行幅
+ColumnLimit: 120
+
+# ブレーススタイル
+BreakBeforeBraces: Attach
+Cpp11BracedListStyle: true
+
+# インクルード
+SortIncludes: CaseInsensitive
+IncludeBlocks: Preserve
+IncludeCategories:
+  # 対応するヘッダ (e.g. Foo.cpp -> Foo.hpp)
+  - Regex: '^".*\.hpp"'
+    Priority: 1
+  # システム / 標準ライブラリ
+  - Regex: '^<.*>'
+    Priority: 2
+  # プロジェクト内ヘッダ
+  - Regex: '^".*"'
+    Priority: 3
+
+# 整列
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignTrailingComments: true
+
+# 改行
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortLambdasOnASingleLine: All
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+
+# スペース
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyBlock: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# ポインタ・参照
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# その他
+FixNamespaceComments: true
+MaxEmptyLinesToKeep: 2
+SeparateDefinitionBlocks: Leave
+ReflowComments: true
+SortUsingDeclarations: true
+Standard: Latest

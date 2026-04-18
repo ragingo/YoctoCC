@@ -13,7 +13,7 @@
 include mk/output.mk
 include mk/test.mk
 
-.PHONY: all clean run compile execute debug test rebuild profile help
+.PHONY: all clean run compile execute debug test rebuild profile help format format-check
 
 # --- デフォルトターゲット ---
 all: $(COMPILER)
@@ -76,4 +76,18 @@ help:
 	@echo ""
 	@echo "C++ standard (default: -std=c++26):"
 	@echo "  make CXX_STD=-std=c++23  - For older compiler versions"
+	@echo ""
+	@echo "Formatting:"
+	@echo "  make format           - Format all source files with clang-format"
+	@echo "  make format-check     - Check formatting (dry-run)"
+
+# --- フォーマット ---
+FORMAT_FILES := $(shell find src include -name '*.cpp' -o -name '*.hpp') main.cpp
+
+format:
+	clang-format -i $(FORMAT_FILES)
+	@echo "Formatted $$(echo $(FORMAT_FILES) | wc -w) files"
+
+format-check:
+	clang-format --dry-run --Werror $(FORMAT_FILES)
 
