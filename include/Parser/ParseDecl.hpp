@@ -20,7 +20,7 @@ public:
     const std::shared_ptr<Type> unionDecl(Token*& token);
     // struct-union-decl = ident? ("{" struct-members)?
     const std::shared_ptr<Type> structUnionDecl(Token*& token);
-    // declspec = ("void" | "char" | "short" | "int" | "long"
+    // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
     //             | "typedef"
     //             | struct-decl | union-decl | typedef-name)+
     const std::shared_ptr<Type> declSpec(Token*& token, VariableAttribute* attr);

@@ -12,6 +12,7 @@ struct Node;
 
 enum class TypeKind {
     VOID,
+    BOOL,
     CHAR,
     SHORT,
     INT,
@@ -59,6 +60,10 @@ namespace type {
         return std::make_shared<Type>(VOID, 1, 1);
     }
 
+    inline std::shared_ptr<Type> boolType() {
+        return std::make_shared<Type>(BOOL, 1, 1);
+    }
+
     inline std::shared_ptr<Type> charType() {
         return std::make_shared<Type>(CHAR, 1, 1);
     }
@@ -99,8 +104,13 @@ namespace type {
         return type && predicate(type->kind);
     }
 
-    inline bool isInteger(const std::shared_ptr<Type>& type) {
-        return is(type, [](TypeKind kind) { return kind == CHAR || kind == SHORT || kind == INT || kind == LONG; });
+    inline bool isInteger(const Type* type) {
+        return is(
+            type,
+            [](TypeKind kind) {
+                return kind == BOOL || kind == CHAR || kind == SHORT || kind == INT || kind == LONG;
+            }
+        );
     }
 
     inline bool isTypeName(const Token* token) {
@@ -108,7 +118,7 @@ namespace type {
             return false;
         }
         static const std::unordered_set<std::string_view> TYPE_NAMES = {
-            "void", "char", "short", "int", "long",
+            "void", "_Bool", "char", "short", "int", "long",
             "struct", "union", "typedef",
         };
         return TYPE_NAMES.contains(token->originalValue);

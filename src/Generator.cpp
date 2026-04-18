@@ -40,6 +40,14 @@ namespace {
         {i32i8, i32i16, "", i32i64},
         {i32i8, i32i16, "", ""},
     };
+
+    std::string compareZero(const Type* type) {
+        if (type::isInteger(type) && type->size <= 4) {
+            return cmp(EAX, 0);
+        } else {
+            return cmp(RAX, 0);
+        }
+    }
 }
 
 namespace yoctocc {
@@ -62,6 +70,15 @@ void Generator::cast(const Node* node) {
     auto to = node->type.get();
 
     if (type::is(to, VOID)) {
+        return;
+    }
+
+    if (type::is(from, BOOL)) {
+        addCode(
+            compareZero(from),
+            setne(AL),
+            movzx(EAX, AL)
+        );
         return;
     }
 

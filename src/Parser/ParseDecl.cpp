@@ -100,17 +100,18 @@ const std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
     return type;
 }
 
-// declspec = ("void" | "char" | "short" | "int" | "long"
+// declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //             | "typedef"
 //             | struct-decl | union-decl | typedef-name)+
 const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr) {
     enum {
         VOID  = 1 <<  0,
-        CHAR  = 1 <<  2,
-        SHORT = 1 <<  4,
-        INT   = 1 <<  6,
-        LONG  = 1 <<  8,
-        OTHER = 1 << 10,
+        BOOL  = 1 <<  2,
+        CHAR  = 1 <<  4,
+        SHORT = 1 <<  6,
+        INT   = 1 <<  8,
+        LONG  = 1 << 10,
+        OTHER = 1 << 12,
     };
     auto type = type::intType();
     int counter = 0;
@@ -153,6 +154,9 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute
         else if (token::is(token, "void")) {
             counter += VOID;
         }
+        else if (token::is(token, "_Bool")) {
+            counter += BOOL;
+        }
         else if (token::is(token, "char")) {
             counter += CHAR;
         }
@@ -173,6 +177,9 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute
         switch (counter) {
             case VOID:
                 type = type::voidType();
+                break;
+            case BOOL:
+                type = type::boolType();
                 break;
             case CHAR:
                 type = type::charType();

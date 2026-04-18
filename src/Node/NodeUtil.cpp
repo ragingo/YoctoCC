@@ -73,7 +73,7 @@ std::unique_ptr<Node> createAddNode(const Token* token, std::unique_ptr<Node> le
     type::addType(right.get());
 
     // number + number
-    if (type::isInteger(left->type) && type::isInteger(right->type)) {
+    if (type::isInteger(left->type.get()) && type::isInteger(right->type.get())) {
         return createBinaryNode(NodeType::ADD, token, std::move(left), std::move(right));
     }
 
@@ -98,12 +98,12 @@ std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> le
     type::addType(right.get());
 
     // number - number
-    if (type::isInteger(left->type) && type::isInteger(right->type)) {
+    if (type::isInteger(left->type.get()) && type::isInteger(right->type.get())) {
         return createBinaryNode(NodeType::SUB, token, std::move(left), std::move(right));
     }
 
     // pointer - number
-    if (left->type->base && type::isInteger(right->type)) {
+    if (left->type->base && type::isInteger(right->type.get())) {
         auto resultType = left->type;
         auto newRight = createBinaryNode(NodeType::MUL, token, std::move(right), createLongNode(token, left->type->base->size));
         type::addType(newRight.get());
