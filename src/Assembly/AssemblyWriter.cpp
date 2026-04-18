@@ -1,8 +1,8 @@
 #include "Assembly/AssemblyWriter.hpp"
 
+#include "Assembly/Assembly.hpp"
 #include <cassert>
 #include <format>
-#include "Assembly/Assembly.hpp"
 
 namespace yoctocc {
 

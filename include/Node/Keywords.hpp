@@ -4,40 +4,40 @@
 
 namespace yoctocc {
 
-    enum class Keyword {
-        VOID,
-        BOOL,
-        CHAR,
-        SHORT,
-        INT,
-        LONG,
-        RETURN,
-        IF,
-        ELSE,
-        FOR,
-        WHILE,
-        SIZEOF,
-        STRUCT,
-        UNION,
-        TYPEDEF,
-    };
+enum class Keyword {
+    VOID,
+    BOOL,
+    CHAR,
+    SHORT,
+    INT,
+    LONG,
+    RETURN,
+    IF,
+    ELSE,
+    FOR,
+    WHILE,
+    SIZEOF,
+    STRUCT,
+    UNION,
+    TYPEDEF,
+};
 
-    inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
-        { "void", Keyword::VOID },
-        { "_Bool", Keyword::BOOL },
-        { "char", Keyword::CHAR },
-        { "short", Keyword::SHORT },
-        { "int", Keyword::INT },
-        { "long", Keyword::LONG },
-        { "return", Keyword::RETURN },
-        { "if", Keyword::IF },
-        { "else", Keyword::ELSE },
-        { "for", Keyword::FOR },
-        { "while", Keyword::WHILE },
-        { "sizeof", Keyword::SIZEOF },
-        { "struct", Keyword::STRUCT },
-        { "union", Keyword::UNION },
-        { "typedef", Keyword::TYPEDEF },
-    };
+inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
+    {"void", Keyword::VOID},
+    {"_Bool", Keyword::BOOL},
+    {"char", Keyword::CHAR},
+    {"short", Keyword::SHORT},
+    {"int", Keyword::INT},
+    {"long", Keyword::LONG},
+    {"return", Keyword::RETURN},
+    {"if", Keyword::IF},
+    {"else", Keyword::ELSE},
+    {"for", Keyword::FOR},
+    {"while", Keyword::WHILE},
+    {"sizeof", Keyword::SIZEOF},
+    {"struct", Keyword::STRUCT},
+    {"union", Keyword::UNION},
+    {"typedef", Keyword::TYPEDEF},
+};
 
 } // namespace yoctocc

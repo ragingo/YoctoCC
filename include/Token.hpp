@@ -31,14 +31,30 @@ struct std::formatter<yoctocc::TokenKind> {
         using enum yoctocc::TokenKind;
         std::string_view name;
         switch (type) {
-            case UNKNOWN:    name = "UNKNOWN";    break;
-            case IDENTIFIER: name = "IDENTIFIER"; break;
-            case PUNCTUATOR: name = "PUNCTUATOR"; break;
-            case KEYWORD:    name = "KEYWORD";    break;
-            case STRING:     name = "STRING";     break;
-            case DIGIT:      name = "DIGIT";      break;
-            case TERMINATOR: name = "TERMINATOR"; break;
-            default:         name = "???";        break;
+            case UNKNOWN:
+                name = "UNKNOWN";
+                break;
+            case IDENTIFIER:
+                name = "IDENTIFIER";
+                break;
+            case PUNCTUATOR:
+                name = "PUNCTUATOR";
+                break;
+            case KEYWORD:
+                name = "KEYWORD";
+                break;
+            case STRING:
+                name = "STRING";
+                break;
+            case DIGIT:
+                name = "DIGIT";
+                break;
+            case TERMINATOR:
+                name = "TERMINATOR";
+                break;
+            default:
+                name = "???";
+                break;
         }
         return std::format_to(ctx.out(), "{}", name);
     }
@@ -57,38 +73,39 @@ struct Token {
     std::shared_ptr<Type> type;
     std::unique_ptr<Token> next;
 
-    Token(TokenKind kind = TokenKind::UNKNOWN) : kind(kind), numberValue(0), location(0), line(0) {}
+    Token(TokenKind kind = TokenKind::UNKNOWN) : kind(kind), numberValue(0), location(0), line(0) {
+    }
 };
 
 namespace token {
-    inline bool is(const Token* token, std::string_view originalValue) {
-        return token && token->originalValue == originalValue;
-    }
-
-    inline Token* skipIf(Token* token, std::string_view originalValue) {
-        if (is(token, originalValue)) {
-            return token->next.get();
-        }
-        return token;
-    }
-
-    inline bool consume(Token*& token, std::string_view originalValue) {
-        if (is(token, originalValue)) {
-            token = token->next.get();
-            return true;
-        }
-        return false;
-    }
-
-    inline const std::string& getIdentifier(const Token* token) {
-        assert(token && token->kind == TokenKind::IDENTIFIER);
-        return token->originalValue;
-    }
-
-    inline int64_t getNumber(const Token* token) {
-        assert(token && token->kind == TokenKind::DIGIT);
-        return token->numberValue;
-    }
+inline bool is(const Token* token, std::string_view originalValue) {
+    return token && token->originalValue == originalValue;
 }
+
+inline Token* skipIf(Token* token, std::string_view originalValue) {
+    if (is(token, originalValue)) {
+        return token->next.get();
+    }
+    return token;
+}
+
+inline bool consume(Token*& token, std::string_view originalValue) {
+    if (is(token, originalValue)) {
+        token = token->next.get();
+        return true;
+    }
+    return false;
+}
+
+inline const std::string& getIdentifier(const Token* token) {
+    assert(token && token->kind == TokenKind::IDENTIFIER);
+    return token->originalValue;
+}
+
+inline int64_t getNumber(const Token* token) {
+    assert(token && token->kind == TokenKind::DIGIT);
+    return token->numberValue;
+}
+} // namespace token
 
 } // namespace yoctocc

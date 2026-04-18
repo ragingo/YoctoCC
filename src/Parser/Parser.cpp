@@ -1,21 +1,21 @@
 #include "Parser/Parser.hpp"
 
-#include <cassert>
 #include "Logger.hpp"
 #include "Node/Node.hpp"
 #include "Parser/Util.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
 #include "Utility.hpp"
+#include <cassert>
 
 using namespace std::string_view_literals;
 
 namespace {
-    std::string makeUniqueName() {
-        static int count = 0;
-        return std::format(".L..{}", count++);
-    }
+std::string makeUniqueName() {
+    static int count = 0;
+    return std::format(".L..{}", count++);
 }
+} // namespace
 
 namespace yoctocc {
 
@@ -577,7 +577,8 @@ ParseResult Parser::parsePrimary(Token* token) {
         return {std::move(expr), token::skipIf(rest, ")")};
     }
 
-    if (token::is(token, "sizeof") && token::is(token->next.get(), "(") && parser::isTypeName(token->next.get()->next.get(), _parseScope)) {
+    if (token::is(token, "sizeof") && token::is(token->next.get(), "(") &&
+        parser::isTypeName(token->next.get()->next.get(), _parseScope)) {
         auto start = token;
         token = token->next.get()->next.get();
         auto type = _parseDecl.typeName(token);

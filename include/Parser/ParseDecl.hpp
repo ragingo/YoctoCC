@@ -1,7 +1,7 @@
 #pragma once
-#include <memory>
 #include "Common.hpp"
 #include "ParseScope.hpp"
+#include <memory>
 
 namespace yoctocc {
 
@@ -10,7 +10,8 @@ struct Type;
 
 class ParseDecl final {
 public:
-    ParseDecl(ParseScope& scope) : _scope(scope) {}
+    ParseDecl(ParseScope& scope) : _scope(scope) {
+    }
 
     // struct-members = (declspec declarator (","  declarator)* ";")*
     void structMembers(Token*& token, std::shared_ptr<Type>& structType);

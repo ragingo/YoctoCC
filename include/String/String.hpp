@@ -5,7 +5,7 @@
 namespace yoctocc {
 
 // Clang + libc++ では std::abs が constexpr ではないため自作
-template<std::integral T>
+template <std::integral T>
 constexpr T abs(T value) noexcept {
     return value < 0 ? -value : value;
 }
@@ -50,7 +50,7 @@ constexpr int hexCharToInt(char ch) {
     }
 }
 
-template<std::integral T>
+template <std::integral T>
 constexpr std::string to_string(T value) {
     if (value == 0) {
         return "0";

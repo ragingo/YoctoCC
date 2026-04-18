@@ -31,7 +31,7 @@ private:
         lines.emplace_back(std::move(line));
     }
 
-    template<typename... Args>
+    template <typename... Args>
     void addCode(Args&&... args) {
         (lines.emplace_back(std::forward<Args>(args)), ...);
     }

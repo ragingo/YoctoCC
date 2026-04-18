@@ -1,8 +1,8 @@
 #pragma once
-#include <format>
-#include <string>
 #include "Assembly/Register.hpp"
 #include "String/String.hpp"
+#include <format>
+#include <string>
 
 namespace yoctocc {
 
@@ -11,7 +11,8 @@ struct Address {
     T base;
     int offset;
 
-    constexpr Address(T base, int offset = 0) : base(base), offset(offset) {}
+    constexpr Address(T base, int offset = 0) : base(base), offset(offset) {
+    }
 
     constexpr Address operator+(int value) const {
         return Address{base, offset + value};
@@ -49,7 +50,8 @@ inline constexpr std::string dword_ptr(Address<Register>&& addr) {
 struct RipRelativeAddress {
     std::string symbol;
 
-    constexpr explicit RipRelativeAddress(std::string_view sym) : symbol(sym) {}
+    constexpr explicit RipRelativeAddress(std::string_view sym) : symbol(sym) {
+    }
 };
 
 inline constexpr std::string to_string(RipRelativeAddress&& addr) {
@@ -61,7 +63,7 @@ using enum Register;
 static_assert(to_string(Address{RAX, 1}) == "[rax + 1]");
 static_assert(to_string(Address{R8, -2}) == "[r8 - 2]");
 static_assert(to_string(RipRelativeAddress{"symbol"}) == "[rip + symbol]");
-}
+} // namespace
 
 } // namespace yoctocc
 

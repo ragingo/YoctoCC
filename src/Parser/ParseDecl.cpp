@@ -105,12 +105,12 @@ const std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
 //             | struct-decl | union-decl | typedef-name)+
 const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr) {
     enum {
-        VOID  = 1 <<  0,
-        BOOL  = 1 <<  2,
-        CHAR  = 1 <<  4,
-        SHORT = 1 <<  6,
-        INT   = 1 <<  8,
-        LONG  = 1 << 10,
+        VOID = 1 << 0,
+        BOOL = 1 << 2,
+        CHAR = 1 << 4,
+        SHORT = 1 << 6,
+        INT = 1 << 8,
+        LONG = 1 << 10,
         OTHER = 1 << 12,
     };
     auto type = type::intType();
@@ -138,8 +138,7 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute
                 type = structDecl(token);
                 counter += OTHER;
                 continue;
-            }
-            else if (token::is(token, "union")) {
+            } else if (token::is(token, "union")) {
                 token = token->next.get();
                 type = unionDecl(token);
                 counter += OTHER;
@@ -150,26 +149,19 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute
                 counter += OTHER;
                 continue;
             }
-        }
-        else if (token::is(token, "void")) {
+        } else if (token::is(token, "void")) {
             counter += VOID;
-        }
-        else if (token::is(token, "_Bool")) {
+        } else if (token::is(token, "_Bool")) {
             counter += BOOL;
-        }
-        else if (token::is(token, "char")) {
+        } else if (token::is(token, "char")) {
             counter += CHAR;
-        }
-        else if (token::is(token, "short")) {
+        } else if (token::is(token, "short")) {
             counter += SHORT;
-        }
-        else if (token::is(token, "int")) {
+        } else if (token::is(token, "int")) {
             counter += INT;
-        }
-        else if (token::is(token, "long")) {
+        } else if (token::is(token, "long")) {
             counter += LONG;
-        }
-        else {
+        } else {
             Log::unreachable();
             return nullptr;
         }

@@ -1,8 +1,8 @@
 #pragma once
-#include <cassert>
-#include <memory>
 #include "ParseDecl.hpp"
 #include "ParseScope.hpp"
+#include <cassert>
+#include <memory>
 
 namespace yoctocc {
 
@@ -49,7 +49,7 @@ private:
     std::unique_ptr<Object> _globals;
     std::unique_ptr<Object> _currentFunction;
     ParseScope _parseScope;
-    ParseDecl _parseDecl {_parseScope};
+    ParseDecl _parseDecl{_parseScope};
 };
 
 } // namespace yoctocc

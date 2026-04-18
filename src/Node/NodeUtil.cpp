@@ -8,23 +8,23 @@
 using namespace std::literals;
 
 namespace {
-    using namespace yoctocc;
+using namespace yoctocc;
 
-    std::unique_ptr<Member> findStructMember(const std::shared_ptr<Type>& structType, const Token* memberName) {
-        for (auto member = structType->members.get(); member; member = member->next.get()) {
-            if (member->name->originalValue == memberName->originalValue) {
-                auto found = std::make_unique<Member>();
-                found->name = member->name;
-                found->type = member->type;
-                found->offset = member->offset;
-                return found;
-            }
+std::unique_ptr<Member> findStructMember(const std::shared_ptr<Type>& structType, const Token* memberName) {
+    for (auto member = structType->members.get(); member; member = member->next.get()) {
+        if (member->name->originalValue == memberName->originalValue) {
+            auto found = std::make_unique<Member>();
+            found->name = member->name;
+            found->type = member->type;
+            found->offset = member->offset;
+            return found;
         }
-
-        Log::error("No such member"sv, memberName);
-        return nullptr;
     }
+
+    Log::error("No such member"sv, memberName);
+    return nullptr;
 }
+} // namespace
 
 namespace yoctocc {
 
@@ -49,7 +49,10 @@ std::unique_ptr<Node> createUnaryNode(NodeType type, const Token* token, std::un
     return node;
 }
 
-std::unique_ptr<Node> createBinaryNode(NodeType type, const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right) {
+std::unique_ptr<Node> createBinaryNode(NodeType type,
+                                       const Token* token,
+                                       std::unique_ptr<Node> left,
+                                       std::unique_ptr<Node> right) {
     auto node = std::make_unique<Node>(type, token);
     node->left = std::move(left);
     node->right = std::move(right);
@@ -89,7 +92,8 @@ std::unique_ptr<Node> createAddNode(const Token* token, std::unique_ptr<Node> le
     }
 
     // pointer + number
-    auto newRight = createBinaryNode(NodeType::MUL, token, std::move(right), createLongNode(token, left->type->base->size));
+    auto newRight =
+        createBinaryNode(NodeType::MUL, token, std::move(right), createLongNode(token, left->type->base->size));
     return createBinaryNode(NodeType::ADD, token, std::move(left), std::move(newRight));
 }
 
@@ -105,7 +109,8 @@ std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> le
     // pointer - number
     if (left->type->base && type::isInteger(right->type.get())) {
         auto resultType = left->type;
-        auto newRight = createBinaryNode(NodeType::MUL, token, std::move(right), createLongNode(token, left->type->base->size));
+        auto newRight =
+            createBinaryNode(NodeType::MUL, token, std::move(right), createLongNode(token, left->type->base->size));
         type::addType(newRight.get());
         auto node = createBinaryNode(NodeType::SUB, token, std::move(left), std::move(newRight));
         node->type = resultType;

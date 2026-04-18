@@ -1,54 +1,59 @@
 #include "Generator.hpp"
 
-#include <cassert>
 #include "Assembly/Assembly.hpp"
 #include "Logger.hpp"
 #include "Node/Node.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
 #include "Utility.hpp"
+#include <cassert>
 
 namespace {
-    using namespace yoctocc;
+using namespace yoctocc;
 
-    constexpr size_t STACK_ALIGNMENT = 16;
+constexpr size_t STACK_ALIGNMENT = 16;
 
-    enum TypeID { I8, I16, I32, I64 };
+enum TypeID {
+    I8,
+    I16,
+    I32,
+    I64
+};
 
-    TypeID getTypeID(const Type* type) {
-        using enum TypeKind;
-        switch (type->kind) {
-            case CHAR:
-                return I8;
-            case SHORT:
-                return I16;
-            case INT:
-                return I32;
-            default:
-                return I64;
-        }
-    }
-
-    const std::string i32i8 = movsbl(EAX, AL);
-    const std::string i32i16 = movswl(EAX, AX);
-    const std::string i32i64 = movsxd(RAX, EAX);
-
-    // cast_table[from][to]
-    const std::string castTable[4][4] = {
-        {"", "", "", i32i64},
-        {i32i8, "", "", i32i64},
-        {i32i8, i32i16, "", i32i64},
-        {i32i8, i32i16, "", ""},
-    };
-
-    std::string compareZero(const Type* type) {
-        if (type::isInteger(type) && type->size <= 4) {
-            return cmp(EAX, 0);
-        } else {
-            return cmp(RAX, 0);
-        }
+TypeID getTypeID(const Type* type) {
+    using enum TypeKind;
+    switch (type->kind) {
+        case CHAR:
+            return I8;
+        case SHORT:
+            return I16;
+        case INT:
+            return I32;
+        default:
+            return I64;
     }
 }
+
+const std::string i32i8 = movsbl(EAX, AL);
+const std::string i32i16 = movswl(EAX, AX);
+const std::string i32i64 = movsxd(RAX, EAX);
+
+// cast_table[from][to]
+const std::string castTable[4][4] = {
+    {"", "", "", i32i64},
+    {i32i8, "", "", i32i64},
+    {i32i8, i32i16, "", i32i64},
+    {i32i8, i32i16, "", ""},
+};
+
+std::string compareZero(const Type* type) {
+    if (type::isInteger(type) && type->size <= 4) {
+        return cmp(EAX, 0);
+    } else {
+        return cmp(RAX, 0);
+    }
+}
+} // namespace
 
 namespace yoctocc {
 
@@ -74,11 +79,7 @@ void Generator::cast(const Node* node) {
     }
 
     if (type::is(from, BOOL)) {
-        addCode(
-            compareZero(from),
-            setne(AL),
-            movzx(EAX, AL)
-        );
+        addCode(compareZero(from), setne(AL), movzx(EAX, AL));
         return;
     }
 
@@ -301,21 +302,20 @@ void Generator::generateExpression(const Node* node) {
             generateExpression(node->left.get());
             cast(node);
             return;
-        case NodeType::FUNCTION_CALL:
-            {
-                int argCount = 0;
-                for (const Node* arg = node->arguments.get(); arg; arg = arg->next.get()) {
-                    generateExpression(arg);
-                    addCode(push(RAX));
-                    argCount++;
-                }
-                assert(argCount <= static_cast<int>(ARG_REGISTERS64.size()));
-                for (int i = argCount - 1; i >= 0; i--) {
-                    addCode(pop(ARG_REGISTERS64[i]));
-                }
-                addCode(mov(RAX, 0));
-                addCode(call(node->functionName));
+        case NodeType::FUNCTION_CALL: {
+            int argCount = 0;
+            for (const Node* arg = node->arguments.get(); arg; arg = arg->next.get()) {
+                generateExpression(arg);
+                addCode(push(RAX));
+                argCount++;
             }
+            assert(argCount <= static_cast<int>(ARG_REGISTERS64.size()));
+            for (int i = argCount - 1; i >= 0; i--) {
+                addCode(pop(ARG_REGISTERS64[i]));
+            }
+            addCode(mov(RAX, 0));
+            addCode(call(node->functionName));
+        }
             return;
         default:
             break;
@@ -347,57 +347,32 @@ void Generator::generateExpression(const Node* node) {
         case NodeType::MUL:
             addCode(imul(ax, di));
             return;
-        case NodeType::DIV:
-            {
-                if (node->left->type->size == 8) {
-                    addCode(cqo());
-                } else {
-                    addCode(cdq());
-                }
-                addCode(idiv(di));
+        case NodeType::DIV: {
+            if (node->left->type->size == 8) {
+                addCode(cqo());
+            } else {
+                addCode(cdq());
             }
+            addCode(idiv(di));
+        }
             return;
         case NodeType::EQUAL:
-            addCode(
-                cmp(ax, di),
-                sete(AL),
-                movzx(RAX, AL)
-            );
+            addCode(cmp(ax, di), sete(AL), movzx(RAX, AL));
             return;
         case NodeType::NOT_EQUAL:
-            addCode(
-                 cmp(ax, di),
-                 setne(AL),
-                 movzx(RAX, AL)
-            );
+            addCode(cmp(ax, di), setne(AL), movzx(RAX, AL));
             return;
         case NodeType::LESS:
-            addCode(
-                cmp(ax, di),
-                setl(AL),
-                movzx(RAX, AL)
-            );
+            addCode(cmp(ax, di), setl(AL), movzx(RAX, AL));
             return;
         case NodeType::LESS_EQUAL:
-            addCode(
-                cmp(ax, di),
-                setle(AL),
-                movzx(RAX, AL)
-            );
+            addCode(cmp(ax, di), setle(AL), movzx(RAX, AL));
             return;
         case NodeType::GREATER:
-            addCode(
-                cmp(ax, di),
-                setg(AL),
-                movzx(RAX, AL)
-            );
+            addCode(cmp(ax, di), setg(AL), movzx(RAX, AL));
             return;
         case NodeType::GREATER_EQUAL:
-            addCode(
-                cmp(ax, di),
-                setge(AL),
-                movzx(RAX, AL)
-            );
+            addCode(cmp(ax, di), setge(AL), movzx(RAX, AL));
             return;
         default:
             break;
@@ -411,13 +386,11 @@ void Generator::generateFunction(const Object* obj) {
     currentFunction = obj;
     lastEmittedLine = 0;
 
-    addCode(
-        directive::global(obj->name),
-        makeLabel(obj->name).def(),
-        // Prologue
-        push(RBP),
-        mov(RBP, RSP)
-    );
+    addCode(directive::global(obj->name),
+            makeLabel(obj->name).def(),
+            // Prologue
+            push(RBP),
+            mov(RBP, RSP));
     if (obj->stackSize > 0) {
         addCode(sub(RSP, obj->stackSize));
     }
@@ -445,12 +418,7 @@ void Generator::generateFunction(const Object* obj) {
 
     generateStatement(obj->body.get());
     // Epilogue
-    addCode(
-        makeLabel("return", obj->name).def(),
-        mov(RSP, RBP),
-        pop(RBP),
-        ret()
-    );
+    addCode(makeLabel("return", obj->name).def(), mov(RSP, RBP), pop(RBP), ret());
 }
 
 void Generator::emitData(const Object* obj) {

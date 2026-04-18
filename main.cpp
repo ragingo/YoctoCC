@@ -1,14 +1,14 @@
-#include <fstream>
-#include <memory>
-#include <print>
-#include <string>
 #include "Assembly/Assembly.hpp"
 #include "Generator.hpp"
 #include "Logger.hpp"
 #include "Node/Node.hpp"
+#include "Parser/Parser.hpp"
 #include "Token.hpp"
 #include "Tokenizer.hpp"
-#include "Parser/Parser.hpp"
+#include <fstream>
+#include <memory>
+#include <print>
+#include <string>
 
 using namespace yoctocc;
 

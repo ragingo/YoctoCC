@@ -6,13 +6,13 @@
 namespace yoctocc {
 
 namespace parser {
-    inline bool isTypeName(const Token* token, const ParseScope& scope) {
-        bool isTypeName = type::isTypeName(token);
-        if (isTypeName) {
-            return true;
-        }
-        return scope.findTypeDef(token) != nullptr;
+inline bool isTypeName(const Token* token, const ParseScope& scope) {
+    bool isTypeName = type::isTypeName(token);
+    if (isTypeName) {
+        return true;
     }
+    return scope.findTypeDef(token) != nullptr;
 }
+} // namespace parser
 
 } // namespace yoctocc

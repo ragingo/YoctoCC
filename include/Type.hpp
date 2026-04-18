@@ -1,9 +1,9 @@
 #pragma once
+#include "Token.hpp"
 #include <functional>
 #include <memory>
 #include <string_view>
 #include <unordered_set>
-#include "Token.hpp"
 
 namespace yoctocc {
 
@@ -50,84 +50,97 @@ struct Type {
     std::shared_ptr<Type> parameters;
     std::shared_ptr<Type> next;
 
-    Type(TypeKind kind, int size = 0, int alignment = 0): kind(kind), size(size), alignment(alignment), arraySize(0), base(nullptr) {}
+    Type(TypeKind kind, int size = 0, int alignment = 0)
+        : kind(kind), size(size), alignment(alignment), arraySize(0), base(nullptr) {
+    }
 };
 
 namespace type {
-    using enum TypeKind;
+using enum TypeKind;
 
-    inline std::shared_ptr<Type> voidType() {
-        return std::make_shared<Type>(VOID, 1, 1);
-    }
-
-    inline std::shared_ptr<Type> boolType() {
-        return std::make_shared<Type>(BOOL, 1, 1);
-    }
-
-    inline std::shared_ptr<Type> charType() {
-        return std::make_shared<Type>(CHAR, 1, 1);
-    }
-
-    inline std::shared_ptr<Type> shortType() {
-        return std::make_shared<Type>(SHORT, 2, 2);
-    }
-
-    inline std::shared_ptr<Type> intType() {
-        return std::make_shared<Type>(INT, 4, 4);
-    }
-
-    inline std::shared_ptr<Type> longType() {
-        return std::make_shared<Type>(LONG, 8, 8);
-    }
-
-    template <typename T>
-        requires std::same_as<std::remove_cv_t<T>, Type*>
-            || std::same_as<std::remove_cv_t<T>, const Type*>
-            || std::same_as<std::remove_cv_t<T>, std::shared_ptr<Type>>
-    inline bool is(const T& type, TypeKind kind) {
-        return type && type->kind == kind;
-    }
-
-    template <typename T>
-        requires std::same_as<std::remove_cv_t<T>, Type*>
-            || std::same_as<std::remove_cv_t<T>, const Type*>
-            || std::same_as<std::remove_cv_t<T>, std::shared_ptr<Type>>
-    inline bool is(const T& type1, const T& type2) {
-        return type1 && type2 && type1->kind == type2->kind;
-    }
-
-    template <typename T>
-        requires std::same_as<std::remove_cv_t<T>, Type*>
-            || std::same_as<std::remove_cv_t<T>, const Type*>
-            || std::same_as<std::remove_cv_t<T>, std::shared_ptr<Type>>
-    inline bool is(const T& type, std::function<bool(TypeKind)> predicate) {
-        return type && predicate(type->kind);
-    }
-
-    inline bool isInteger(const Type* type) {
-        return is(
-            type,
-            [](TypeKind kind) {
-                return kind == BOOL || kind == CHAR || kind == SHORT || kind == INT || kind == LONG;
-            }
-        );
-    }
-
-    inline bool isTypeName(const Token* token) {
-        if (!token) {
-            return false;
-        }
-        static const std::unordered_set<std::string_view> TYPE_NAMES = {
-            "void", "_Bool", "char", "short", "int", "long",
-            "struct", "union", "typedef",
-        };
-        return TYPE_NAMES.contains(token->originalValue);
-    }
-
-    std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base);
-    std::shared_ptr<Type> functionType(const std::shared_ptr<Type>& returnType);
-    std::shared_ptr<Type> arrayOf(const std::shared_ptr<Type>& base, int size);
-    void addType(Node* node);
+inline std::shared_ptr<Type> voidType() {
+    return std::make_shared<Type>(VOID, 1, 1);
 }
+
+inline std::shared_ptr<Type> boolType() {
+    return std::make_shared<Type>(BOOL, 1, 1);
+}
+
+inline std::shared_ptr<Type> charType() {
+    return std::make_shared<Type>(CHAR, 1, 1);
+}
+
+inline std::shared_ptr<Type> shortType() {
+    return std::make_shared<Type>(SHORT, 2, 2);
+}
+
+inline std::shared_ptr<Type> intType() {
+    return std::make_shared<Type>(INT, 4, 4);
+}
+
+inline std::shared_ptr<Type> longType() {
+    return std::make_shared<Type>(LONG, 8, 8);
+}
+
+template <typename T>
+// clang-format off
+    requires std::same_as<std::remove_cv_t<T>, Type*>
+        || std::same_as<std::remove_cv_t<T>, const Type*>
+        || std::same_as<std::remove_cv_t<T>, std::shared_ptr<Type>>
+// clang-format on
+inline bool is(const T& type, TypeKind kind) {
+    return type && type->kind == kind;
+}
+
+template <typename T>
+// clang-format off
+    requires std::same_as<std::remove_cv_t<T>, Type*>
+        || std::same_as<std::remove_cv_t<T>, const Type*>
+        || std::same_as<std::remove_cv_t<T>, std::shared_ptr<Type>>
+// clang-format on
+inline bool is(const T& type1, const T& type2) {
+    return type1 && type2 && type1->kind == type2->kind;
+}
+
+template <typename T>
+// clang-format off
+    requires std::same_as<std::remove_cv_t<T>, Type*>
+        || std::same_as<std::remove_cv_t<T>, const Type*>
+        || std::same_as<std::remove_cv_t<T>, std::shared_ptr<Type>>
+// clang-format on
+inline bool is(const T& type, std::function<bool(TypeKind)> predicate) {
+    return type && predicate(type->kind);
+}
+
+
+inline bool isInteger(const Type* type) {
+    return is(type, [](TypeKind kind) {
+        return kind == BOOL || kind == CHAR || kind == SHORT || kind == INT || kind == LONG;
+    });
+}
+
+inline bool isTypeName(const Token* token) {
+    if (!token) {
+        return false;
+    }
+    static const std::unordered_set<std::string_view> TYPE_NAMES = {
+        "void",
+        "_Bool",
+        "char",
+        "short",
+        "int",
+        "long",
+        "struct",
+        "union",
+        "typedef",
+    };
+    return TYPE_NAMES.contains(token->originalValue);
+}
+
+std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base);
+std::shared_ptr<Type> functionType(const std::shared_ptr<Type>& returnType);
+std::shared_ptr<Type> arrayOf(const std::shared_ptr<Type>& base, int size);
+void addType(Node* node);
+} // namespace type
 
 } // namespace yoctocc
