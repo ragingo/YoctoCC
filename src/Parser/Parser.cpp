@@ -422,13 +422,13 @@ ParseResult Parser::parsePostfix(Token* token) {
         }
         if (token::is(token, ".")) {
             node = createStructRefNode(token->next.get(), std::move(node));
-            token = token->next.get()->next.get();
+            token = token->next->next.get();
             continue;
         }
         if (token::is(token, "->")) {
             node = createUnaryNode(NodeType::DEREFERENCE, token, std::move(node));
             node = createStructRefNode(token->next.get(), std::move(node));
-            token = token->next.get()->next.get();
+            token = token->next->next.get();
             continue;
         }
         return {std::move(node), token};
@@ -438,7 +438,7 @@ ParseResult Parser::parsePostfix(Token* token) {
 // funcall = ident "(" (assign ("," assign)*)? ")"
 ParseResult Parser::parseFunctionCall(Token* token) {
     auto start = token;
-    token = token->next.get()->next.get(); // 関数名と"("をスキップ
+    token = token->next->next.get(); // 関数名と"("をスキップ
 
     auto varScope = _parseScope.findVariable(start);
     if (!varScope) {
@@ -567,7 +567,7 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
 ParseResult Parser::parsePrimary(Token* token) {
     if (token::is(token, "(") && token::is(token->next.get(), "{")) {
         auto node = std::make_unique<Node>(NodeType::STATEMENT_EXPRESSION, token);
-        auto [block, rest] = parseCompoundStatement(token->next.get()->next.get());
+        auto [block, rest] = parseCompoundStatement(token->next->next.get());
         node->body = std::move(block->body);
         return {std::move(node), token::skipIf(rest, ")")};
     }
@@ -578,9 +578,9 @@ ParseResult Parser::parsePrimary(Token* token) {
     }
 
     if (token::is(token, "sizeof") && token::is(token->next.get(), "(") &&
-        parser::isTypeName(token->next.get()->next.get(), _parseScope)) {
+        parser::isTypeName(token->next->next.get(), _parseScope)) {
         auto start = token;
-        token = token->next.get()->next.get();
+        token = token->next->next.get();
         auto type = _parseDecl.typeName(token);
         if (!type) {
             Log::error("Expected a type name after sizeof"sv, token);

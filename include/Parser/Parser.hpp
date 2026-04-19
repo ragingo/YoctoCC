@@ -44,7 +44,7 @@ private:
     ParseResult parsePrimary(Token* token);
     void applyParamLVars(const std::shared_ptr<Type>& parameter);
 
-private:
+
     std::unique_ptr<Object> _locals;
     std::unique_ptr<Object> _globals;
     std::unique_ptr<Object> _currentFunction;

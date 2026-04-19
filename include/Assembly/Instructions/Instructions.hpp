@@ -32,9 +32,9 @@ inline constexpr std::string operand_to_string(T&& operand) {
     if constexpr (std::is_same_v<U, Register>) {
         return to_string(operand);
     } else if constexpr (std::is_same_v<U, Address<Register>>) {
-        return to_string(std::move(operand));
+        return to_string(std::forward<T>(operand));
     } else if constexpr (std::is_same_v<U, RipRelativeAddress>) {
-        return to_string(std::move(operand));
+        return to_string(std::forward<T>(operand));
     } else if constexpr (std::is_integral_v<U>) {
         return to_string(operand);
     } else if constexpr (std::is_enum_v<U>) {

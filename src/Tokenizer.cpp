@@ -128,7 +128,7 @@ std::unique_ptr<Token> parseStringLiteral(ParseContext& context) {
                     str += '\v';
                     break;
                 case 'e':
-                    str += 27;
+                    str += static_cast<char>(27);
                     break;
                 default:
                     str += *context.it;
@@ -249,7 +249,7 @@ std::unique_ptr<Token> tokenize(std::ifstream& ifs) {
             break;
         }
         if (tok->kind == TokenKind::IDENTIFIER) {
-            if (KEYWORDS.find(tok->originalValue) != KEYWORDS.end()) {
+            if (KEYWORDS.contains(tok->originalValue)) {
                 tok->kind = TokenKind::KEYWORD;
             }
         }

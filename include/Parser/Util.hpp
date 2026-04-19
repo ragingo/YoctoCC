@@ -3,9 +3,8 @@
 #include "Token.hpp"
 #include "Type.hpp"
 
-namespace yoctocc {
 
-namespace parser {
+namespace yoctocc::parser {
 inline bool isTypeName(const Token* token, const ParseScope& scope) {
     bool isTypeName = type::isTypeName(token);
     if (isTypeName) {
@@ -13,6 +12,4 @@ inline bool isTypeName(const Token* token, const ParseScope& scope) {
     }
     return scope.findTypeDef(token) != nullptr;
 }
-} // namespace parser
-
-} // namespace yoctocc
+} // namespace yoctocc::parser

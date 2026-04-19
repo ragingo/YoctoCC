@@ -2,19 +2,20 @@
 #include "String/String.hpp"
 #include <cstdint>
 #include <string>
+#include <utility>
 
 namespace yoctocc {
 
 class Label final {
 public:
-    constexpr Label(const std::string& name) : name(name) {
+    constexpr Label(std::string name) : name(std::move(name)) {
     }
 
-    constexpr inline std::string ref() const {
+    [[nodiscard]] constexpr inline std::string ref() const {
         return name;
     }
 
-    constexpr inline std::string def() const {
+    [[nodiscard]] constexpr inline std::string def() const {
         return name + ":";
     }
 

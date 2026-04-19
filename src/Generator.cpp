@@ -309,7 +309,7 @@ void Generator::generateExpression(const Node* node) {
                 addCode(push(RAX));
                 argCount++;
             }
-            assert(argCount <= static_cast<int>(ARG_REGISTERS64.size()));
+            assert(std::cmp_less_equal(argCount, ARG_REGISTERS64.size()));
             for (int i = argCount - 1; i >= 0; i--) {
                 addCode(pop(ARG_REGISTERS64[i]));
             }
@@ -327,7 +327,8 @@ void Generator::generateExpression(const Node* node) {
     generateExpression(node->left.get());
     addCode(pop(RDI));
 
-    Register ax, di;
+    Register ax;
+    Register di;
 
     if (node->type->kind == TypeKind::LONG || node->left->type->base) {
         ax = RAX;

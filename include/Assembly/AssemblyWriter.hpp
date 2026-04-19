@@ -13,10 +13,10 @@ public:
     }
     void compile(const std::vector<std::string>& code) noexcept;
     void clear() noexcept;
-    const std::vector<std::string>& getCode() const noexcept;
+    [[nodiscard]] const std::vector<std::string>& getCode() const noexcept;
 
 private:
-    std::vector<std::string> _code{};
+    std::vector<std::string> _code;
 };
 
 } // namespace yoctocc

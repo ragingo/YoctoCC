@@ -41,7 +41,7 @@ public:
 
     std::shared_ptr<Type> findTypeDef(const Token* token) const;
 
-    inline Scope* currentScope() const {
+    [[nodiscard]] inline Scope* currentScope() const {
         return _currentScope.get();
     }
 

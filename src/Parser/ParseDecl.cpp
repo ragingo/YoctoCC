@@ -38,7 +38,7 @@ void ParseDecl::structMembers(Token*& token, std::shared_ptr<Type>& structType) 
 }
 
 // struct-union-decl = ident? ("{" struct-members)?
-const std::shared_ptr<Type> ParseDecl::structUnionDecl(Token*& token) {
+std::shared_ptr<Type> ParseDecl::structUnionDecl(Token*& token) {
     Token* tag = nullptr;
     if (token->kind == TokenKind::IDENTIFIER) {
         tag = token;
@@ -68,7 +68,7 @@ const std::shared_ptr<Type> ParseDecl::structUnionDecl(Token*& token) {
 }
 
 // struct-decl = struct-union-decl
-const std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
+std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
     auto type = structUnionDecl(token);
     type->kind = TypeKind::STRUCT;
 
@@ -86,7 +86,7 @@ const std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
 }
 
 // union-decl = struct-union-decl
-const std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
+std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
     auto type = structUnionDecl(token);
     type->kind = TypeKind::UNION;
 
@@ -103,7 +103,7 @@ const std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //             | "typedef"
 //             | struct-decl | union-decl | typedef-name)+
-const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr) {
+std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr) {
     enum {
         VOID = 1 << 0,
         BOOL = 1 << 2,
@@ -201,7 +201,7 @@ const std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute
 }
 
 // abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
-const std::shared_ptr<Type> ParseDecl::abstractDeclarator(Token*& token, std::shared_ptr<Type>& type) {
+std::shared_ptr<Type> ParseDecl::abstractDeclarator(Token*& token, std::shared_ptr<Type>& type) {
     while (token::is(token, "*")) {
         type = type::pointerTo(type);
         token = token->next.get();
@@ -224,7 +224,7 @@ const std::shared_ptr<Type> ParseDecl::abstractDeclarator(Token*& token, std::sh
 }
 
 // declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
-const std::shared_ptr<Type> ParseDecl::declarator(Token*& token, const std::shared_ptr<Type>& baseType) {
+std::shared_ptr<Type> ParseDecl::declarator(Token*& token, const std::shared_ptr<Type>& baseType) {
     auto type = baseType;
     while (token::consume(token, "*")) {
         type = type::pointerTo(type);
@@ -255,14 +255,14 @@ const std::shared_ptr<Type> ParseDecl::declarator(Token*& token, const std::shar
 }
 
 // type-name = declspec abstract-declarator
-const std::shared_ptr<Type> ParseDecl::typeName(Token*& token) {
+std::shared_ptr<Type> ParseDecl::typeName(Token*& token) {
     auto baseType = declSpec(token, nullptr);
     return abstractDeclarator(token, baseType);
 }
 
 // func-params = (param ("," param)*)? ")"
 // param       = declspec declarator
-const std::shared_ptr<Type> ParseDecl::functionParameters(Token*& token, std::shared_ptr<Type>& type) {
+std::shared_ptr<Type> ParseDecl::functionParameters(Token*& token, std::shared_ptr<Type>& type) {
     std::shared_ptr<Type> head;
     auto current = &head;
 
@@ -286,7 +286,7 @@ const std::shared_ptr<Type> ParseDecl::functionParameters(Token*& token, std::sh
 // type-suffix = "(" func-params
 //             | "[" num "]" type-suffix
 //             | ε
-const std::shared_ptr<Type> ParseDecl::typeSuffix(Token*& token, std::shared_ptr<Type>& type) {
+std::shared_ptr<Type> ParseDecl::typeSuffix(Token*& token, std::shared_ptr<Type>& type) {
     if (token::is(token, "(")) {
         token = token->next.get();
         return functionParameters(token, type);
@@ -294,7 +294,7 @@ const std::shared_ptr<Type> ParseDecl::typeSuffix(Token*& token, std::shared_ptr
 
     if (token::is(token, "[")) {
         int size = token::getNumber(token->next.get());
-        token = token->next.get()->next.get();
+        token = token->next->next.get();
         token = token::skipIf(token, "]");
         type = typeSuffix(token, type);
         return type::arrayOf(type, size);
