@@ -1,0 +1,9 @@
+void ASSERT(int expected, int actual);
+
+int main() {
+    ASSERT(97, 'a');
+    ASSERT(10, '\n');
+    ASSERT(-128, '\x80');
+
+    return 0;
+}

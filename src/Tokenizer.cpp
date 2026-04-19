@@ -70,6 +70,66 @@ std::unique_ptr<Token> parseNumber(ParseContext& context) {
     return token;
 }
 
+std::string parseEscapeSequence(ParseContext& context) {
+    std::string str;
+    ++context.it;
+    // octal
+    if (hasNext(context) && isOctalDigit(*context.it)) {
+        int value = 0;
+        int count = 0;
+        while (hasNext(context) && isOctalDigit(*context.it) && count < 3) {
+            value = (value << 3) + yoctocc::atoi(*context.it);
+            ++context.it;
+            ++count;
+        }
+        str += static_cast<char>(value);
+        --context.it; // while 内で次の文字に進んでいるため、最後に1つ戻す
+        return str;
+    }
+    // hex
+    if (hasNext(context) && *context.it == 'x') {
+        ++context.it;
+        int value = 0;
+        while (hasNext(context) && isHexDigit(*context.it)) {
+            value = (value << 4) + hexCharToInt(*context.it);
+            ++context.it;
+        }
+        str += static_cast<char>(value);
+        --context.it; // while 内で次の文字に進んでいるため、最後に1つ戻す
+        return str;
+    }
+    switch (*context.it) {
+        case 'n':
+            str += '\n';
+            break;
+        case 't':
+            str += '\t';
+            break;
+        case 'r':
+            str += '\r';
+            break;
+        case 'a':
+            str += '\a';
+            break;
+        case 'b':
+            str += '\b';
+            break;
+        case 'f':
+            str += '\f';
+            break;
+        case 'v':
+            str += '\v';
+            break;
+        case 'e':
+            str += static_cast<char>(27);
+            break;
+        default:
+            str += *context.it;
+            break;
+    }
+    return str;
+}
+
 std::unique_ptr<Token> parseStringLiteral(ParseContext& context) {
     std::string str;
     ++context.it; // 最初の " をスキップ
@@ -81,59 +141,7 @@ std::unique_ptr<Token> parseStringLiteral(ParseContext& context) {
         }
         // escape sequences
         if (*context.it == '\\') {
-            ++context.it;
-            // octal
-            if (hasNext(context) && isOctalDigit(*context.it)) {
-                int value = 0;
-                int count = 0;
-                while (hasNext(context) && isOctalDigit(*context.it) && count < 3) {
-                    value = (value << 3) + yoctocc::atoi(*context.it);
-                    ++context.it;
-                    ++count;
-                }
-                str += static_cast<char>(value);
-                continue;
-            }
-            // hex
-            if (hasNext(context) && *context.it == 'x') {
-                ++context.it;
-                int value = 0;
-                while (hasNext(context) && isHexDigit(*context.it)) {
-                    value = (value << 4) + hexCharToInt(*context.it);
-                    ++context.it;
-                }
-                str += static_cast<char>(value);
-                continue;
-            }
-            switch (*context.it) {
-                case 'n':
-                    str += '\n';
-                    break;
-                case 't':
-                    str += '\t';
-                    break;
-                case 'r':
-                    str += '\r';
-                    break;
-                case 'a':
-                    str += '\a';
-                    break;
-                case 'b':
-                    str += '\b';
-                    break;
-                case 'f':
-                    str += '\f';
-                    break;
-                case 'v':
-                    str += '\v';
-                    break;
-                case 'e':
-                    str += static_cast<char>(27);
-                    break;
-                default:
-                    str += *context.it;
-                    break;
-            }
+            str += parseEscapeSequence(context);
         } else {
             str += *context.it;
         }
@@ -145,6 +153,47 @@ std::unique_ptr<Token> parseStringLiteral(ParseContext& context) {
     token->type = type::arrayOf(type::charType(), str.size() + 1);
     token->originalValue = str;
     token->location = std::distance(context.begin, context.it - token->originalValue.size());
+    token->line = context.line;
+    return token;
+}
+
+std::unique_ptr<Token> parseCharacterLiteral(ParseContext& context) {
+    if (!hasNext(context)) {
+        Log::error("empty character literal"sv, std::distance(context.begin, context.it));
+        return nullptr;
+    }
+    ++context.it; // 最初の ' をスキップ
+
+    if (*context.it == '\0') {
+        Log::error("unclosed character literal"sv, std::distance(context.begin, context.it));
+        return nullptr;
+    }
+
+    char value;
+    if (hasNext(context) && *context.it == '\\') {
+        value = parseEscapeSequence(context)[0];
+    } else {
+        value = *context.it;
+    }
+
+    if (!hasNext(context)) {
+        Log::error("unclosed character literal"sv, std::distance(context.begin, context.it));
+        return nullptr;
+    }
+
+    ++context.it;
+
+    if (*context.it != '\'') {
+        Log::error("unclosed character literal"sv, std::distance(context.begin, context.it));
+        return nullptr;
+    }
+
+    ++context.it; // 最後の ' をスキップ
+
+    auto token = std::make_unique<Token>(TokenKind::DIGIT);
+    token->type = type::charType();
+    token->numberValue = value;
+    token->location = std::distance(context.begin, context.it - 2);
     token->line = context.line;
     return token;
 }
@@ -224,6 +273,8 @@ std::unique_ptr<Token> tokenize(std::ifstream& ifs) {
             next = parseNumber(context);
         } else if (ch == '"') {
             next = parseStringLiteral(context);
+        } else if (ch == '\'') {
+            next = parseCharacterLiteral(context);
         } else if (isIdentifierChar(ch, true)) {
             next = parseIdentifier(context);
         } else if (std::ispunct(ch)) {
