@@ -13,7 +13,7 @@
 include mk/output.mk
 include mk/test.mk
 
-.PHONY: all clean run compile execute debug test rebuild profile help format format-check
+.PHONY: all clean run compile execute debug test rebuild profile help format format-check lint lint-fix lint-report
 
 # --- デフォルトターゲット ---
 all: $(COMPILER)
@@ -80,6 +80,11 @@ help:
 	@echo "Formatting:"
 	@echo "  make format           - Format all source files with clang-format"
 	@echo "  make format-check     - Check formatting (dry-run)"
+	@echo ""
+	@echo "Static analysis:"
+	@echo "  make lint             - Run clang-tidy on all source files"
+	@echo "  make lint-fix         - Run clang-tidy with auto-fix"
+	@echo "  make lint-report      - Run clang-tidy and export YAML report"
 
 # --- フォーマット ---
 FORMAT_FILES := $(shell find src include -name '*.cpp' -o -name '*.hpp') main.cpp
@@ -90,4 +95,20 @@ format:
 
 format-check:
 	clang-format --dry-run --Werror $(FORMAT_FILES)
+
+# --- 静的解析 ---
+CLANG_TIDY ?= clang-tidy-22
+LINT_FILES := $(shell find src -name '*.cpp') main.cpp
+
+lint:
+	$(CLANG_TIDY) $(LINT_FILES) -- $(CXX_STD) -I./include
+
+lint-fix:
+	$(CLANG_TIDY) -fix $(LINT_FILES) -- $(CXX_STD) -I./include
+
+LINT_REPORT := $(BUILD_DIR)/lint-report.yaml
+
+lint-report: | $(BUILD_DIR)
+	$(CLANG_TIDY) --export-fixes=$(LINT_REPORT) $(LINT_FILES) -- $(CXX_STD) -I./include; \
+	echo "Report saved to $(LINT_REPORT)"
 

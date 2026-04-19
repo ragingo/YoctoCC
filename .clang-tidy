@@ -1,0 +1,31 @@
+---
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-exception-escape,
+  -bugprone-throwing-static-initialization,
+  -bugprone-easily-swappable-parameters,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-designated-initializers,
+  performance-*,
+  -performance-enum-size,
+  readability-*,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-implicit-bool-conversion,
+  -readability-qualified-auto,
+  -readability-redundant-inline-specifier
+
+WarningsAsErrors: ''
+
+HeaderFilterRegex: 'include/.*\.hpp$'
+
+CheckOptions:
+  - key: readability-function-cognitive-complexity.Threshold
+    value: '100'
+  - key: readability-function-cognitive-complexity.DescribeBasicIncrements
+    value: 'false'
