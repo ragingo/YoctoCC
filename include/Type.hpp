@@ -1,4 +1,5 @@
 #pragma once
+#include "Node/Keywords.hpp"
 #include "Token.hpp"
 #include <functional>
 #include <memory>
@@ -123,16 +124,17 @@ inline bool isTypeName(const Token* token) {
     if (!token) {
         return false;
     }
+    using enum Keyword;
     static const std::unordered_set<std::string_view> TYPE_NAMES = {
-        "void",
-        "_Bool",
-        "char",
-        "short",
-        "int",
-        "long",
-        "struct",
-        "union",
-        "typedef",
+        to_string_view(VOID),
+        to_string_view(BOOL),
+        to_string_view(CHAR),
+        to_string_view(SHORT),
+        to_string_view(INT),
+        to_string_view(LONG),
+        to_string_view(STRUCT),
+        to_string_view(UNION),
+        to_string_view(TYPEDEF),
     };
     return TYPE_NAMES.contains(token->originalValue);
 }

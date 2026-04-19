@@ -1,6 +1,7 @@
 #include "Parser/ParseDecl.hpp"
 
 #include "Logger.hpp"
+#include "Node/Keywords.hpp"
 #include "Node/Node.hpp"
 #include "Parser/Util.hpp"
 #include "Token.hpp"
@@ -117,7 +118,7 @@ std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr
     int counter = 0;
 
     while (parser::isTypeName(token, _scope)) {
-        if (token::is(token, "typedef")) {
+        if (token::is(token, Keyword::TYPEDEF)) {
             if (!attr) {
                 Log::error("typedef is not allowed here"sv, token);
                 return nullptr;
@@ -129,16 +130,16 @@ std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr
 
         auto typeDefType = _scope.findTypeDef(token);
 
-        if (token::is(token, "struct") || token::is(token, "union") || typeDefType) {
+        if (token::is(token, Keyword::STRUCT) || token::is(token, Keyword::UNION) || typeDefType) {
             if (counter) {
                 break;
             }
-            if (token::is(token, "struct")) {
+            if (token::is(token, Keyword::STRUCT)) {
                 token = token->next.get();
                 type = structDecl(token);
                 counter += OTHER;
                 continue;
-            } else if (token::is(token, "union")) {
+            } else if (token::is(token, Keyword::UNION)) {
                 token = token->next.get();
                 type = unionDecl(token);
                 counter += OTHER;
@@ -149,17 +150,17 @@ std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr
                 counter += OTHER;
                 continue;
             }
-        } else if (token::is(token, "void")) {
+        } else if (token::is(token, Keyword::VOID)) {
             counter += VOID;
-        } else if (token::is(token, "_Bool")) {
+        } else if (token::is(token, Keyword::BOOL)) {
             counter += BOOL;
-        } else if (token::is(token, "char")) {
+        } else if (token::is(token, Keyword::CHAR)) {
             counter += CHAR;
-        } else if (token::is(token, "short")) {
+        } else if (token::is(token, Keyword::SHORT)) {
             counter += SHORT;
-        } else if (token::is(token, "int")) {
+        } else if (token::is(token, Keyword::INT)) {
             counter += INT;
-        } else if (token::is(token, "long")) {
+        } else if (token::is(token, Keyword::LONG)) {
             counter += LONG;
         } else {
             Log::unreachable();

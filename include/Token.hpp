@@ -1,4 +1,5 @@
 #pragma once
+#include "Node/Keywords.hpp"
 #include <cassert>
 #include <cstdint>
 #include <format>
@@ -80,6 +81,10 @@ struct Token {
 namespace token {
 inline bool is(const Token* token, std::string_view originalValue) {
     return token && token->originalValue == originalValue;
+}
+
+inline bool is(const Token* token, Keyword keyword) {
+    return token && token->originalValue == to_string_view(keyword);
 }
 
 inline Token* skipIf(Token* token, std::string_view originalValue) {
