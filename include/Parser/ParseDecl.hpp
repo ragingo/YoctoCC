@@ -21,9 +21,15 @@ public:
     std::shared_ptr<Type> unionDecl(Token*& token);
     // struct-union-decl = ident? ("{" struct-members)?
     std::shared_ptr<Type> structUnionDecl(Token*& token);
+    // enum-specifier = ident? "{" enum-list? "}"
+    //                | ident ("{" enum-list? "}")?
+    //
+    // enum-list      = ident ("=" num)? ("," ident ("=" num)?)*
+    std::shared_ptr<Type> enumSpecifier(Token*& token);
     // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
     //             | "typedef"
-    //             | struct-decl | union-decl | typedef-name)+
+    //             | struct-decl | union-decl | typedef-name
+    //             | enum-specifier)+
     std::shared_ptr<Type> declSpec(Token*& token, VariableAttribute* attr);
     // abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
     std::shared_ptr<Type> abstractDeclarator(Token*& token, std::shared_ptr<Type>& type);

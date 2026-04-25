@@ -1,12 +1,14 @@
 #include "Parser/Parser.hpp"
 
 #include "Logger.hpp"
+#include "Node/Keywords.hpp"
 #include "Node/Node.hpp"
 #include "Parser/Util.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
 #include "Utility.hpp"
 #include <cassert>
+#include <utility>
 
 using namespace std::string_view_literals;
 
@@ -577,7 +579,7 @@ ParseResult Parser::parsePrimary(Token* token) {
         return {std::move(expr), token::skipIf(rest, ")")};
     }
 
-    if (token::is(token, "sizeof") && token::is(token->next.get(), "(") &&
+    if (token::is(token, Keyword::SIZEOF) && token::is(token->next.get(), "(") &&
         parser::isTypeName(token->next->next.get(), _parseScope)) {
         auto start = token;
         token = token->next->next.get();
@@ -590,7 +592,7 @@ ParseResult Parser::parsePrimary(Token* token) {
         return {createNumberNode(start, type->size), token};
     }
 
-    if (token::is(token, "sizeof")) {
+    if (token::is(token, Keyword::SIZEOF)) {
         auto [operand, rest] = parseUnary(token->next.get());
         type::addType(operand.get());
         return {createNumberNode(token, operand->type->size), rest};
@@ -603,12 +605,21 @@ ParseResult Parser::parsePrimary(Token* token) {
         }
 
         // variable
-        auto var = _parseScope.findVariable(token);
-        if (!var) {
+        auto variableScope = _parseScope.findVariable(token);
+        if (!variableScope || (!variableScope->variable && !variableScope->enumType)) {
             Log::error(std::format("Undefined variable: {}", token->originalValue), token);
             return {nullptr, token};
         }
-        return {createVariableNode(token, var->variable), token->next.get()};
+
+        if (variableScope->variable) {
+            return {createVariableNode(token, variableScope->variable), token->next.get()};
+        }
+
+        if (variableScope->enumType) {
+            return {createNumberNode(token, variableScope->enumValue), token->next.get()};
+        }
+
+        std::unreachable();
     }
 
     if (token->kind == TokenKind::STRING) {

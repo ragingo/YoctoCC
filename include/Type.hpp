@@ -18,6 +18,7 @@ enum class TypeKind {
     SHORT,
     INT,
     LONG,
+    ENUM,
     POINTER,
     FUNCTION,
     ARRAY,
@@ -83,6 +84,10 @@ inline std::shared_ptr<Type> longType() {
     return std::make_shared<Type>(LONG, 8, 8);
 }
 
+inline std::shared_ptr<Type> enumType() {
+    return std::make_shared<Type>(ENUM, 4, 4);
+}
+
 template <typename T>
 // clang-format off
     requires std::same_as<std::remove_cv_t<T>, Type*>
@@ -116,7 +121,7 @@ inline bool is(const T& type, std::function<bool(TypeKind)> predicate) {
 
 inline bool isInteger(const Type* type) {
     return is(type, [](TypeKind kind) {
-        return kind == BOOL || kind == CHAR || kind == SHORT || kind == INT || kind == LONG;
+        return kind == BOOL || kind == CHAR || kind == SHORT || kind == INT || kind == LONG || kind == ENUM;
     });
 }
 
@@ -134,6 +139,7 @@ inline bool isTypeName(const Token* token) {
         to_string_view(LONG),
         to_string_view(STRUCT),
         to_string_view(UNION),
+        to_string_view(ENUM),
         to_string_view(TYPEDEF),
     };
     return TYPE_NAMES.contains(token->originalValue);

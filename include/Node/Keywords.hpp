@@ -19,6 +19,7 @@ enum class Keyword {
     SIZEOF,
     STRUCT,
     UNION,
+    ENUM,
     TYPEDEF,
 };
 
@@ -53,6 +54,8 @@ inline constexpr std::string_view to_string_view(Keyword keyword) {
             return "struct";
         case UNION:
             return "union";
+        case ENUM:
+            return "enum";
         case TYPEDEF:
             return "typedef";
     }
@@ -75,6 +78,7 @@ inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
     {to_string_view(Keyword::SIZEOF), Keyword::SIZEOF},
     {to_string_view(Keyword::STRUCT), Keyword::STRUCT},
     {to_string_view(Keyword::UNION), Keyword::UNION},
+    {to_string_view(Keyword::ENUM), Keyword::ENUM},
     {to_string_view(Keyword::TYPEDEF), Keyword::TYPEDEF},
 };
 

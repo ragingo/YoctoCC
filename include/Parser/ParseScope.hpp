@@ -14,6 +14,8 @@ struct VariableScope {
     std::unique_ptr<VariableScope> next;
     Object* variable = nullptr;
     std::shared_ptr<Type> typeDef;
+    std::shared_ptr<Type> enumType;
+    int enumValue = 0;
 };
 
 struct TagScope {

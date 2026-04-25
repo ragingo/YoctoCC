@@ -101,9 +101,62 @@ std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
     return type;
 }
 
+// enum-specifier = ident? "{" enum-list? "}"
+//                | ident ("{" enum-list? "}")?
+//
+// enum-list      = ident ("=" num)? ("," ident ("=" num)?)*
+std::shared_ptr<Type> ParseDecl::enumSpecifier(Token*& token) {
+    Token* tag = nullptr;
+
+    if (token->kind == TokenKind::IDENTIFIER) {
+        tag = token;
+        token = token->next.get();
+    }
+
+    if (tag && !token::is(token, "{")) {
+        if (auto type = _scope.findTag(tag); type && type->kind == TypeKind::ENUM) {
+            return type;
+        }
+        Log::error("Unknown enum type"sv, tag);
+        return std::make_shared<Type>(TypeKind::UNKNOWN);
+    }
+
+    token = token::skipIf(token, "{");
+
+    int i = 0;
+    int value = 0;
+    auto type = type::enumType();
+    while (!token::is(token, "}")) {
+        if (i++ > 0) {
+            token = token::skipIf(token, ",");
+        }
+        auto name = token::getIdentifier(token);
+        token = token->next.get();
+
+        if (token::is(token, "=")) {
+            token = token->next.get();
+            value = token::getNumber(token);
+            token = token->next.get();
+        }
+
+        auto scope = _scope.pushVariableScope(name);
+        scope->enumType = type;
+        scope->enumValue = value++;
+    }
+
+    token = token->next.get();
+
+    if (tag) {
+        _scope.pushTagScope(tag->originalValue, type);
+    }
+
+    return type;
+}
+
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //             | "typedef"
-//             | struct-decl | union-decl | typedef-name)+
+//             | struct-decl | union-decl | typedef-name
+//             | enum-specifier)+
 std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr) {
     enum {
         VOID = 1 << 0,
@@ -130,7 +183,8 @@ std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr
 
         auto typeDefType = _scope.findTypeDef(token);
 
-        if (token::is(token, Keyword::STRUCT) || token::is(token, Keyword::UNION) || typeDefType) {
+        if (token::is(token, Keyword::STRUCT) || token::is(token, Keyword::UNION) || token::is(token, Keyword::ENUM) ||
+            typeDefType) {
             if (counter) {
                 break;
             }
@@ -142,6 +196,11 @@ std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr
             } else if (token::is(token, Keyword::UNION)) {
                 token = token->next.get();
                 type = unionDecl(token);
+                counter += OTHER;
+                continue;
+            } else if (token::is(token, Keyword::ENUM)) {
+                token = token->next.get();
+                type = enumSpecifier(token);
                 counter += OTHER;
                 continue;
             } else {
