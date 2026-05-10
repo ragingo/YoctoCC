@@ -27,7 +27,7 @@ public:
     // enum-list      = ident ("=" num)? ("," ident ("=" num)?)*
     std::shared_ptr<Type> enumSpecifier(Token*& token);
     // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
-    //             | "typedef"
+    //             | "typedef" | "static"
     //             | struct-decl | union-decl | typedef-name
     //             | enum-specifier)+
     std::shared_ptr<Type> declSpec(Token*& token, VariableAttribute* attr);

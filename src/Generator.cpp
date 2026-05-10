@@ -387,11 +387,17 @@ void Generator::generateFunction(const Object* obj) {
     currentFunction = obj;
     lastEmittedLine = 0;
 
-    addCode(directive::global(obj->name),
-            makeLabel(obj->name).def(),
+    if (obj->isStatic) {
+        addCode(directive::local(obj->name));
+    } else {
+        addCode(directive::global(obj->name));
+    }
+
+    addCode(makeLabel(obj->name).def(),
             // Prologue
             push(RBP),
             mov(RBP, RSP));
+
     if (obj->stackSize > 0) {
         addCode(sub(RSP, obj->stackSize));
     }

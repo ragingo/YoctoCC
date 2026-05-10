@@ -80,6 +80,7 @@ struct Object {
     // global variable or function
     bool isFunction = false;
     bool isDefinition = false;
+    bool isStatic = false;
     // global variable
     std::string initialData;
     // local variable

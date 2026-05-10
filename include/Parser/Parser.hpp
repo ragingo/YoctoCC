@@ -39,7 +39,7 @@ private:
     ParseResult parsePostfix(Token* token);
     ParseResult parseFunctionCall(Token* token);
     Token* parseTypeDef(Token* token, std::shared_ptr<Type>& baseType);
-    Token* parseFunction(Token* token, std::shared_ptr<Type>& baseType);
+    Token* parseFunction(Token* token, std::shared_ptr<Type>& baseType, const VariableAttribute& attr);
     Token* parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType);
     ParseResult parsePrimary(Token* token);
     void applyParamLVars(const std::shared_ptr<Type>& parameter);

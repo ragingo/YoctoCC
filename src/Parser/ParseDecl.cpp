@@ -154,7 +154,7 @@ std::shared_ptr<Type> ParseDecl::enumSpecifier(Token*& token) {
 }
 
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
-//             | "typedef"
+//             | "typedef" | "static"
 //             | struct-decl | union-decl | typedef-name
 //             | enum-specifier)+
 std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr) {
@@ -171,12 +171,20 @@ std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr
     int counter = 0;
 
     while (parser::isTypeName(token, _scope)) {
-        if (token::is(token, Keyword::TYPEDEF)) {
+        if (token::is(token, Keyword::TYPEDEF) || token::is(token, Keyword::STATIC)) {
             if (!attr) {
-                Log::error("typedef is not allowed here"sv, token);
+                Log::error("typedef or static is not allowed here"sv, token);
                 return nullptr;
             }
-            attr->isTypeDef = true;
+            if (token::is(token, Keyword::TYPEDEF)) {
+                attr->isTypeDef = true;
+            } else {
+                attr->isStatic = true;
+            }
+            if (attr->isTypeDef && attr->isStatic) {
+                Log::error("typedef and static cannot be used together"sv, token);
+                return nullptr;
+            }
             token = token->next.get();
             continue;
         }

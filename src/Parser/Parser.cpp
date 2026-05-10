@@ -44,7 +44,7 @@ std::unique_ptr<Object> Parser::parse(Token* token) {
         }
 
         if (isFunction(token)) {
-            token = parseFunction(token, baseType);
+            token = parseFunction(token, baseType, attr);
             continue;
         }
 
@@ -507,11 +507,12 @@ Token* Parser::parseTypeDef(Token* token, std::shared_ptr<Type>& baseType) {
     return token;
 }
 
-Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType) {
+Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType, const VariableAttribute& attr) {
     auto funcType = _parseDecl.declarator(token, baseType);
     auto name = token::getIdentifier(funcType->name);
     auto func = makeFunction(name, funcType);
     func->isDefinition = !token::consume(token, ";");
+    func->isStatic = attr.isStatic;
 
     _parseScope.pushVariableScope(name)->variable = func.get();
 

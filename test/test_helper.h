@@ -6,4 +6,6 @@
 void ASSERT(int expected, int actual);
 int printf(const char *fmt, ...);
 
+static int static_fn() { return 5; }
+
 #endif // TEST_HELPER_H

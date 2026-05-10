@@ -9,6 +9,7 @@ namespace yoctocc {
 enum class GasDirective {
     EXTERN,
     GLOBAL,
+    LOCAL,
     TEXT,
     DATA,
     BSS,
@@ -30,6 +31,8 @@ constexpr std::string to_string(GasDirective directive) {
             return ".extern";
         case GLOBAL:
             return ".globl";
+        case LOCAL:
+            return ".local";
         case TEXT:
             return ".text";
         case DATA:
@@ -68,6 +71,10 @@ inline constexpr std::string extern_(const std::string& symbol) {
 
 inline constexpr std::string global(const std::string& symbol) {
     return to_string(GLOBAL) + " " + symbol;
+}
+
+inline constexpr std::string local(const std::string& symbol) {
+    return to_string(LOCAL) + " " + symbol;
 }
 
 inline constexpr std::string zero(size_t size) {
