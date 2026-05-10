@@ -172,9 +172,18 @@ ParseResult Parser::parseStatement(Token* token) {
         auto node = std::make_unique<Node>(NodeType::FOR, token);
         token = token::skipIf(token->next.get(), "(");
 
-        auto [initStmt, afterInit] = parseExpressionStatement(token);
-        node->init = std::move(initStmt);
-        token = afterInit;
+        _parseScope.enterScope();
+
+        if (type::isTypeName(token)) {
+            auto baseType = _parseDecl.declSpec(token, nullptr);
+            auto [initDecl, afterDecl] = declaration(token, baseType);
+            node->init = std::move(initDecl);
+            token = afterDecl;
+        } else {
+            auto [initStmt, afterInit] = parseExpressionStatement(token);
+            node->init = std::move(initStmt);
+            token = afterInit;
+        }
 
         if (!token::is(token, ";")) {
             auto [cond, afterCond] = parseExpression(token);
@@ -192,6 +201,9 @@ ParseResult Parser::parseStatement(Token* token) {
 
         auto [body, afterBody] = parseStatement(token);
         node->then = std::move(body);
+
+        _parseScope.leaveScope();
+
         return {std::move(node), afterBody};
     }
 
