@@ -459,6 +459,7 @@ ParseResult Parser::parseCast(Token* token) {
 }
 
 // unary = ("+" | "-" | "*" | "&") cast
+//       | ("++" | "--") unary
 //       | postfix
 ParseResult Parser::parseUnary(Token* token) {
     if (token::is(token, "+")) {
@@ -478,6 +479,18 @@ ParseResult Parser::parseUnary(Token* token) {
         auto start = token;
         auto [operand, rest] = parseCast(token->next.get());
         return {createUnaryNode(NodeType::DEREFERENCE, start, std::move(operand)), rest};
+    }
+    if (token::is(token, "++")) {
+        auto start = token;
+        auto [operand, rest] = parseUnary(token->next.get());
+        auto binary = createAddNode(start, std::move(operand), createNumberNode(token, 1));
+        return {toAssign(std::move(binary)), rest};
+    }
+    if (token::is(token, "--")) {
+        auto start = token;
+        auto [operand, rest] = parseUnary(token->next.get());
+        auto binary = createSubNode(start, std::move(operand), createNumberNode(token, 1));
+        return {toAssign(std::move(binary)), rest};
     }
     return parsePostfix(token);
 }
