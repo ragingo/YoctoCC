@@ -26,6 +26,8 @@ private:
     Object* createTemporaryLocalVariable(const std::shared_ptr<Type>& type);
     Object* createGlobalVariable(const std::string& name, const std::shared_ptr<Type>& type);
     std::unique_ptr<Node> toAssign(std::unique_ptr<Node>&& binary);
+    std::unique_ptr<Node> createIncDecNode(const Token* token, std::unique_ptr<Node> node, bool isInc);
+
     ParseResult declaration(Token* token, const std::shared_ptr<Type>& baseType);
     ParseResult parseExpression(Token* token);
     ParseResult parseAssignment(Token* token);

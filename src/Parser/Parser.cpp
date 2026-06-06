@@ -151,6 +151,19 @@ std::unique_ptr<Node> Parser::toAssign(std::unique_ptr<Node>&& binary) {
     return createBinaryNode(NodeType::COMMA, token, std::move(expression1), std::move(expression2));
 }
 
+// ex) a++
+// => (typedef a)((a += 1) - 1)
+std::unique_ptr<Node> Parser::createIncDecNode(const Token* token, std::unique_ptr<Node> node, bool isInc) {
+    type::addType(node.get());
+    auto nodeType = node->type;
+    auto number = createNumberNode(token, isInc ? 1 : -1);
+    auto add = createAddNode(token, std::move(node), std::move(number));
+    auto assign = toAssign(std::move(add));
+    auto add2 = createAddNode(token, std::move(assign), createNumberNode(token, isInc ? -1 : 1));
+    auto cast = createCastNode(std::move(add2), nodeType);
+    return cast;
+}
+
 // assign    = equality (assign-op assign)?
 // assign-op = "=" | "+=" | "-=" | "*=" | "/="
 ParseResult Parser::parseAssignment(Token* token) {
@@ -495,7 +508,7 @@ ParseResult Parser::parseUnary(Token* token) {
     return parsePostfix(token);
 }
 
-// postfix = primary ("[" expr "]" | "." ident | "->" ident)*
+// postfix = primary ("[" expr "]" | "." ident | "->" ident | "++" | "--")*
 ParseResult Parser::parsePostfix(Token* token) {
     auto [node, rest] = parsePrimary(token);
     token = rest;
@@ -518,6 +531,18 @@ ParseResult Parser::parsePostfix(Token* token) {
             node = createUnaryNode(NodeType::DEREFERENCE, token, std::move(node));
             node = createStructRefNode(token->next.get(), std::move(node));
             token = token->next->next.get();
+            continue;
+        }
+        if (token::is(token, "++")) {
+            auto start = token;
+            node = createIncDecNode(start, std::move(node), true);
+            token = token->next.get();
+            continue;
+        }
+        if (token::is(token, "--")) {
+            auto start = token;
+            node = createIncDecNode(start, std::move(node), false);
+            token = token->next.get();
             continue;
         }
         return {std::move(node), token};
