@@ -214,7 +214,7 @@ std::unique_ptr<Token> parseIdentifier(ParseContext& context) {
 std::unique_ptr<Token> parsePunctuator(char ch, ParseContext& context) {
     auto nextCh = hasNext(context) ? *std::next(context.it) : '\0';
     std::string chars{ch, nextCh};
-    static const std::array operators = {"==", "!=", "<=", ">=", "->"};
+    static const std::array operators = {"==", "!=", "<=", ">=", "->", "+=", "-=", "*=", "/="};
 
     if (std::ranges::find(operators, chars) != operators.end()) {
         auto token = std::make_unique<Token>(TokenKind::PUNCTUATOR);

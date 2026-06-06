@@ -13,10 +13,12 @@
 using namespace std::string_view_literals;
 
 namespace {
+
 std::string makeUniqueName() {
     static int count = 0;
     return std::format(".L..{}", count++);
 }
+
 } // namespace
 
 namespace yoctocc {
@@ -58,6 +60,14 @@ Object* Parser::createLocalVariable(const std::string& name, const std::shared_p
     Object* raw = var.get();
     var->next = std::move(_locals);
     _parseScope.pushVariableScope(name)->variable = raw;
+    _locals = std::move(var);
+    return raw;
+}
+
+Object* Parser::createTemporaryLocalVariable(const std::shared_ptr<Type>& type) {
+    auto var = makeVariable("", type, true);
+    Object* raw = var.get();
+    var->next = std::move(_locals);
     _locals = std::move(var);
     return raw;
 }
@@ -118,7 +128,31 @@ ParseResult Parser::parseExpression(Token* token) {
     return {std::move(node), rest};
 }
 
-// assign = equality ("=" assign)?
+// ex) a += b
+// => tmp = &a, *tmp = *tmp + b
+std::unique_ptr<Node> Parser::toAssign(std::unique_ptr<Node>&& binary) {
+    type::addType(binary->left.get());
+    type::addType(binary->right.get());
+    auto token = binary->token;
+    auto pointerType = type::pointerTo(binary->left->type);
+    auto object = createTemporaryLocalVariable(pointerType);
+    auto expression1 = createBinaryNode(NodeType::ASSIGN,
+                                        token,
+                                        createVariableNode(token, object),
+                                        createUnaryNode(NodeType::ADDRESS, token, std::move(binary->left)));
+    auto expression2 = createBinaryNode(
+        NodeType::ASSIGN,
+        token,
+        createUnaryNode(NodeType::DEREFERENCE, token, createVariableNode(token, object)),
+        createBinaryNode(binary->nodeType,
+                         token,
+                         createUnaryNode(NodeType::DEREFERENCE, token, createVariableNode(token, object)),
+                         std::move(binary->right)));
+    return createBinaryNode(NodeType::COMMA, token, std::move(expression1), std::move(expression2));
+}
+
+// assign    = equality (assign-op assign)?
+// assign-op = "=" | "+=" | "-=" | "*=" | "/="
 ParseResult Parser::parseAssignment(Token* token) {
     auto [node, rest] = parseEquality(token);
 
@@ -126,6 +160,34 @@ ParseResult Parser::parseAssignment(Token* token) {
         auto start = rest;
         auto [right, rest2] = parseAssignment(rest->next.get());
         return {createBinaryNode(NodeType::ASSIGN, start, std::move(node), std::move(right)), rest2};
+    }
+
+    if (token::is(rest, "+=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createAddNode(start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
+    }
+
+    if (token::is(rest, "-=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createSubNode(start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
+    }
+
+    if (token::is(rest, "*=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createBinaryNode(NodeType::MUL, start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
+    }
+
+    if (token::is(rest, "/=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createBinaryNode(NodeType::DIV, start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
     }
 
     return {std::move(node), rest};
