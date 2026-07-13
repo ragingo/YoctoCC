@@ -10,7 +10,7 @@ ASM := $(BUILD_DIR)/program.s
 OBJ := $(BUILD_DIR)/program.o
 BIN := $(BUILD_DIR)/program
 
-# テスト用ヘルパー（_start 提供）
+# テスト用ヘルパー（_start 提供、x86-64 用）
 TEST_HELPER_C := test/test_helper.c
 TEST_HELPER_O := $(BUILD_DIR)/test_helper.o
 
@@ -24,14 +24,16 @@ $(ASM): $(COMPILER)
 	./$(COMPILER) $(INPUT)
 	@echo "Generated assembly file: $(ASM)"
 
-# アセンブル（.s → .o）
+# アセンブル（.s → .o）- x86-64 クロスコンパイラを使用
 $(OBJ): $(ASM)
-	$(CC) -g -c -o $@ $<
+	$(X86_64_CC) -g -c -o $@ $<
 
-# テスト用ヘルパーのコンパイル（C23 対応、-nostdlib 環境用）
+# テスト用ヘルパーのコンパイル（C2x/C23 対応、-nostdlib 環境用、x86-64 クロスコンパイラを使用）
+# GCC 13 では -std=c2x、GCC 14+ では -std=c23
 $(TEST_HELPER_O): $(TEST_HELPER_C) | $(BUILD_DIR)
-	$(CC) -g -std=c23 -O2 -fno-builtin -fno-stack-protector -c -o $@ $<
+	$(X86_64_CC) -g -std=c2x -O2 -fno-builtin -fno-stack-protector -c -o $@ $<
 
 # yoctocc が生成したコード + テストヘルパーをリンク（nostdlib で独自の _start を使用）
+# リンクも x86-64 クロスコンパイラを使用
 $(BIN): $(OBJ) $(TEST_HELPER_O)
-	$(CC) -nostdlib -no-pie -o $@ $^
+	$(X86_64_CC) -nostdlib -no-pie -o $@ $^

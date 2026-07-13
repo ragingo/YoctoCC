@@ -3,7 +3,7 @@
 #include <stdarg.h>
 
 // ============================================================
-//  syscall ヘルパー（-nostdlib 環境用）
+//  syscall ヘルパー（-nostdlib x86-64 環境用）
 // ============================================================
 
 static long sys_write(int fd, const void *buf, unsigned long count) {

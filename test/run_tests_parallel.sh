@@ -23,19 +23,26 @@ NC='\033[0m' # No Color
 # プロジェクトルートディレクトリ
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TEST_DIR="$SCRIPT_DIR"
-CASES_DIR="$TEST_DIR/cases"
+CASES_DIR="$SCRIPT_DIR/cases"
 
-# Makefile ターゲット用（相対パス）
-COMPILER_TARGET="build/yoctocc"
-TEST_HELPER_TARGET="build/test_helper.o"
+# Makefile ターゲット
+COMPILER="$PROJECT_ROOT/build/yoctocc"
+TEST_HELPER_O="$PROJECT_ROOT/build/test_helper.o"
 
-# 実行用（絶対パス）
-COMPILER="$PROJECT_ROOT/$COMPILER_TARGET"
-TEST_HELPER_O="$PROJECT_ROOT/$TEST_HELPER_TARGET"
-
-# テスト用 C コンパイラ（環境変数 CC で上書き可能）
-TEST_CC=${CC:-gcc}
+# アーキテクチャ検出とツール選択
+# YoctoCC は x86-64 アセンブリを出力するため、arm64 では
+# x86-64 クロスコンパイラ + QEMU が必要
+UNAME_M=$(uname -m)
+if [ "$UNAME_M" = "aarch64" ]; then
+    X86_64_CC="x86_64-linux-gnu-gcc"
+    QEMU_EXEC="qemu-x86_64"
+    MAKE_X86_FLAG="X86_64_CC=$X86_64_CC"
+else
+    # x86-64 ではネイティブの gcc をそのまま使用
+    X86_64_CC="gcc"
+    QEMU_EXEC=""
+    MAKE_X86_FLAG=""
+fi
 
 # 並列数（CPU コア数、nproc がなければ 4 にフォールバック）
 PARALLEL_JOBS=${PARALLEL_JOBS:-$(nproc 2>/dev/null || echo 4)}
@@ -46,9 +53,8 @@ TEST_FILTERS=("$@")
 # 一時ディレクトリ
 WORK_DIR=$(mktemp -d)
 
-# シグナルハンドリング: 割り込み時にバックグラウンドジョブを停止してから後処理
+# シグナルハンドリング
 cleanup() {
-    # 子プロセスをすべて停止
     local pids
     pids=$(jobs -p 2>/dev/null)
     if [ -n "$pids" ]; then
@@ -67,7 +73,7 @@ START_TIME=$(date +%s%N 2>/dev/null || date +%s)
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}      Yoctocc テストスイート (並列)${NC}"
 echo -e "${BLUE}========================================${NC}"
-echo -e "Cコンパイラ: $TEST_CC"
+echo -e "アーキテクチャ: $UNAME_M"
 echo -e "並列数: $PARALLEL_JOBS"
 echo -e "タイムアウト: ${TEST_TIMEOUT}s"
 if [ ${#TEST_FILTERS[@]} -gt 0 ]; then
@@ -75,21 +81,28 @@ if [ ${#TEST_FILTERS[@]} -gt 0 ]; then
 fi
 echo ""
 
-# コンパイラのビルド（インクリメンタルビルド、サブシェルで cd を隔離）
+# コンパイラ本体のビルド
 echo -e "${YELLOW}コンパイラをビルド中...${NC}"
-if ! (cd "$PROJECT_ROOT" && make -s CC="$TEST_CC" "$COMPILER_TARGET" "$TEST_HELPER_TARGET" > /dev/null 2>&1); then
+if ! (cd "$PROJECT_ROOT" && make -s build/yoctocc > /dev/null 2>&1); then
     echo -e "${RED}コンパイラのビルドに失敗しました${NC}"
     exit 1
 fi
-echo -e "${GREEN}コンパイラのビルドが完了しました${NC}"
+echo -e "${GREEN}コンパイラ本体のビルドが完了しました${NC}"
+
+# テストヘルパーのビルド
+echo -e "${YELLOW}テストヘルパーをビルド中...${NC}"
+if ! (cd "$PROJECT_ROOT" && make -s $MAKE_X86_FLAG build/test_helper.o > /dev/null 2>&1); then
+    echo -e "${RED}テストヘルパーのビルドに失敗しました${NC}"
+    exit 1
+fi
+echo -e "${GREEN}テストヘルパーのビルドが完了しました${NC}"
 echo ""
 
-# 単一テスト実行関数（ファイルベース）
+# 単一テスト実行関数
 run_single_test() {
     local test_num="$1"
     local expected_exit="$2"
     local test_file="$3"
-    local test_name="$4"
 
     local test_work="$WORK_DIR/test_$test_num"
     mkdir -p "$test_work"
@@ -99,7 +112,7 @@ run_single_test() {
     local bin_file="$test_work/program"
     local result_file="$test_work/result"
 
-    # コンパイラ実行（出力先を直接指定）
+    # コンパイル（YoctoCC で .c → .s）
     if ! "$COMPILER" "$test_file" "$asm_file" > "$test_work/compiler.log" 2>&1; then
         echo "FAIL compile" > "$result_file"
         cp "$test_work/compiler.log" "$test_work/error.log"
@@ -107,29 +120,29 @@ run_single_test() {
     fi
 
     # アセンブル
-    if ! "$TEST_CC" -c -o "$obj_file" "$asm_file" > "$test_work/assemble.log" 2>&1; then
+    if ! "$X86_64_CC" -c -o "$obj_file" "$asm_file" > "$test_work/assemble.log" 2>&1; then
         echo "FAIL assemble" > "$result_file"
         cp "$test_work/assemble.log" "$test_work/error.log"
         return
     fi
 
     # リンク
-    if ! "$TEST_CC" -nostdlib -no-pie -o "$bin_file" "$obj_file" "$TEST_HELPER_O" > "$test_work/link.log" 2>&1; then
+    if ! "$X86_64_CC" -nostdlib -no-pie -o "$bin_file" "$obj_file" "$TEST_HELPER_O" > "$test_work/link.log" 2>&1; then
         echo "FAIL link" > "$result_file"
         cp "$test_work/link.log" "$test_work/error.log"
         return
     fi
 
-    # 実行（stderr をキャプチャ、タイムアウト付き）
+    # 実行（arm64 では qemu-x86_64 経由、x86-64 では直接）
     if command -v timeout > /dev/null 2>&1; then
-        timeout "$TEST_TIMEOUT" "$bin_file" > /dev/null 2>"$test_work/stderr.log"
+        timeout "$TEST_TIMEOUT" $QEMU_EXEC "$bin_file" > /dev/null 2>"$test_work/stderr.log"
         local actual_exit=$?
         if [ "$actual_exit" -eq 124 ]; then
             echo "FAIL timeout" > "$result_file"
             return
         fi
     else
-        "$bin_file" > /dev/null 2>"$test_work/stderr.log"
+        $QEMU_EXEC "$bin_file" > /dev/null 2>"$test_work/stderr.log"
         local actual_exit=$?
     fi
 
@@ -140,21 +153,16 @@ run_single_test() {
     fi
 }
 
-# テストケースを配列に読み込み
-declare -a TEST_FILES
-declare -a TEST_EXPECTED
-declare -a TEST_NAMES
+# テストケースを収集
+declare -a TEST_FILES TEST_EXPECTED TEST_NAMES
 test_num=0
 
-# casesディレクトリから.cファイルを収集（ソート済み）
 if [ -d "$CASES_DIR" ]; then
     while IFS= read -r test_file; do
-        # ASSERT マクロを使用しているファイルのみ対象（expected=0: 成功時 return 0）
         if ! grep -q 'ASSERT(' "$test_file"; then
             echo -e "${YELLOW}警告: $test_file に ASSERT() がありません。スキップします${NC}"
             continue
         fi
-        expected_exit=0
 
         # フィルタチェック
         if [ ${#TEST_FILTERS[@]} -gt 0 ]; then
@@ -165,24 +173,19 @@ if [ -d "$CASES_DIR" ]; then
                     break
                 fi
             done
-            if [ $_matched -eq 0 ]; then
-                continue
-            fi
+            [ $_matched -eq 0 ] && continue
         fi
 
         test_num=$((test_num + 1))
         TEST_FILES[$test_num]="$test_file"
-        TEST_EXPECTED[$test_num]="$expected_exit"
-        # 相対パス名をテスト名として使用
+        TEST_EXPECTED[$test_num]=0
         TEST_NAMES[$test_num]=$(echo "$test_file" | sed "s|^$CASES_DIR/||")
     done < <(find "$CASES_DIR" -name "*.c" -type f | sort)
 fi
 
-
-
 TOTAL_TESTS=$test_num
 
-# 実行前にテストケース総数を集計
+# ケース数集計
 ESTIMATED_CASES=0
 for i in $(seq 1 $TOTAL_TESTS); do
     _n=$(grep -v '^\s*//' "${TEST_FILES[$i]}" | grep 'ASSERT(' | grep -cv '^void ' || true)
@@ -191,44 +194,33 @@ done
 
 echo -e "${YELLOW}テスト実行中... ($ESTIMATED_CASES ケース / $TOTAL_TESTS ファイル)${NC}"
 
-# 並列実行（バックグラウンドジョブ）
+# 並列実行
 running=0
 for i in $(seq 1 $TOTAL_TESTS); do
-    run_single_test "$i" "${TEST_EXPECTED[$i]}" "${TEST_FILES[$i]}" "${TEST_NAMES[$i]}" &
+    run_single_test "$i" "${TEST_EXPECTED[$i]}" "${TEST_FILES[$i]}" &
     running=$((running + 1))
-
-    # 並列数制限
     if [ $running -ge $PARALLEL_JOBS ]; then
         wait -n 2>/dev/null || true
         running=$((running - 1))
     fi
 done
-
-# 残りのジョブを待機
 wait
 
-# ASSERT ケースの詳細を解析・表示する関数
-# 引数: テスト番号, テストファイルパス, カウント書き込み先ファイル
+# ASSERT 結果の解析と表示
 show_assert_details() {
     local test_num="$1"
     local test_file="$2"
     local count_file="$3"
-    local skip_reason="${4:-}"  # オプショナル: スキップ理由
+    local skip_reason="${4:-}"
     local stderr_log="$WORK_DIR/test_$test_num/stderr.log"
     local pass=0 fail=0 skip=0
 
-    # ソースから ASSERT() 呼び出し行を抽出
     mapfile -t assert_exprs < <(grep 'ASSERT(' "$test_file" | grep -v '^\s*//' | grep -v '^#' | grep -v '^void ')
     local total=${#assert_exprs[@]}
 
-    if [ "$total" -eq 0 ]; then
-        echo "0 0 0" > "$count_file"
-        return
-    fi
+    [ "$total" -eq 0 ] && { echo "0 0 0" > "$count_file"; return; }
 
-    # stderr から ASSERT_RESULT を解析
-    local -A _ar_status
-    local -A _ar_detail
+    declare -A _ar_status _ar_detail
     if [ -f "$stderr_log" ] && [ -s "$stderr_log" ]; then
         while IFS= read -r sline; do
             if [[ "$sline" =~ ^ASSERT_RESULT\ (PASS|FAIL)\ #([0-9]+)\ expected\ (-?[0-9]+)\ actual\ (-?[0-9]+) ]]; then
@@ -238,56 +230,40 @@ show_assert_details() {
         done < "$stderr_log"
     fi
 
-    # 各 ASSERT を表示
     for idx in $(seq 1 "$total"); do
         _src="${assert_exprs[$((idx-1))]}"
         _expr=$(echo "$_src" | sed 's/^[[:space:]]*ASSERT([^,]*, //' | sed 's/);[[:space:]]*$//')
-
         _st="${_ar_status[$idx]:-SKIP}"
         case "$_st" in
-            PASS)
-                echo -e "    ${GREEN}#$idx $_expr => ${_ar_detail[$idx]}${NC}"
-                pass=$((pass + 1))
-                ;;
-            FAIL)
-                echo -e "    ${RED}#$idx $_expr => ${_ar_detail[$idx]}${NC}"
-                fail=$((fail + 1))
-                ;;
+            PASS) echo -e "    ${GREEN}#$idx $_expr => ${_ar_detail[$idx]}${NC}"; pass=$((pass + 1)) ;;
+            FAIL) echo -e "    ${RED}#$idx $_expr => ${_ar_detail[$idx]}${NC}"; fail=$((fail + 1)) ;;
             SKIP)
                 if [ -n "$skip_reason" ]; then
                     echo -e "    ${YELLOW}#$idx $_expr => (skipped: $skip_reason)${NC}"
                 else
                     echo -e "    ${YELLOW}#$idx $_expr => (skipped)${NC}"
                 fi
-                skip=$((skip + 1))
-                ;;
+                skip=$((skip + 1)) ;;
         esac
     done
-
     echo "$pass $fail $skip" > "$count_file"
 }
 
 # 結果集計
-TOTAL_CASES=0
-PASSED_CASES=0
-FAILED_CASES=0
-SKIPPED_CASES=0
-FAILED_FILES=0
-
+TOTAL_CASES=0 PASSED_CASES=0 FAILED_CASES=0 SKIPPED_CASES=0 FAILED_FILES=0
 echo ""
+
 for i in $(seq 1 $TOTAL_TESTS); do
     result_file="$WORK_DIR/test_$i/result"
     test_name="${TEST_NAMES[$i]}"
     test_file="${TEST_FILES[$i]}"
-    expected="${TEST_EXPECTED[$i]}"
 
     if [ ! -f "$result_file" ]; then
         echo -e "${RED}[$test_name] FAILED (no result)${NC}"
-        # ソース中の ASSERT 数を失敗としてカウント（コメント行を除外）
         _fc=$(grep -v '^\s*//' "$test_file" 2>/dev/null | grep 'ASSERT(' | grep -cv '^void ' || echo 0)
         [ "$_fc" -eq 0 ] && _fc=1
-        FAILED_CASES=$(( FAILED_CASES + _fc ))
-        TOTAL_CASES=$(( TOTAL_CASES + _fc ))
+        FAILED_CASES=$((FAILED_CASES + _fc))
+        TOTAL_CASES=$((TOTAL_CASES + _fc))
         FAILED_FILES=$((FAILED_FILES + 1))
         continue
     fi
@@ -296,7 +272,6 @@ for i in $(seq 1 $TOTAL_TESTS); do
     status=$(echo "$result" | awk '{print $1}')
 
     if [ "$status" = "PASS" ]; then
-        # ケース詳細を取得（出力はバッファリング）
         local_count_file="$WORK_DIR/test_${i}_counts"
         local_detail_file="$WORK_DIR/test_${i}_detail"
         show_assert_details "$i" "$test_file" "$local_count_file" > "$local_detail_file"
@@ -305,7 +280,6 @@ for i in $(seq 1 $TOTAL_TESTS); do
         FAILED_CASES=$((FAILED_CASES + f))
         SKIPPED_CASES=$((SKIPPED_CASES + s))
         TOTAL_CASES=$((TOTAL_CASES + p + f + s))
-        # ファイルヘッダー → 詳細の順で表示
         if [ "$f" -gt 0 ]; then
             echo -e "${RED}[$test_name] FAILED${NC}"
             FAILED_FILES=$((FAILED_FILES + 1))
@@ -319,14 +293,9 @@ for i in $(seq 1 $TOTAL_TESTS); do
         case "$reason" in
             compile|assemble|link)
                 echo -e "${RED}[$test_name] FAILED ($reason error)${NC}"
-                if [ -f "$error_log" ] && [ -s "$error_log" ]; then
-                    echo -e "${YELLOW}  Error details:${NC}"
-                    sed 's/^/    /' "$error_log"
-                fi
+                [ -f "$error_log" ] && [ -s "$error_log" ] && echo -e "${YELLOW}  Error details:${NC}" && sed 's/^/    /' "$error_log"
                 ;;
-            timeout)
-                echo -e "${RED}[$test_name] FAILED (timeout: ${TEST_TIMEOUT}s)${NC}"
-                ;;
+            timeout) echo -e "${RED}[$test_name] FAILED (timeout: ${TEST_TIMEOUT}s)${NC}" ;;
             result)
                 _exp=$(echo "$result" | awk '{print $3}')
                 _act=$(echo "$result" | awk '{print $4}')
@@ -334,21 +303,16 @@ for i in $(seq 1 $TOTAL_TESTS); do
                 ;;
         esac
 
-        # 失敗時もケース詳細を表示（クラッシュ理由を計算）
         _skip_reason=""
         if [ "$reason" = "result" ]; then
             _act=$(echo "$result" | awk '{print $4}')
             if [ "$_act" -gt 128 ] 2>/dev/null; then
                 _sig=$((_act - 128))
                 case $_sig in
-                    4)  _signame="SIGILL" ;;
-                    6)  _signame="SIGABRT" ;;
-                    8)  _signame="SIGFPE" ;;
-                    9)  _signame="SIGKILL" ;;
-                    11) _signame="SIGSEGV" ;;
-                    13) _signame="SIGPIPE" ;;
-                    14) _signame="SIGALRM" ;;
-                    15) _signame="SIGTERM" ;;
+                    4)  _signame="SIGILL" ;; 6)  _signame="SIGABRT" ;;
+                    8)  _signame="SIGFPE" ;; 9)  _signame="SIGKILL" ;;
+                    11) _signame="SIGSEGV" ;; 13) _signame="SIGPIPE" ;;
+                    14) _signame="SIGALRM" ;; 15) _signame="SIGTERM" ;;
                     *)  _signame="signal $_sig" ;;
                 esac
                 _skip_reason="program crashed with $_signame"
@@ -371,7 +335,7 @@ for i in $(seq 1 $TOTAL_TESTS); do
     fi
 done
 
-# 結果のサマリー
+# サマリー
 echo ""
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}      テスト結果サマリー${NC}"
@@ -379,26 +343,16 @@ echo -e "${BLUE}========================================${NC}"
 echo -e "ファイル数:   $TOTAL_TESTS (失敗: $FAILED_FILES)"
 echo -e "総ケース数:   $TOTAL_CASES"
 echo -e "${GREEN}成功:         $PASSED_CASES${NC}"
-if [ "$FAILED_CASES" -gt 0 ]; then
-    echo -e "${RED}失敗:         $FAILED_CASES${NC}"
-fi
-if [ "$SKIPPED_CASES" -gt 0 ]; then
-    echo -e "${YELLOW}スキップ:     $SKIPPED_CASES${NC}"
-fi
+[ "$FAILED_CASES" -gt 0 ] && echo -e "${RED}失敗:         $FAILED_CASES${NC}"
+[ "$SKIPPED_CASES" -gt 0 ] && echo -e "${YELLOW}スキップ:     $SKIPPED_CASES${NC}"
 echo ""
 
-# 経過時間を計算
 END_TIME=$(date +%s%N 2>/dev/null || date +%s)
 if [ ${#END_TIME} -gt 10 ]; then
-    # ナノ秒精度
     ELAPSED=$(( (END_TIME - START_TIME) / 1000000 ))
-    ELAPSED_SEC=$((ELAPSED / 1000))
-    ELAPSED_MS=$((ELAPSED % 1000))
-    echo -e "経過時間:     ${ELAPSED_SEC}.$(printf '%03d' $ELAPSED_MS)s"
+    echo -e "経過時間:     $((ELAPSED / 1000)).$(printf '%03d' $((ELAPSED % 1000)))s"
 else
-    # 秒精度フォールバック
-    ELAPSED=$((END_TIME - START_TIME))
-    echo -e "経過時間:     ${ELAPSED}s"
+    echo -e "経過時間:     $((END_TIME - START_TIME))s"
 fi
 echo ""
 

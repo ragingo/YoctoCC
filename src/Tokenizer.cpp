@@ -5,6 +5,7 @@
 #include "String/String.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
+#include <cstdint>
 #include <format>
 #include <fstream>
 #include <ranges>
@@ -169,12 +170,15 @@ std::unique_ptr<Token> parseCharacterLiteral(ParseContext& context) {
         return nullptr;
     }
 
-    char value;
+    // arm64 上でも x86-64 と同様に char を signed として扱うため、
+    // unsigned char で一旦受け取った後に int8_t で符号拡張する
+    unsigned char rawValue;
     if (hasNext(context) && *context.it == '\\') {
-        value = parseEscapeSequence(context)[0];
+        rawValue = static_cast<unsigned char>(parseEscapeSequence(context)[0]);
     } else {
-        value = *context.it;
+        rawValue = static_cast<unsigned char>(*context.it);
     }
+    int value = static_cast<signed char>(rawValue);
 
     if (!hasNext(context)) {
         Log::error("unclosed character literal"sv, std::distance(context.begin, context.it));

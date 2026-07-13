@@ -21,16 +21,22 @@ all: $(COMPILER)
 # --- ソースをアセンブリにコンパイル ---
 compile: $(ASM)
 
-# --- コンパイラを実行 ---
+# --- コンパイラを実行（arm64 なら QEMU でラップ） ---
 # 使用例: make run ARGS="input.c output.s"
 run: $(COMPILER)
+ifeq ($(UNAME_M),aarch64)
+ifeq ($(QEMU_X86_64),)
+	@echo "Error: qemu-x86_64 is required but not installed. Install with:" && echo "  sudo apt install qemu-user" && exit 1
+endif
+	$(QEMU_X86_64) ./$(COMPILER) $(ARGS)
+else
 	./$(COMPILER) $(ARGS)
+endif
 
-# --- コンパイル → アセンブル → リンク → 実行 ---
+# --- コンパイル → アセンブル → リンク → 実行（arm64 なら QEMU でラップ） ---
 # 使用例: make execute INPUT=test/cases/arith.c
 execute: $(BIN)
-	./$(BIN)
-
+	@$(QEMU_WRAPPER) ./$(BIN)
 # --- コンパイル → アセンブル → リンク → GDB でデバッグ ---
 # 使用例: make debug INPUT=test/cases/debug.c
 debug: $(BIN)
@@ -44,12 +50,12 @@ clean:
 rebuild: clean all
 	@echo "Rebuild complete"
 
-# --- プロファイル ---
+# --- プロファイル（arm64 なら QEMU でラップ） ---
 # 使用例: cat test.c | make profile
 profile: clean
 	$(MAKE) PROFILE=1 all
 	@rm -f gmon.out
-	./$(COMPILER) /dev/stdin /dev/null
+	@$(QEMU_WRAPPER) ./$(COMPILER) /dev/stdin /dev/null
 	@gprof ./$(COMPILER) gmon.out | tee profile.log
 
 # --- ヘルプ ---
