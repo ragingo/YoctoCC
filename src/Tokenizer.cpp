@@ -58,14 +58,43 @@ bool parseBlockComment(ParseContext& context) {
 }
 
 std::unique_ptr<Token> parseNumber(ParseContext& context) {
+    int base = 10;
     std::string number;
-    while (hasNext(context) && std::isdigit(*context.it)) {
+    auto prefix2 = std::string_view(context.it, context.it + 2);
+    auto prefix1 = std::string_view(context.it, context.it + 1);
+    if (prefix2 == "0x"sv || prefix2 == "0X"sv) {
+        base = 16;
+        context.it += 2;
+        number += "0x";
+    } else if (prefix2 == "0b"sv || prefix2 == "0B"sv) {
+        base = 2;
+        context.it += 2;
+        number += "0b";
+    } else if (prefix1 == "0"sv) {
+        base = 8;
+        ++context.it;
+        number += "0";
+    }
+
+    while (hasNext(context)) {
+        if (base == 10 && !std::isdigit(*context.it)) {
+            break;
+        }
+        if (base == 16 && !isHexDigit(*context.it)) {
+            break;
+        }
+        if (base == 8 && !isOctalDigit(*context.it)) {
+            break;
+        }
+        if (base == 2 && *context.it != '0' && *context.it != '1') {
+            break;
+        }
         number += *context.it;
         ++context.it;
     }
     auto token = std::make_unique<Token>(TokenKind::DIGIT);
     token->originalValue = number;
-    token->numberValue = std::stoll(number);
+    token->numberValue = std::stoll(number, nullptr, base);
     token->location = std::distance(context.begin, context.it - token->originalValue.size());
     token->line = context.line;
     return token;
