@@ -22,11 +22,6 @@
                     "ignoreFailures": true
                 },
                 {
-                    "description": "逆アセンブリ フレーバーを Intel に設定",
-                    "text": "-gdb-set disassembly-flavor intel",
-                    "ignoreFailures": true
-                },
-                {
                     "description": "ブレークポイントの検証を有効にする",
                     "text": "set breakpoint pending on",
                     "ignoreFailures": true
@@ -50,11 +45,6 @@
                 {
                     "description": "gdb の再フォーマットを有効にする",
                     "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "逆アセンブリ フレーバーを Intel に設定",
-                    "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 }
             ],
