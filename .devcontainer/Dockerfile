@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     lsb-release \
     software-properties-common \
     gnupg2 \
+    gdb \
     && rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 \
