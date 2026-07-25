@@ -120,6 +120,9 @@ void addType(Node* node) {
         case NodeType::NOT:
             node->type = type::intType();
             return;
+        case NodeType::BITNOT:
+            node->type = node->left->type;
+            return;
         case NodeType::VARIABLE:
             node->type = node->variable->type;
             return;

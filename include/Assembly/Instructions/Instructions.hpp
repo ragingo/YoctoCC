@@ -90,6 +90,7 @@ inline constexpr Instruction<IDIV> idiv;
 inline constexpr Instruction<CQO> cqo;
 inline constexpr Instruction<CDQ> cdq;
 inline constexpr Instruction<NEG> neg;
+inline constexpr Instruction<NOT> not_;
 inline constexpr Instruction<CMP> cmp;
 inline constexpr Instruction<SETE> sete;
 inline constexpr Instruction<SETNE> setne;

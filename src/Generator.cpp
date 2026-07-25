@@ -323,6 +323,10 @@ void Generator::generateExpression(const Node* node) {
             addCode(sete(AL));
             addCode(movzx(RAX, AL));
             return;
+        case NodeType::BITNOT:
+            generateExpression(node->left.get());
+            addCode(not_(RAX));
+            return;
         default:
             break;
     }

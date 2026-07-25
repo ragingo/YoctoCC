@@ -22,6 +22,7 @@ enum class OpCode {
     CQO,
     CDQ,
     NEG,
+    NOT,
     CMP,
     SETE,
     SETNE,
@@ -82,6 +83,8 @@ constexpr std::string to_string(OpCode op) {
             return "cdq";
         case NEG:
             return "neg";
+        case NOT:
+            return "not";
         case CMP:
             return "cmp";
         case SETE:
