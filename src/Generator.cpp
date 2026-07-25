@@ -358,13 +358,18 @@ void Generator::generateExpression(const Node* node) {
         case NodeType::MUL:
             addCode(imul(ax, di));
             return;
-        case NodeType::DIV: {
+        case NodeType::DIV:
+        case NodeType::MOD: {
             if (node->left->type->size == 8) {
                 addCode(cqo());
             } else {
                 addCode(cdq());
             }
             addCode(idiv(di));
+
+            if (node->nodeType == NodeType::MOD) {
+                addCode(mov(RAX, RDX));
+            }
         }
             return;
         case NodeType::EQUAL:

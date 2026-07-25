@@ -165,7 +165,7 @@ std::unique_ptr<Node> Parser::createIncDecNode(const Token* token, std::unique_p
 }
 
 // assign    = equality (assign-op assign)?
-// assign-op = "=" | "+=" | "-=" | "*=" | "/="
+// assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%="
 ParseResult Parser::parseAssignment(Token* token) {
     auto [node, rest] = parseEquality(token);
 
@@ -200,6 +200,13 @@ ParseResult Parser::parseAssignment(Token* token) {
         auto start = rest;
         auto [right, rest2] = parseAssignment(rest->next.get());
         auto binary = createBinaryNode(NodeType::DIV, start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
+    }
+
+    if (token::is(rest, "%=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createBinaryNode(NodeType::MOD, start, std::move(node), std::move(right));
         return {toAssign(std::move(binary)), rest2};
     }
 
@@ -432,7 +439,7 @@ ParseResult Parser::parseAdditive(Token* token) {
     }
 }
 
-// mul = cast ("*" cast | "/" cast)*
+// mul = cast ("*" cast | "/" cast | "%" cast)*
 ParseResult Parser::parseMultiply(Token* token) {
     auto [node, rest] = parseCast(token);
     token = rest;
@@ -449,6 +456,13 @@ ParseResult Parser::parseMultiply(Token* token) {
             auto start = token;
             auto [right, r] = parseCast(token->next.get());
             node = createBinaryNode(NodeType::DIV, start, std::move(node), std::move(right));
+            token = r;
+            continue;
+        }
+        if (token::is(token, "%")) {
+            auto start = token;
+            auto [right, r] = parseCast(token->next.get());
+            node = createBinaryNode(NodeType::MOD, start, std::move(node), std::move(right));
             token = r;
             continue;
         }

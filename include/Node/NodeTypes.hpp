@@ -24,6 +24,7 @@ enum class NodeType {
     MUL,           // *
     DIV,           // /
     NEGATE,        // unary -
+    MOD,           // %
     EQUAL,         // ==
     NOT_EQUAL,     // !=
     LESS,          // <

@@ -79,7 +79,8 @@ void addType(Node* node) {
         case NodeType::ADD:
         case NodeType::SUB:
         case NodeType::MUL:
-        case NodeType::DIV: {
+        case NodeType::DIV:
+        case NodeType::MOD: {
             auto [newLhsNode, newRhsNode] = convertUsualArithmetic(std::move(node->left), std::move(node->right));
             node->left = std::move(newLhsNode);
             node->right = std::move(newRhsNode);
