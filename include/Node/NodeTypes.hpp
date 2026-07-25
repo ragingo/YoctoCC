@@ -35,6 +35,7 @@ enum class NodeType {
     MEMBER,        // .
     ADDRESS,       // unary &
     DEREFERENCE,   // unary *
+    NOT,           // !
     RETURN,        // return
     IF,            // if
     FOR,           // for or while

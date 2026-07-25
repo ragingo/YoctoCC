@@ -117,6 +117,9 @@ void addType(Node* node) {
         case NodeType::FUNCTION_CALL:
             node->type = type::longType();
             return;
+        case NodeType::NOT:
+            node->type = type::intType();
+            return;
         case NodeType::VARIABLE:
             node->type = node->variable->type;
             return;

@@ -471,7 +471,7 @@ ParseResult Parser::parseCast(Token* token) {
     return parseUnary(token);
 }
 
-// unary = ("+" | "-" | "*" | "&") cast
+// unary = ("+" | "-" | "*" | "&" | "!") cast
 //       | ("++" | "--") unary
 //       | postfix
 ParseResult Parser::parseUnary(Token* token) {
@@ -492,6 +492,11 @@ ParseResult Parser::parseUnary(Token* token) {
         auto start = token;
         auto [operand, rest] = parseCast(token->next.get());
         return {createUnaryNode(NodeType::DEREFERENCE, start, std::move(operand)), rest};
+    }
+    if (token::is(token, "!")) {
+        auto start = token;
+        auto [operand, rest] = parseCast(token->next.get());
+        return {createUnaryNode(NodeType::NOT, start, std::move(operand)), rest};
     }
     if (token::is(token, "++")) {
         auto start = token;

@@ -317,6 +317,12 @@ void Generator::generateExpression(const Node* node) {
             addCode(call(node->functionName));
         }
             return;
+        case NodeType::NOT:
+            generateExpression(node->left.get());
+            addCode(compareZero(node->left->type.get()));
+            addCode(sete(AL));
+            addCode(movzx(RAX, AL));
+            return;
         default:
             break;
     }
