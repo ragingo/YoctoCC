@@ -40,8 +40,10 @@ public:
     // func-params = (param ("," param)*)? ")"
     // param       = declspec declarator
     std::shared_ptr<Type> functionParameters(Token*& token, std::shared_ptr<Type>& type);
+    // array-dimensions = num? "]" type-suffix
+    std::shared_ptr<Type> arrayDimensions(Token*& token, std::shared_ptr<Type>& type);
     // type-suffix = "(" func-params
-    //             | "[" num "]" type-suffix
+    //             | "[" array-dimensions
     //             | ε
     std::shared_ptr<Type> typeSuffix(Token*& token, std::shared_ptr<Type>& type);
 

@@ -351,8 +351,23 @@ std::shared_ptr<Type> ParseDecl::functionParameters(Token*& token, std::shared_p
     return type;
 }
 
+// array-dimensions = num? "]" type-suffix
+std::shared_ptr<Type> ParseDecl::arrayDimensions(Token*& token, std::shared_ptr<Type>& type) {
+    if (token::is(token, "]")) {
+        token = token->next.get();
+        type = typeSuffix(token, type);
+        return type::arrayOf(type, -1);
+    }
+
+    int size = token::getNumber(token);
+    token = token->next.get();
+    token = token::skipIf(token, "]");
+    type = typeSuffix(token, type);
+    return type::arrayOf(type, size);
+}
+
 // type-suffix = "(" func-params
-//             | "[" num "]" type-suffix
+//             | "[" array-dimensions
 //             | ε
 std::shared_ptr<Type> ParseDecl::typeSuffix(Token*& token, std::shared_ptr<Type>& type) {
     if (token::is(token, "(")) {
@@ -361,11 +376,8 @@ std::shared_ptr<Type> ParseDecl::typeSuffix(Token*& token, std::shared_ptr<Type>
     }
 
     if (token::is(token, "[")) {
-        int size = token::getNumber(token->next.get());
-        token = token->next->next.get();
-        token = token::skipIf(token, "]");
-        type = typeSuffix(token, type);
-        return type::arrayOf(type, size);
+        token = token->next.get();
+        return arrayDimensions(token, type);
     }
 
     return type;

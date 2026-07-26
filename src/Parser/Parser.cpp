@@ -93,6 +93,10 @@ ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseT
             token = token::skipIf(token, ",");
         }
         auto varType = _parseDecl.declarator(token, baseType);
+        if (varType->size < 0) {
+            Log::error("Variable has incomplete type"sv, token);
+            return {};
+        }
         if (varType->kind == TypeKind::VOID) {
             Log::error("Variable cannot be of type void"sv, token);
             return {};
