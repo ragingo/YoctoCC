@@ -340,6 +340,12 @@ std::shared_ptr<Type> ParseDecl::functionParameters(Token*& token, std::shared_p
         }
         auto paramType = declSpec(token, nullptr);
         paramType = declarator(token, paramType);
+
+        if (paramType->kind == TypeKind::ARRAY) {
+            auto name = paramType->name;
+            paramType = type::pointerTo(paramType->base);
+            paramType->name = name;
+        }
         *current = paramType;
         current = &paramType->next;
     }
