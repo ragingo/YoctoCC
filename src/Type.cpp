@@ -80,7 +80,10 @@ void addType(Node* node) {
         case NodeType::SUB:
         case NodeType::MUL:
         case NodeType::DIV:
-        case NodeType::MOD: {
+        case NodeType::MOD:
+        case NodeType::BITAND:
+        case NodeType::BITOR:
+        case NodeType::BITXOR: {
             auto [newLhsNode, newRhsNode] = convertUsualArithmetic(std::move(node->left), std::move(node->right));
             node->left = std::move(newLhsNode);
             node->right = std::move(newRhsNode);

@@ -164,10 +164,46 @@ std::unique_ptr<Node> Parser::createIncDecNode(const Token* token, std::unique_p
     return cast;
 }
 
-// assign    = equality (assign-op assign)?
-// assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%="
+// bitand = equality ("&" equality)*
+ParseResult Parser::createBitAndNode(Token* token) {
+    auto [left, rest] = parseEquality(token);
+    while (token::is(rest, "&")) {
+        auto start = rest;
+        auto [right, rest2] = parseEquality(rest->next.get());
+        left = createBinaryNode(NodeType::BITAND, start, std::move(left), std::move(right));
+        rest = rest2;
+    }
+    return {std::move(left), rest};
+}
+
+// bitor = bitxor ("|" bitxor)*
+ParseResult Parser::createBitOrNode(Token* token) {
+    auto [left, rest] = createBitXorNode(token);
+    while (token::is(rest, "|")) {
+        auto start = rest;
+        auto [right, rest2] = createBitXorNode(rest->next.get());
+        left = createBinaryNode(NodeType::BITOR, start, std::move(left), std::move(right));
+        rest = rest2;
+    }
+    return {std::move(left), rest};
+}
+
+// bitxor = bitand ("^" bitand)*
+ParseResult Parser::createBitXorNode(Token* token) {
+    auto [left, rest] = createBitAndNode(token);
+    while (token::is(rest, "^")) {
+        auto start = rest;
+        auto [right, rest2] = createBitAndNode(rest->next.get());
+        left = createBinaryNode(NodeType::BITXOR, start, std::move(left), std::move(right));
+        rest = rest2;
+    }
+    return {std::move(left), rest};
+}
+
+// assign    = bitor (assign-op assign)?
+// assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
 ParseResult Parser::parseAssignment(Token* token) {
-    auto [node, rest] = parseEquality(token);
+    auto [node, rest] = createBitOrNode(token);
 
     if (token::is(rest, "=")) {
         auto start = rest;
@@ -207,6 +243,27 @@ ParseResult Parser::parseAssignment(Token* token) {
         auto start = rest;
         auto [right, rest2] = parseAssignment(rest->next.get());
         auto binary = createBinaryNode(NodeType::MOD, start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
+    }
+
+    if (token::is(rest, "&=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createBinaryNode(NodeType::BITAND, start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
+    }
+
+    if (token::is(rest, "|=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createBinaryNode(NodeType::BITOR, start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
+    }
+
+    if (token::is(rest, "^=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createBinaryNode(NodeType::BITXOR, start, std::move(node), std::move(right));
         return {toAssign(std::move(binary)), rest2};
     }
 
@@ -769,7 +826,7 @@ ParseResult Parser::parsePrimary(Token* token) {
         return {createNumberNode(token, token->numberValue), token->next.get()};
     }
 
-    Log::error("Expected an expression"sv, token);
+    Log::error("Expected an expression"sv, token, false);
     return {nullptr, token};
 }
 

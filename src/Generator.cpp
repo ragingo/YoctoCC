@@ -372,6 +372,15 @@ void Generator::generateExpression(const Node* node) {
             }
         }
             return;
+        case NodeType::BITAND:
+            addCode(and_(RAX, RDI));
+            return;
+        case NodeType::BITOR:
+            addCode(or_(RAX, RDI));
+            return;
+        case NodeType::BITXOR:
+            addCode(xor_(RAX, RDI));
+            return;
         case NodeType::EQUAL:
             addCode(cmp(ax, di), sete(AL), movzx(RAX, AL));
             return;
