@@ -107,6 +107,7 @@ inline constexpr Instruction<POP> pop;
 inline constexpr Instruction<RET> ret;
 inline constexpr Instruction<JMP> jmp;
 inline constexpr Instruction<JE> je;
+inline constexpr Instruction<JNE> jne;
 inline constexpr Instruction<CALL> call;
 
 static_assert(mov(RAX, 42) == "mov rax, 42");

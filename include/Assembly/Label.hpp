@@ -47,6 +47,14 @@ inline constexpr Label makeEndLabel(uint64_t id) {
     return makeLabel("end", id);
 }
 
+inline constexpr Label makeFalseLabel(uint64_t id) {
+    return makeLabel("false", id);
+}
+
+inline constexpr Label makeTrueLabel(uint64_t id) {
+    return makeLabel("true", id);
+}
+
 static_assert(makeBeginLabel(1).ref() == ".L.begin.1");
 static_assert(makeElseLabel(1).def() == ".L.else.1:");
 

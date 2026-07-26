@@ -28,6 +28,8 @@ enum class NodeType {
     BITAND,        // &
     BITOR,         // |
     BITXOR,        // ^
+    LOGICAL_AND,   // &&
+    LOGICAL_OR,    // ||
     EQUAL,         // ==
     NOT_EQUAL,     // !=
     LESS,          // <

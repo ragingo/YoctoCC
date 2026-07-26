@@ -122,6 +122,8 @@ void addType(Node* node) {
             node->type = type::longType();
             return;
         case NodeType::NOT:
+        case NodeType::LOGICAL_AND:
+        case NodeType::LOGICAL_OR:
             node->type = type::intType();
             return;
         case NodeType::BITNOT:

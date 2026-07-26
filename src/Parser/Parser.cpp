@@ -200,10 +200,34 @@ ParseResult Parser::createBitXorNode(Token* token) {
     return {std::move(left), rest};
 }
 
-// assign    = bitor (assign-op assign)?
+// logand = bitor ("&&" bitor)*
+ParseResult Parser::createLogicalAndNode(Token* token) {
+    auto [left, rest] = createBitOrNode(token);
+    while (token::is(rest, "&&")) {
+        auto start = rest;
+        auto [right, rest2] = createBitOrNode(rest->next.get());
+        left = createBinaryNode(NodeType::LOGICAL_AND, start, std::move(left), std::move(right));
+        rest = rest2;
+    }
+    return {std::move(left), rest};
+}
+
+// logor = logand ("||" logand)*
+ParseResult Parser::createLogicalOrNode(Token* token) {
+    auto [left, rest] = createLogicalAndNode(token);
+    while (token::is(rest, "||")) {
+        auto start = rest;
+        auto [right, rest2] = createLogicalAndNode(rest->next.get());
+        left = createBinaryNode(NodeType::LOGICAL_OR, start, std::move(left), std::move(right));
+        rest = rest2;
+    }
+    return {std::move(left), rest};
+}
+
+// assign    = logor (assign-op assign)?
 // assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
 ParseResult Parser::parseAssignment(Token* token) {
-    auto [node, rest] = createBitOrNode(token);
+    auto [node, rest] = createLogicalOrNode(token);
 
     if (token::is(rest, "=")) {
         auto start = rest;

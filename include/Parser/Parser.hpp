@@ -30,6 +30,8 @@ private:
     ParseResult createBitAndNode(Token* token);
     ParseResult createBitOrNode(Token* token);
     ParseResult createBitXorNode(Token* token);
+    ParseResult createLogicalAndNode(Token* token);
+    ParseResult createLogicalOrNode(Token* token);
 
 
     ParseResult declaration(Token* token, const std::shared_ptr<Type>& baseType);

@@ -327,6 +327,40 @@ void Generator::generateExpression(const Node* node) {
             generateExpression(node->left.get());
             addCode(not_(RAX));
             return;
+        case NodeType::LOGICAL_AND: {
+            uint64_t count = labelCount++;
+            auto falseLabel = makeFalseLabel(count);
+            auto endLabel = makeEndLabel(count);
+            generateExpression(node->left.get());
+            addCode(cmp(RAX, 0));
+            addCode(je(falseLabel.ref()));
+            generateExpression(node->right.get());
+            addCode(cmp(RAX, 0));
+            addCode(je(falseLabel.ref()));
+            addCode(mov(RAX, 1));
+            addCode(jmp(endLabel.ref()));
+            addCode(falseLabel.def());
+            addCode(mov(RAX, 0));
+            addCode(endLabel.def());
+            return;
+        }
+        case NodeType::LOGICAL_OR: {
+            uint64_t count = labelCount++;
+            auto trueLabel = makeTrueLabel(count);
+            auto endLabel = makeEndLabel(count);
+            generateExpression(node->left.get());
+            addCode(cmp(RAX, 0));
+            addCode(jne(trueLabel.ref()));
+            generateExpression(node->right.get());
+            addCode(cmp(RAX, 0));
+            addCode(jne(trueLabel.ref()));
+            addCode(mov(RAX, 0));
+            addCode(jmp(endLabel.ref()));
+            addCode(trueLabel.def());
+            addCode(mov(RAX, 1));
+            addCode(endLabel.def());
+            return;
+        }
         default:
             break;
     }
