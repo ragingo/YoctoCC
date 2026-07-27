@@ -53,11 +53,13 @@ private:
     Token* parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType);
     ParseResult parsePrimary(Token* token);
     void applyParamLVars(const std::shared_ptr<Type>& parameter);
-
+    void resolveGotoLabels();
 
     std::unique_ptr<Object> _locals;
     std::unique_ptr<Object> _globals;
     std::unique_ptr<Object> _currentFunction;
+    Node* _gotos;
+    Node* _labels;
     ParseScope _parseScope;
     ParseDecl _parseDecl{_parseScope};
 };

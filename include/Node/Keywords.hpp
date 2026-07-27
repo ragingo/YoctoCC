@@ -22,6 +22,7 @@ enum class Keyword {
     ENUM,
     TYPEDEF,
     STATIC,
+    GOTO,
 };
 
 inline constexpr std::string_view to_string_view(Keyword keyword) {
@@ -61,6 +62,8 @@ inline constexpr std::string_view to_string_view(Keyword keyword) {
             return "typedef";
         case STATIC:
             return "static";
+        case GOTO:
+            return "goto";
     }
     return "";
 }
@@ -84,6 +87,7 @@ inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
     {to_string_view(Keyword::ENUM), Keyword::ENUM},
     {to_string_view(Keyword::TYPEDEF), Keyword::TYPEDEF},
     {to_string_view(Keyword::STATIC), Keyword::STATIC},
+    {to_string_view(Keyword::GOTO), Keyword::GOTO},
 };
 
 } // namespace yoctocc

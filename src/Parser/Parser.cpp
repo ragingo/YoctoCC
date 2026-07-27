@@ -302,6 +302,8 @@ ParseResult Parser::parseAssignment(Token* token) {
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
+//      | "goto" ident ";"
+//      | ident ":" stmt
 //      | "{" compound-stmt
 //      | expr-stmt
 ParseResult Parser::parseStatement(Token* token) {
@@ -385,6 +387,25 @@ ParseResult Parser::parseStatement(Token* token) {
         auto [body, afterBody] = parseStatement(token);
         node->then = std::move(body);
         return {std::move(node), afterBody};
+    }
+
+    if (token::is(token, "goto")) {
+        auto node = std::make_unique<Node>(NodeType::GOTO, token);
+        node->label = token::getIdentifier(token->next.get());
+        node->gotoNext = _gotos;
+        _gotos = node.get();
+        return {std::move(node), token::skipIf(token->next.get()->next.get(), ";")};
+    }
+
+    if (token->kind == TokenKind::IDENTIFIER && token->next && token::is(token->next.get(), ":")) {
+        auto node = std::make_unique<Node>(NodeType::LABEL, token);
+        node->label = token::getIdentifier(token);
+        node->uniqueLabel = makeUniqueName();
+        node->gotoNext = _labels;
+        _labels = node.get();
+        auto [statement, rest] = parseStatement(token->next.get()->next.get());
+        node->left = std::move(statement);
+        return {std::move(node), rest};
     }
 
     if (token::is(token, "{")) {
@@ -762,6 +783,8 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType, cons
 
     _parseScope.leaveScope();
 
+    resolveGotoLabels();
+
     return token;
 }
 
@@ -863,6 +886,22 @@ void Parser::applyParamLVars(const std::shared_ptr<Type>& parameter) {
         applyParamLVars(parameter->next);
         createLocalVariable(token::getIdentifier(parameter->name), parameter);
     }
+}
+
+void Parser::resolveGotoLabels() {
+    for (auto gotoNode = _gotos; gotoNode; gotoNode = gotoNode->gotoNext) {
+        auto labelNode = _labels;
+        for (; labelNode; labelNode = labelNode->gotoNext) {
+            if (labelNode->label == gotoNode->label) {
+                gotoNode->uniqueLabel = labelNode->uniqueLabel;
+                break;
+            }
+        }
+        if (gotoNode->uniqueLabel.empty()) {
+            Log::error(std::format("Undefined label: {}", gotoNode->label), gotoNode->token->next.get());
+        }
+    }
+    _gotos = _labels = nullptr;
 }
 
 } // namespace yoctocc

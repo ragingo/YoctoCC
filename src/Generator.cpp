@@ -196,13 +196,6 @@ void Generator::generateStatement(const Node* node) {
 
     emitLocation(node);
 
-    if (node->nodeType == NodeType::BLOCK) {
-        for (const Node* statement = node->body.get(); statement; statement = statement->next.get()) {
-            generateStatement(statement);
-        }
-        return;
-    }
-
     if (node->nodeType == NodeType::IF) {
         uint64_t count = labelCount++;
         auto elseLabel = makeElseLabel(count);
@@ -223,6 +216,7 @@ void Generator::generateStatement(const Node* node) {
         addCode(endLabel.def());
         return;
     }
+
     if (node->nodeType == NodeType::FOR) {
         uint64_t count = labelCount++;
         auto beginLabel = makeBeginLabel(count);
@@ -245,11 +239,31 @@ void Generator::generateStatement(const Node* node) {
         addCode(endLabel.def());
         return;
     }
+
+    if (node->nodeType == NodeType::BLOCK) {
+        for (const Node* statement = node->body.get(); statement; statement = statement->next.get()) {
+            generateStatement(statement);
+        }
+        return;
+    }
+
+    if (node->nodeType == NodeType::GOTO) {
+        addCode(jmp(node->uniqueLabel));
+        return;
+    }
+
+    if (node->nodeType == NodeType::LABEL) {
+        addCode(makeLabel(node->uniqueLabel).def());
+        generateStatement(node->left.get());
+        return;
+    }
+
     if (node->nodeType == NodeType::RETURN) {
         generateExpression(node->left.get());
         addCode(jmp(makeLabel("return", currentFunction->name).ref()));
         return;
     }
+
     if (node->nodeType == NodeType::EXPRESSION_STATEMENT) {
         generateExpression(node->left.get());
         return;

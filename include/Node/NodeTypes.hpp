@@ -47,6 +47,8 @@ enum class NodeType {
     IF,            // if
     FOR,           // for or while
     BLOCK,         // { ... }
+    GOTO,          // goto
+    LABEL,         // label:
     FUNCTION_CALL,
     VARIABLE,
     EXPRESSION_STATEMENT,
@@ -78,6 +80,10 @@ struct Node {
     std::string functionName;
     std::shared_ptr<Type> functionType;
     std::unique_ptr<Node> arguments;
+    // goto or label
+    std::string label;
+    std::string uniqueLabel;
+    Node* gotoNext;
 
     Node(NodeType type, const Token* token) : nodeType(type), token(token) {
     }
