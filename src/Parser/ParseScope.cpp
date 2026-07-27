@@ -54,13 +54,18 @@ void ParseScope::pushTagScope(const std::string& name, std::shared_ptr<Type> typ
     _currentScope->tags = std::move(tagScope);
 }
 
-std::shared_ptr<Type> ParseScope::findTag(const Token* token) const {
-    for (Scope* scope = _currentScope.get(); scope; scope = scope->next.get()) {
+TagScope* ParseScope::findTag(const Token* token, bool onlyCurrentScope) const {
+    auto scope = _currentScope.get();
+    while (scope) {
         for (TagScope* tagScope = scope->tags.get(); tagScope; tagScope = tagScope->next.get()) {
             if (tagScope->name == token->originalValue) {
-                return tagScope->type;
+                return tagScope;
             }
         }
+        if (onlyCurrentScope) {
+            break;
+        }
+        scope = scope->next.get();
     }
     return nullptr;
 }

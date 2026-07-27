@@ -39,7 +39,7 @@ public:
     VariableScope* findVariable(const Token* token) const;
 
     void pushTagScope(const std::string& name, std::shared_ptr<Type> type);
-    std::shared_ptr<Type> findTag(const Token* token) const;
+    TagScope* findTag(const Token* token, bool onlyCurrentScope = false) const;
 
     std::shared_ptr<Type> findTypeDef(const Token* token) const;
 

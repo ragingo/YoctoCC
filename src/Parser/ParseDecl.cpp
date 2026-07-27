@@ -47,21 +47,25 @@ std::shared_ptr<Type> ParseDecl::structUnionDecl(Token*& token) {
     }
 
     if (tag && !token::is(token, "{")) {
-        if (auto type = _scope.findTag(tag)) {
-            return type;
-        } else {
-            Log::error("Unknown struct/union type"sv, tag);
-            return std::make_shared<Type>(TypeKind::UNKNOWN);
+        if (auto tagScope = _scope.findTag(tag)) {
+            return tagScope->type;
         }
+        auto type = type::structType();
+        type->size = -1;
+        _scope.pushTagScope(tag->originalValue, type);
+        return type;
     }
 
     token = token::skipIf(token, "{");
 
-    auto type = std::make_shared<Type>(TypeKind::STRUCT);
+    auto type = type::structType();
     structMembers(token, type);
-    type->alignment = 1;
 
     if (tag) {
+        if (auto tagScope = _scope.findTag(tag, true)) {
+            *tagScope->type = *type;
+            return tagScope->type;
+        }
         _scope.pushTagScope(tag->originalValue, type);
     }
 
@@ -72,6 +76,10 @@ std::shared_ptr<Type> ParseDecl::structUnionDecl(Token*& token) {
 std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
     auto type = structUnionDecl(token);
     type->kind = TypeKind::STRUCT;
+
+    if (type->size < 0) {
+        return type;
+    }
 
     int offset = 0;
     for (auto member = type->members.get(); member; member = member->next.get()) {
@@ -90,6 +98,10 @@ std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
 std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
     auto type = structUnionDecl(token);
     type->kind = TypeKind::UNION;
+
+    if (type->size < 0) {
+        return type;
+    }
 
     for (auto member = type->members.get(); member; member = member->next.get()) {
         type->size = std::max(type->size, member->type->size);
@@ -114,8 +126,8 @@ std::shared_ptr<Type> ParseDecl::enumSpecifier(Token*& token) {
     }
 
     if (tag && !token::is(token, "{")) {
-        if (auto type = _scope.findTag(tag); type && type->kind == TypeKind::ENUM) {
-            return type;
+        if (auto tagScope = _scope.findTag(tag); tagScope && tagScope->type->kind == TypeKind::ENUM) {
+            return tagScope->type;
         }
         Log::error("Unknown enum type"sv, tag);
         return std::make_shared<Type>(TypeKind::UNKNOWN);

@@ -88,6 +88,10 @@ inline std::shared_ptr<Type> enumType() {
     return std::make_shared<Type>(ENUM, 4, 4);
 }
 
+inline std::shared_ptr<Type> structType() {
+    return std::make_shared<Type>(STRUCT, 0, 1);
+}
+
 template <typename T>
 // clang-format off
     requires std::same_as<std::remove_cv_t<T>, Type*>
