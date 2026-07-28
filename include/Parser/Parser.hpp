@@ -60,6 +60,7 @@ private:
     std::unique_ptr<Object> _currentFunction;
     Node* _gotos;
     Node* _labels;
+    std::string _breakLabel;
     ParseScope _parseScope;
     ParseDecl _parseDecl{_parseScope};
 };

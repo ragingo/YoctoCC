@@ -303,6 +303,7 @@ ParseResult Parser::parseAssignment(Token* token) {
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "goto" ident ";"
+//      | "break" ";"
 //      | ident ":" stmt
 //      | "{" compound-stmt
 //      | expr-stmt
@@ -343,6 +344,9 @@ ParseResult Parser::parseStatement(Token* token) {
 
         _parseScope.enterScope();
 
+        auto breakLabel = _breakLabel;
+        _breakLabel = node->breakLabel = makeUniqueName();
+
         if (type::isTypeName(token)) {
             auto baseType = _parseDecl.declSpec(token, nullptr);
             auto [initDecl, afterDecl] = declaration(token, baseType);
@@ -373,6 +377,8 @@ ParseResult Parser::parseStatement(Token* token) {
 
         _parseScope.leaveScope();
 
+        _breakLabel = breakLabel;
+
         return {std::move(node), afterBody};
     }
 
@@ -384,8 +390,14 @@ ParseResult Parser::parseStatement(Token* token) {
         node->condition = std::move(cond);
         token = token::skipIf(afterCond, ")");
 
+        auto breakLabel = _breakLabel;
+        _breakLabel = node->breakLabel = makeUniqueName();
+
         auto [body, afterBody] = parseStatement(token);
         node->then = std::move(body);
+
+        _breakLabel = breakLabel;
+
         return {std::move(node), afterBody};
     }
 
@@ -395,6 +407,16 @@ ParseResult Parser::parseStatement(Token* token) {
         node->gotoNext = _gotos;
         _gotos = node.get();
         return {std::move(node), token::skipIf(token->next.get()->next.get(), ";")};
+    }
+
+    if (token::is(token, "break")) {
+        if (_breakLabel.empty()) {
+            Log::error("break statement not within a loop"sv, token);
+            return {};
+        }
+        auto node = std::make_unique<Node>(NodeType::GOTO, token);
+        node->uniqueLabel = _breakLabel;
+        return {std::move(node), token::skipIf(token->next.get(), ";")};
     }
 
     if (token->kind == TokenKind::IDENTIFIER && token->next && token::is(token->next.get(), ":")) {

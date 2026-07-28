@@ -220,7 +220,7 @@ void Generator::generateStatement(const Node* node) {
     if (node->nodeType == NodeType::FOR) {
         uint64_t count = labelCount++;
         auto beginLabel = makeBeginLabel(count);
-        auto endLabel = makeEndLabel(count);
+        auto breakLabel = makeLabel(node->breakLabel);
 
         if (node->init) {
             generateStatement(node->init.get());
@@ -229,14 +229,14 @@ void Generator::generateStatement(const Node* node) {
         if (node->condition) {
             generateExpression(node->condition.get());
             addCode(cmp(RAX, 0));
-            addCode(je(endLabel.ref()));
+            addCode(je(breakLabel.ref()));
         }
         generateStatement(node->then.get());
         if (node->inc) {
             generateExpression(node->inc.get());
         }
         addCode(jmp(beginLabel.ref()));
-        addCode(endLabel.def());
+        addCode(breakLabel.def());
         return;
     }
 

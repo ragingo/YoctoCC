@@ -71,6 +71,8 @@ struct Node {
     std::unique_ptr<Node> els;
     std::unique_ptr<Node> init;
     std::unique_ptr<Node> inc;
+    // break
+    std::string breakLabel;
     // block or statement expression
     std::unique_ptr<Node> body;
     Object* variable = nullptr;
