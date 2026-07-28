@@ -31,6 +31,8 @@ RUN wget https://apt.llvm.org/llvm.sh \
 RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-22 100 \
     && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-22 100
 
+RUN rm -f /etc/profile.d/debuginfod.sh
+
 ENV QEMU_LD_PREFIX=/usr/x86_64-linux-gnu
 
 CMD ["/bin/bash"]
