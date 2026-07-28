@@ -221,6 +221,7 @@ void Generator::generateStatement(const Node* node) {
         uint64_t count = labelCount++;
         auto beginLabel = makeBeginLabel(count);
         auto breakLabel = makeLabel(node->breakLabel);
+        auto continueLabel = makeLabel(node->continueLabel);
 
         if (node->init) {
             generateStatement(node->init.get());
@@ -232,6 +233,7 @@ void Generator::generateStatement(const Node* node) {
             addCode(je(breakLabel.ref()));
         }
         generateStatement(node->then.get());
+        addCode(continueLabel.def());
         if (node->inc) {
             generateExpression(node->inc.get());
         }

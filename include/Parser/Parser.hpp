@@ -61,6 +61,7 @@ private:
     Node* _gotos;
     Node* _labels;
     std::string _breakLabel;
+    std::string _continueLabel;
     ParseScope _parseScope;
     ParseDecl _parseDecl{_parseScope};
 };

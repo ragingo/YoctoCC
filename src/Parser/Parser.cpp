@@ -304,6 +304,7 @@ ParseResult Parser::parseAssignment(Token* token) {
 //      | "while" "(" expr ")" stmt
 //      | "goto" ident ";"
 //      | "break" ";"
+//      | "continue" ";"
 //      | ident ":" stmt
 //      | "{" compound-stmt
 //      | expr-stmt
@@ -345,7 +346,9 @@ ParseResult Parser::parseStatement(Token* token) {
         _parseScope.enterScope();
 
         auto breakLabel = _breakLabel;
+        auto continueLabel = _continueLabel;
         _breakLabel = node->breakLabel = makeUniqueName();
+        _continueLabel = node->continueLabel = makeUniqueName();
 
         if (type::isTypeName(token)) {
             auto baseType = _parseDecl.declSpec(token, nullptr);
@@ -378,7 +381,7 @@ ParseResult Parser::parseStatement(Token* token) {
         _parseScope.leaveScope();
 
         _breakLabel = breakLabel;
-
+        _continueLabel = continueLabel;
         return {std::move(node), afterBody};
     }
 
@@ -391,12 +394,15 @@ ParseResult Parser::parseStatement(Token* token) {
         token = token::skipIf(afterCond, ")");
 
         auto breakLabel = _breakLabel;
+        auto continueLabel = _continueLabel;
         _breakLabel = node->breakLabel = makeUniqueName();
+        _continueLabel = node->continueLabel = makeUniqueName();
 
         auto [body, afterBody] = parseStatement(token);
         node->then = std::move(body);
 
         _breakLabel = breakLabel;
+        _continueLabel = continueLabel;
 
         return {std::move(node), afterBody};
     }
@@ -416,6 +422,16 @@ ParseResult Parser::parseStatement(Token* token) {
         }
         auto node = std::make_unique<Node>(NodeType::GOTO, token);
         node->uniqueLabel = _breakLabel;
+        return {std::move(node), token::skipIf(token->next.get(), ";")};
+    }
+
+    if (token::is(token, "continue")) {
+        if (_continueLabel.empty()) {
+            Log::error("continue statement not within a loop"sv, token);
+            return {};
+        }
+        auto node = std::make_unique<Node>(NodeType::GOTO, token);
+        node->uniqueLabel = _continueLabel;
         return {std::move(node), token::skipIf(token->next.get(), ";")};
     }
 

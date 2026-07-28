@@ -24,6 +24,7 @@ enum class Keyword {
     STATIC,
     GOTO,
     BREAK,
+    CONTINUE,
 };
 
 inline constexpr std::string_view to_string_view(Keyword keyword) {
@@ -67,6 +68,8 @@ inline constexpr std::string_view to_string_view(Keyword keyword) {
             return "goto";
         case BREAK:
             return "break";
+        case CONTINUE:
+            return "continue";
     }
     return "";
 }
@@ -92,6 +95,7 @@ inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
     {to_string_view(Keyword::STATIC), Keyword::STATIC},
     {to_string_view(Keyword::GOTO), Keyword::GOTO},
     {to_string_view(Keyword::BREAK), Keyword::BREAK},
+    {to_string_view(Keyword::CONTINUE), Keyword::CONTINUE},
 };
 
 } // namespace yoctocc
