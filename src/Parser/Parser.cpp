@@ -423,7 +423,7 @@ ParseResult Parser::parseCompoundStatement(Token* token) {
     _parseScope.enterScope();
 
     while (token->kind != TokenKind::TERMINATOR && !token::is(token, "}")) {
-        if (parser::isTypeName(token, _parseScope)) {
+        if (parser::isTypeName(token, _parseScope) && !token::is(token->next.get(), ":")) {
             VariableAttribute attr{};
             auto baseType = _parseDecl.declSpec(token, &attr);
             if (attr.isTypeDef) {
