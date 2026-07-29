@@ -127,6 +127,8 @@ void addType(Node* node) {
             node->type = type::intType();
             return;
         case NodeType::BITNOT:
+        case NodeType::SHL:
+        case NodeType::SHR:
             node->type = node->left->type;
             return;
         case NodeType::VARIABLE:

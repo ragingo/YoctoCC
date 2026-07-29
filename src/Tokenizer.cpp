@@ -10,6 +10,7 @@
 #include <fstream>
 #include <ranges>
 #include <string>
+#include <string_view>
 
 using namespace std::string_view_literals;
 
@@ -245,17 +246,23 @@ std::unique_ptr<Token> parseIdentifier(ParseContext& context) {
 }
 
 std::unique_ptr<Token> parsePunctuator(char ch, ParseContext& context) {
-    auto nextCh = hasNext(context) ? *std::next(context.it) : '\0';
-    std::string chars{ch, nextCh};
-    static const std::array operators = {"==", "!=", "<=", ">=", "->", "+=", "-=", "*=", "/=", "%=", "++", "--", "&=", "|=", "^=", "&&", "||"};
+    // clang-format off
+    static const std::array operators = {
+        "=="sv, "!="sv, "<="sv, ">="sv, "->"sv, "+="sv, "-="sv, "*="sv, "/="sv, "%="sv,
+        "<<="sv, ">>="sv, "<<"sv, ">>"sv, "++"sv, "--"sv, "&="sv, "|="sv, "^="sv, "&&"sv,
+        "||"sv
+    };
+    // clang-format on
 
-    if (std::ranges::find(operators, chars) != operators.end()) {
-        auto token = std::make_unique<Token>(TokenKind::PUNCTUATOR);
-        token->originalValue = std::string{ch, nextCh};
-        token->location = std::distance(context.begin, context.it - token->originalValue.size());
-        token->line = context.line;
-        context.it += 2;
-        return token;
+    for (const auto& op : operators) {
+        if (std::string_view(context.it, context.it + op.size()) == op) {
+            auto token = std::make_unique<Token>(TokenKind::PUNCTUATOR);
+            token->originalValue = op;
+            token->location = std::distance(context.begin, context.it - token->originalValue.size());
+            token->line = context.line;
+            context.it += op.size();
+            return token;
+        }
     }
 
     auto token = std::make_unique<Token>(TokenKind::PUNCTUATOR);

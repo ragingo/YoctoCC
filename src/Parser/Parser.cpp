@@ -230,6 +230,7 @@ ParseResult Parser::createLogicalOrNode(Token* token) {
 
 // assign    = logor (assign-op assign)?
 // assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
+//           | "<<=" | ">>="
 ParseResult Parser::parseAssignment(Token* token) {
     auto [node, rest] = createLogicalOrNode(token);
 
@@ -292,6 +293,20 @@ ParseResult Parser::parseAssignment(Token* token) {
         auto start = rest;
         auto [right, rest2] = parseAssignment(rest->next.get());
         auto binary = createBinaryNode(NodeType::BITXOR, start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
+    }
+
+    if (token::is(rest, "<<=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createBinaryNode(NodeType::SHL, start, std::move(node), std::move(right));
+        return {toAssign(std::move(binary)), rest2};
+    }
+
+    if (token::is(rest, ">>=")) {
+        auto start = rest;
+        auto [right, rest2] = parseAssignment(rest->next.get());
+        auto binary = createBinaryNode(NodeType::SHR, start, std::move(node), std::move(right));
         return {toAssign(std::move(binary)), rest2};
     }
 
@@ -585,38 +600,62 @@ ParseResult Parser::parseEquality(Token* token) {
     }
 }
 
-// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+// relational = shift ("<" shift | "<=" shift | ">" shift | ">=" shift)*
 ParseResult Parser::parseRelational(Token* token) {
-    auto [node, rest] = parseAdditive(token);
+    auto [node, rest] = parseShift(token);
     token = rest;
 
     while (true) {
         if (token::is(token, "<")) {
             auto start = token;
-            auto [right, r] = parseAdditive(token->next.get());
+            auto [right, rest2] = parseShift(token->next.get());
             node = createBinaryNode(NodeType::LESS, start, std::move(node), std::move(right));
-            token = r;
+            token = rest2;
             continue;
         }
         if (token::is(token, "<=")) {
             auto start = token;
-            auto [right, r] = parseAdditive(token->next.get());
+            auto [right, rest2] = parseShift(token->next.get());
             node = createBinaryNode(NodeType::LESS_EQUAL, start, std::move(node), std::move(right));
-            token = r;
+            token = rest2;
             continue;
         }
         if (token::is(token, ">")) {
             auto start = token;
-            auto [right, r] = parseAdditive(token->next.get());
+            auto [right, rest2] = parseShift(token->next.get());
             node = createBinaryNode(NodeType::GREATER, start, std::move(node), std::move(right));
-            token = r;
+            token = rest2;
             continue;
         }
         if (token::is(token, ">=")) {
             auto start = token;
-            auto [right, r] = parseAdditive(token->next.get());
+            auto [right, rest2] = parseShift(token->next.get());
             node = createBinaryNode(NodeType::GREATER_EQUAL, start, std::move(node), std::move(right));
-            token = r;
+            token = rest2;
+            continue;
+        }
+        return {std::move(node), token};
+    }
+}
+
+// shift = add ("<<" add | ">>" add)*
+ParseResult Parser::parseShift(Token* token) {
+    auto [node, rest] = parseAdditive(token);
+    token = rest;
+
+    while (true) {
+        if (token::is(token, "<<")) {
+            auto start = token;
+            auto [right, rest2] = parseAdditive(token->next.get());
+            node = createBinaryNode(NodeType::SHL, start, std::move(node), std::move(right));
+            token = rest2;
+            continue;
+        }
+        if (token::is(token, ">>")) {
+            auto start = token;
+            auto [right, rest2] = parseAdditive(token->next.get());
+            node = createBinaryNode(NodeType::SHR, start, std::move(node), std::move(right));
+            token = rest2;
             continue;
         }
         return {std::move(node), token};

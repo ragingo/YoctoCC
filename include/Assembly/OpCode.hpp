@@ -26,6 +26,8 @@ enum class OpCode {
     AND,
     OR,
     XOR,
+    SHL,
+    SAR,
     CMP,
     SETE,
     SETNE,
@@ -94,6 +96,10 @@ constexpr std::string to_string(OpCode op) {
             return "or";
         case XOR:
             return "xor";
+        case SHL:
+            return "shl";
+        case SAR:
+            return "sar";
         case CMP:
             return "cmp";
         case SETE:

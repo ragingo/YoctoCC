@@ -94,6 +94,8 @@ inline constexpr Instruction<NOT> not_;
 inline constexpr Instruction<AND> and_;
 inline constexpr Instruction<OR> or_;
 inline constexpr Instruction<XOR> xor_;
+inline constexpr Instruction<SHL> shl;
+inline constexpr Instruction<SAR> sar;
 inline constexpr Instruction<CMP> cmp;
 inline constexpr Instruction<SETE> sete;
 inline constexpr Instruction<SETNE> setne;

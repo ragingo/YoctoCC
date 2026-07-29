@@ -25,6 +25,8 @@ enum class NodeType {
     DIV,           // /
     NEGATE,        // unary -
     MOD,           // %
+    SHL,           // <<
+    SHR,           // >>
     BITAND,        // &
     BITOR,         // |
     BITXOR,        // ^

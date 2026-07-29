@@ -478,6 +478,12 @@ void Generator::generateExpression(const Node* node) {
         case NodeType::GREATER_EQUAL:
             addCode(cmp(ax, di), setge(AL), movzx(RAX, AL));
             return;
+        case NodeType::SHL:
+            addCode(mov(RCX, RDI), shl(ax, CL));
+            return;
+        case NodeType::SHR:
+            addCode(mov(RCX, RDI), sar(ax, CL));
+            return;
         default:
             break;
     }

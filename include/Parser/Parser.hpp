@@ -42,6 +42,7 @@ private:
     ParseResult parseExpressionStatement(Token* token);
     ParseResult parseEquality(Token* token);
     ParseResult parseRelational(Token* token);
+    ParseResult parseShift(Token* token);
     ParseResult parseAdditive(Token* token);
     ParseResult parseMultiply(Token* token);
     ParseResult parseCast(Token* token);
