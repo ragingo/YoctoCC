@@ -62,6 +62,7 @@ private:
     Node* _labels;
     std::string _breakLabel;
     std::string _continueLabel;
+    Node* _currentSwitch;
     ParseScope _parseScope;
     ParseDecl _parseDecl{_parseScope};
 };

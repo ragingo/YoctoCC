@@ -242,6 +242,35 @@ void Generator::generateStatement(const Node* node) {
         return;
     }
 
+    if (node->nodeType == NodeType::SWITCH) {
+        generateExpression(node->condition.get());
+
+        for (const Node* caseNode = node->cases; caseNode; caseNode = caseNode->cases) {
+            if (node->condition->type->size == 8) {
+                addCode(cmp(RAX, caseNode->value));
+            } else {
+                addCode(cmp(EAX, static_cast<int32_t>(caseNode->value)));
+            }
+            addCode(je(makeLabel(caseNode->label).ref()));
+        }
+
+        if (node->defaultCase) {
+            addCode(jmp(makeLabel(node->defaultCase->label).ref()));
+        }
+
+        auto breakLabel = makeLabel(node->breakLabel);
+        addCode(jmp(breakLabel.ref()));
+        generateStatement(node->then.get());
+        addCode(breakLabel.def());
+        return;
+    }
+
+    if (node->nodeType == NodeType::CASE) {
+        addCode(makeLabel(node->label).def());
+        generateStatement(node->left.get());
+        return;
+    }
+
     if (node->nodeType == NodeType::BLOCK) {
         for (const Node* statement = node->body.get(); statement; statement = statement->next.get()) {
             generateStatement(statement);

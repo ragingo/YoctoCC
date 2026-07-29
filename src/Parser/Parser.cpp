@@ -300,6 +300,9 @@ ParseResult Parser::parseAssignment(Token* token) {
 
 // stmt = "return" expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
+//      | "switch" "(" expr ")" stmt
+//      | "case" num ":" stmt
+//      | "default" ":" stmt
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
 //      | "goto" ident ";"
@@ -337,6 +340,67 @@ ParseResult Parser::parseStatement(Token* token) {
             token = afterElse;
         }
         return {std::move(node), token};
+    }
+
+    if (token::is(token, "switch")) {
+        auto node = std::make_unique<Node>(NodeType::SWITCH, token);
+        token = token::skipIf(token->next.get(), "(");
+
+        auto [cond, afterCond] = parseExpression(token);
+        node->condition = std::move(cond);
+        token = token::skipIf(afterCond, ")");
+
+        auto currentSwitch = _currentSwitch;
+        _currentSwitch = node.get();
+
+        auto breakLabel = _breakLabel;
+        _breakLabel = node->breakLabel = makeUniqueName();
+
+        auto [body, afterBody] = parseStatement(token);
+        node->then = std::move(body);
+
+        _currentSwitch = currentSwitch;
+        _breakLabel = breakLabel;
+        return {std::move(node), afterBody};
+    }
+
+    if (token::is(token, "case")) {
+        if (!_currentSwitch) {
+            Log::error("case statement not within a switch"sv, token);
+            return {};
+        }
+
+        auto value = token::getNumber(token->next.get());
+        auto node = std::make_unique<Node>(NodeType::CASE, token);
+        token = token::skipIf(token->next.get()->next.get(), ":");
+        node->value = value;
+        node->label = makeUniqueName();
+
+        auto [stmt, rest] = parseStatement(token);
+        node->left = std::move(stmt);
+
+        node->cases = _currentSwitch->cases;
+        _currentSwitch->cases = node.get();
+
+        return {std::move(node), rest};
+    }
+
+    if (token::is(token, "default")) {
+        if (!_currentSwitch) {
+            Log::error("default statement not within a switch"sv, token);
+            return {};
+        }
+
+        auto node = std::make_unique<Node>(NodeType::CASE, token);
+        token = token::skipIf(token->next.get(), ":");
+        node->label = makeUniqueName();
+
+        auto [stmt, rest] = parseStatement(token);
+        node->left = std::move(stmt);
+
+        _currentSwitch->defaultCase = node.get();
+
+        return {std::move(node), rest};
     }
 
     if (token::is(token, "for")) {

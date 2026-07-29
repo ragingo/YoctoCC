@@ -46,6 +46,8 @@ enum class NodeType {
     RETURN,        // return
     IF,            // if
     FOR,           // for or while
+    SWITCH,        // switch
+    CASE,          // case
     BLOCK,         // { ... }
     GOTO,          // goto
     LABEL,         // label:
@@ -87,6 +89,9 @@ struct Node {
     std::string label;
     std::string uniqueLabel;
     Node* gotoNext;
+    // switch
+    Node* cases;
+    Node* defaultCase;
 
     Node(NodeType type, const Token* token) : nodeType(type), token(token) {
     }
