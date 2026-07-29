@@ -228,11 +228,11 @@ ParseResult Parser::createLogicalOrNode(Token* token) {
     return {std::move(left), rest};
 }
 
-// assign    = logor (assign-op assign)?
+// assign    = conditional (assign-op assign)?
 // assign-op = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
 //           | "<<=" | ">>="
 ParseResult Parser::parseAssignment(Token* token) {
-    auto [node, rest] = createLogicalOrNode(token);
+    auto [node, rest] = parseConditional(token);
 
     if (token::is(rest, "=")) {
         auto start = rest;
@@ -311,6 +311,24 @@ ParseResult Parser::parseAssignment(Token* token) {
     }
 
     return {std::move(node), rest};
+}
+
+// conditional = logor ("?" expr ":" conditional)?
+ParseResult Parser::parseConditional(Token* token) {
+    auto [conditionalNode, rest] = createLogicalOrNode(token);
+
+    if (!token::is(rest, "?")) {
+        return {std::move(conditionalNode), rest};
+    }
+
+    auto node = std::make_unique<Node>(NodeType::CONDITIONAL, rest);
+    node->condition = std::move(conditionalNode);
+    auto [thenNode, afterThen] = parseExpression(rest->next.get());
+    node->then = std::move(thenNode);
+    afterThen = token::skipIf(afterThen, ":");
+    auto [elseNode, afterElse] = parseConditional(afterThen);
+    node->els = std::move(elseNode);
+    return {std::move(node), afterElse};
 }
 
 // stmt = "return" expr ";"

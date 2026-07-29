@@ -39,6 +39,7 @@ enum class NodeType {
     GREATER,       // >
     GREATER_EQUAL, // >=
     ASSIGN,        // =
+    CONDITIONAL,   // ?:
     COMMA,         // ,
     MEMBER,        // .
     ADDRESS,       // unary &

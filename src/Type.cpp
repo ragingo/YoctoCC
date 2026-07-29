@@ -134,6 +134,19 @@ void addType(Node* node) {
         case NodeType::VARIABLE:
             node->type = node->variable->type;
             return;
+        case NodeType::CONDITIONAL:
+            if (node->then->type->kind == TypeKind::VOID || node->els->type->kind == TypeKind::VOID) {
+                node->type = type::voidType();
+            } else {
+                auto [thenNode, elseNode] = convertUsualArithmetic(
+                    std::move(node->then),
+                    std::move(node->els)
+                );
+                node->then = std::move(thenNode);
+                node->els = std::move(elseNode);
+                node->type = node->then->type;
+            }
+            return;
         case NodeType::COMMA:
             node->type = node->right->type;
             return;

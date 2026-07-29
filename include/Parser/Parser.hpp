@@ -37,6 +37,7 @@ private:
     ParseResult declaration(Token* token, const std::shared_ptr<Type>& baseType);
     ParseResult parseExpression(Token* token);
     ParseResult parseAssignment(Token* token);
+    ParseResult parseConditional(Token* token);
     ParseResult parseStatement(Token* token);
     ParseResult parseCompoundStatement(Token* token);
     ParseResult parseExpressionStatement(Token* token);

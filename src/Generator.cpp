@@ -362,6 +362,20 @@ void Generator::generateExpression(const Node* node) {
             addCode(call(node->functionName));
         }
             return;
+        case NodeType::CONDITIONAL: {
+            uint64_t count = labelCount++;
+            auto elseLabel = makeElseLabel(count);
+            auto endLabel = makeEndLabel(count);
+            generateExpression(node->condition.get());
+            addCode(cmp(RAX, 0));
+            addCode(je(elseLabel.ref()));
+            generateExpression(node->then.get());
+            addCode(jmp(endLabel.ref()));
+            addCode(elseLabel.def());
+            generateExpression(node->els.get());
+            addCode(endLabel.def());
+        }
+            return;
         case NodeType::NOT:
             generateExpression(node->left.get());
             addCode(compareZero(node->left->type.get()));
