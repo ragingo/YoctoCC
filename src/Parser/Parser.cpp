@@ -3,6 +3,7 @@
 #include "Logger.hpp"
 #include "Node/Keywords.hpp"
 #include "Node/Node.hpp"
+#include "Parser/Common.hpp"
 #include "Parser/Util.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
@@ -28,7 +29,7 @@ bool Parser::isFunction(Token* token) {
         return false;
     }
     auto dummy = std::make_shared<Type>(TypeKind::UNKNOWN);
-    auto type = _parseDecl.declarator(token, dummy);
+    auto type = declarator(token, dummy);
     return type->kind == TypeKind::FUNCTION;
 }
 
@@ -38,7 +39,7 @@ std::unique_ptr<Object> Parser::parse(Token* token) {
     _globals = nullptr;
     while (token->kind != TokenKind::TERMINATOR) {
         VariableAttribute attr{};
-        auto baseType = _parseDecl.declSpec(token, &attr);
+        auto baseType = declSpec(token, &attr);
 
         if (attr.isTypeDef) {
             token = parseTypeDef(token, baseType);
@@ -92,7 +93,7 @@ ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseT
         if (i++ > 0) {
             token = token::skipIf(token, ",");
         }
-        auto varType = _parseDecl.declarator(token, baseType);
+        auto varType = declarator(token, baseType);
         if (varType->size < 0) {
             Log::error("Variable has incomplete type"sv, token);
             return {};
@@ -448,7 +449,7 @@ ParseResult Parser::parseStatement(Token* token) {
         _continueLabel = node->continueLabel = makeUniqueName();
 
         if (type::isTypeName(token)) {
-            auto baseType = _parseDecl.declSpec(token, nullptr);
+            auto baseType = declSpec(token, nullptr);
             auto [initDecl, afterDecl] = declaration(token, baseType);
             node->init = std::move(initDecl);
             token = afterDecl;
@@ -560,7 +561,7 @@ ParseResult Parser::parseCompoundStatement(Token* token) {
     while (token->kind != TokenKind::TERMINATOR && !token::is(token, "}")) {
         if (parser::isTypeName(token, _parseScope) && !token::is(token->next.get(), ":")) {
             VariableAttribute attr{};
-            auto baseType = _parseDecl.declSpec(token, &attr);
+            auto baseType = declSpec(token, &attr);
             if (attr.isTypeDef) {
                 token = parseTypeDef(token, baseType);
                 continue;
@@ -740,7 +741,7 @@ ParseResult Parser::parseCast(Token* token) {
     if (token::is(token, "(") && parser::isTypeName(token->next.get(), _parseScope)) {
         auto start = token;
         auto next = token->next.get();
-        auto type = _parseDecl.typeName(next);
+        auto type = typeName(next);
         token = token::skipIf(next, ")");
         auto [expr, rest] = parseCast(token);
         auto node = createCastNode(std::move(expr), type);
@@ -900,7 +901,7 @@ Token* Parser::parseTypeDef(Token* token, std::shared_ptr<Type>& baseType) {
             token = token::skipIf(token, ",");
         }
         isFirst = false;
-        auto type = _parseDecl.declarator(token, baseType);
+        auto type = declarator(token, baseType);
         auto name = token::getIdentifier(type->name);
         _parseScope.pushVariableScope(name)->typeDef = type;
     }
@@ -909,7 +910,7 @@ Token* Parser::parseTypeDef(Token* token, std::shared_ptr<Type>& baseType) {
 }
 
 Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType, const VariableAttribute& attr) {
-    auto funcType = _parseDecl.declarator(token, baseType);
+    auto funcType = declarator(token, baseType);
     auto name = token::getIdentifier(funcType->name);
     auto func = makeFunction(name, funcType);
     func->isDefinition = !token::consume(token, ";");
@@ -955,7 +956,7 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
             token = token::skipIf(token, ",");
         }
         isFirst = false;
-        auto varType = _parseDecl.declarator(token, baseType);
+        auto varType = declarator(token, baseType);
         auto varName = token::getIdentifier(varType->name);
         createGlobalVariable(varName, varType);
     }
@@ -987,7 +988,7 @@ ParseResult Parser::parsePrimary(Token* token) {
         parser::isTypeName(token->next->next.get(), _parseScope)) {
         auto start = token;
         token = token->next->next.get();
-        auto type = _parseDecl.typeName(token);
+        auto type = typeName(token);
         if (!type) {
             Log::error("Expected a type name after sizeof"sv, token);
             return {};

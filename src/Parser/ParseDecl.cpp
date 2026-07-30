@@ -1,8 +1,9 @@
-#include "Parser/ParseDecl.hpp"
+#include "Parser/Parser.hpp"
 
 #include "Logger.hpp"
 #include "Node/Keywords.hpp"
 #include "Node/Node.hpp"
+#include "Parser/Common.hpp"
 #include "Parser/Util.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
@@ -13,7 +14,7 @@ using namespace std::string_view_literals;
 namespace yoctocc {
 
 // struct-members = (declspec declarator (","  declarator)* ";")*
-void ParseDecl::structMembers(Token*& token, std::shared_ptr<Type>& structType) {
+void Parser::structMembers(Token*& token, std::shared_ptr<Type>& structType) {
     auto head = std::make_unique<Member>();
     Member* current = head.get();
 
@@ -39,7 +40,7 @@ void ParseDecl::structMembers(Token*& token, std::shared_ptr<Type>& structType) 
 }
 
 // struct-union-decl = ident? ("{" struct-members)?
-std::shared_ptr<Type> ParseDecl::structUnionDecl(Token*& token) {
+std::shared_ptr<Type> Parser::structUnionDecl(Token*& token) {
     Token* tag = nullptr;
     if (token->kind == TokenKind::IDENTIFIER) {
         tag = token;
@@ -47,12 +48,12 @@ std::shared_ptr<Type> ParseDecl::structUnionDecl(Token*& token) {
     }
 
     if (tag && !token::is(token, "{")) {
-        if (auto tagScope = _scope.findTag(tag)) {
+        if (auto tagScope = _parseScope.findTag(tag)) {
             return tagScope->type;
         }
         auto type = type::structType();
         type->size = -1;
-        _scope.pushTagScope(tag->originalValue, type);
+        _parseScope.pushTagScope(tag->originalValue, type);
         return type;
     }
 
@@ -62,18 +63,18 @@ std::shared_ptr<Type> ParseDecl::structUnionDecl(Token*& token) {
     structMembers(token, type);
 
     if (tag) {
-        if (auto tagScope = _scope.findTag(tag, true)) {
+        if (auto tagScope = _parseScope.findTag(tag, true)) {
             *tagScope->type = *type;
             return tagScope->type;
         }
-        _scope.pushTagScope(tag->originalValue, type);
+        _parseScope.pushTagScope(tag->originalValue, type);
     }
 
     return type;
 }
 
 // struct-decl = struct-union-decl
-std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
+std::shared_ptr<Type> Parser::structDecl(Token*& token) {
     auto type = structUnionDecl(token);
     type->kind = TypeKind::STRUCT;
 
@@ -95,7 +96,7 @@ std::shared_ptr<Type> ParseDecl::structDecl(Token*& token) {
 }
 
 // union-decl = struct-union-decl
-std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
+std::shared_ptr<Type> Parser::unionDecl(Token*& token) {
     auto type = structUnionDecl(token);
     type->kind = TypeKind::UNION;
 
@@ -117,7 +118,7 @@ std::shared_ptr<Type> ParseDecl::unionDecl(Token*& token) {
 //                | ident ("{" enum-list? "}")?
 //
 // enum-list      = ident ("=" num)? ("," ident ("=" num)?)*
-std::shared_ptr<Type> ParseDecl::enumSpecifier(Token*& token) {
+std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
     Token* tag = nullptr;
 
     if (token->kind == TokenKind::IDENTIFIER) {
@@ -126,7 +127,7 @@ std::shared_ptr<Type> ParseDecl::enumSpecifier(Token*& token) {
     }
 
     if (tag && !token::is(token, "{")) {
-        if (auto tagScope = _scope.findTag(tag); tagScope && tagScope->type->kind == TypeKind::ENUM) {
+        if (auto tagScope = _parseScope.findTag(tag); tagScope && tagScope->type->kind == TypeKind::ENUM) {
             return tagScope->type;
         }
         Log::error("Unknown enum type"sv, tag);
@@ -151,7 +152,7 @@ std::shared_ptr<Type> ParseDecl::enumSpecifier(Token*& token) {
             token = token->next.get();
         }
 
-        auto scope = _scope.pushVariableScope(name);
+        auto scope = _parseScope.pushVariableScope(name);
         scope->enumType = type;
         scope->enumValue = value++;
     }
@@ -159,7 +160,7 @@ std::shared_ptr<Type> ParseDecl::enumSpecifier(Token*& token) {
     token = token->next.get();
 
     if (tag) {
-        _scope.pushTagScope(tag->originalValue, type);
+        _parseScope.pushTagScope(tag->originalValue, type);
     }
 
     return type;
@@ -169,7 +170,7 @@ std::shared_ptr<Type> ParseDecl::enumSpecifier(Token*& token) {
 //             | "typedef" | "static"
 //             | struct-decl | union-decl | typedef-name
 //             | enum-specifier)+
-std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr) {
+std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
     enum {
         VOID = 1 << 0,
         BOOL = 1 << 2,
@@ -182,7 +183,7 @@ std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr
     auto type = type::intType();
     int counter = 0;
 
-    while (parser::isTypeName(token, _scope)) {
+    while (parser::isTypeName(token, _parseScope)) {
         if (token::is(token, Keyword::TYPEDEF) || token::is(token, Keyword::STATIC)) {
             if (!attr) {
                 Log::error("typedef or static is not allowed here"sv, token);
@@ -201,7 +202,7 @@ std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr
             continue;
         }
 
-        auto typeDefType = _scope.findTypeDef(token);
+        auto typeDefType = _parseScope.findTypeDef(token);
 
         if (token::is(token, Keyword::STRUCT) || token::is(token, Keyword::UNION) || token::is(token, Keyword::ENUM) ||
             typeDefType) {
@@ -281,7 +282,7 @@ std::shared_ptr<Type> ParseDecl::declSpec(Token*& token, VariableAttribute* attr
 }
 
 // abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
-std::shared_ptr<Type> ParseDecl::abstractDeclarator(Token*& token, std::shared_ptr<Type>& type) {
+std::shared_ptr<Type> Parser::abstractDeclarator(Token*& token, std::shared_ptr<Type>& type) {
     while (token::is(token, "*")) {
         type = type::pointerTo(type);
         token = token->next.get();
@@ -304,7 +305,7 @@ std::shared_ptr<Type> ParseDecl::abstractDeclarator(Token*& token, std::shared_p
 }
 
 // declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
-std::shared_ptr<Type> ParseDecl::declarator(Token*& token, const std::shared_ptr<Type>& baseType) {
+std::shared_ptr<Type> Parser::declarator(Token*& token, const std::shared_ptr<Type>& baseType) {
     auto type = baseType;
     while (token::consume(token, "*")) {
         type = type::pointerTo(type);
@@ -335,14 +336,14 @@ std::shared_ptr<Type> ParseDecl::declarator(Token*& token, const std::shared_ptr
 }
 
 // type-name = declspec abstract-declarator
-std::shared_ptr<Type> ParseDecl::typeName(Token*& token) {
+std::shared_ptr<Type> Parser::typeName(Token*& token) {
     auto baseType = declSpec(token, nullptr);
     return abstractDeclarator(token, baseType);
 }
 
 // func-params = (param ("," param)*)? ")"
 // param       = declspec declarator
-std::shared_ptr<Type> ParseDecl::functionParameters(Token*& token, std::shared_ptr<Type>& type) {
+std::shared_ptr<Type> Parser::functionParameters(Token*& token, std::shared_ptr<Type>& type) {
     std::shared_ptr<Type> head;
     auto current = &head;
 
@@ -370,7 +371,7 @@ std::shared_ptr<Type> ParseDecl::functionParameters(Token*& token, std::shared_p
 }
 
 // array-dimensions = num? "]" type-suffix
-std::shared_ptr<Type> ParseDecl::arrayDimensions(Token*& token, std::shared_ptr<Type>& type) {
+std::shared_ptr<Type> Parser::arrayDimensions(Token*& token, std::shared_ptr<Type>& type) {
     if (token::is(token, "]")) {
         token = token->next.get();
         type = typeSuffix(token, type);
@@ -387,7 +388,7 @@ std::shared_ptr<Type> ParseDecl::arrayDimensions(Token*& token, std::shared_ptr<
 // type-suffix = "(" func-params
 //             | "[" array-dimensions
 //             | ε
-std::shared_ptr<Type> ParseDecl::typeSuffix(Token*& token, std::shared_ptr<Type>& type) {
+std::shared_ptr<Type> Parser::typeSuffix(Token*& token, std::shared_ptr<Type>& type) {
     if (token::is(token, "(")) {
         token = token->next.get();
         return functionParameters(token, type);
