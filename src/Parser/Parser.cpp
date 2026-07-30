@@ -133,6 +133,12 @@ ParseResult Parser::parseExpression(Token* token) {
     return {std::move(node), rest};
 }
 
+int64_t Parser::constExpression(Token*& token) {
+    auto [node, rest] = parseConditional(token);
+    token = rest;
+    return eval(node.get());
+}
+
 // ex) a += b
 // => tmp = &a, *tmp = *tmp + b
 std::unique_ptr<Node> Parser::toAssign(std::unique_ptr<Node>&& binary) {
@@ -335,7 +341,7 @@ ParseResult Parser::parseConditional(Token* token) {
 // stmt = "return" expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "switch" "(" expr ")" stmt
-//      | "case" num ":" stmt
+//      | "case" const-expr ":" stmt
 //      | "default" ":" stmt
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
@@ -404,10 +410,10 @@ ParseResult Parser::parseStatement(Token* token) {
             return {};
         }
 
-        auto value = token::getNumber(token->next.get());
         auto node = std::make_unique<Node>(NodeType::CASE, token);
-        token = token::skipIf(token->next.get()->next.get(), ":");
-        node->value = value;
+        token = token->next.get();
+        node->value = constExpression(token);
+        token = token::skipIf(token, ":");
         node->label = makeUniqueName();
 
         auto [stmt, rest] = parseStatement(token);

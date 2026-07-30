@@ -1,5 +1,6 @@
 #include "Node/NodeUtil.hpp"
 
+#include <utility>
 #include "Logger.hpp"
 #include "Node/NodeTypes.hpp"
 #include "Token.hpp"
@@ -150,6 +151,80 @@ std::unique_ptr<Node> createCastNode(std::unique_ptr<Node> expression, const std
     auto node = createUnaryNode(NodeType::CAST, token, std::move(expression));
     node->type = targetType;
     return node;
+}
+
+int64_t eval(Node* node) {
+    using enum NodeType;
+    assert(node);
+    type::addType(node);
+
+    switch (node->nodeType) {
+    case ADD:
+        return eval(node->left.get()) + eval(node->right.get());
+    case SUB:
+        return eval(node->left.get()) - eval(node->right.get());
+    case MUL:
+        return eval(node->left.get()) * eval(node->right.get());
+    case DIV:
+        return eval(node->left.get()) / eval(node->right.get());
+    case NEGATE:
+        return -eval(node->left.get());
+    case MOD:
+        return eval(node->left.get()) % eval(node->right.get());
+    case BITAND:
+        return eval(node->left.get()) & eval(node->right.get());
+    case BITOR:
+        return eval(node->left.get()) | eval(node->right.get());
+    case BITXOR:
+        return eval(node->left.get()) ^ eval(node->right.get());
+    case SHL:
+        return eval(node->left.get()) << eval(node->right.get());
+    case SHR:
+        return eval(node->left.get()) >> eval(node->right.get());
+    case EQUAL:
+        return eval(node->left.get()) == eval(node->right.get());
+    case NOT_EQUAL:
+        return eval(node->left.get()) != eval(node->right.get());
+    case LESS:
+        return eval(node->left.get()) < eval(node->right.get());
+    case LESS_EQUAL:
+        return eval(node->left.get()) <= eval(node->right.get());
+    case GREATER:
+        return eval(node->left.get()) > eval(node->right.get());
+    case GREATER_EQUAL:
+        return eval(node->left.get()) >= eval(node->right.get());
+    case CONDITIONAL:
+        return eval(node->condition.get()) ? eval(node->then.get()) : eval(node->els.get());
+    case COMMA:
+        return eval(node->right.get());
+    case NOT:
+        return !eval(node->left.get());
+    case BITNOT:
+        return ~eval(node->left.get());
+    case LOGICAL_AND:
+        return eval(node->left.get()) && eval(node->right.get());
+    case LOGICAL_OR:
+        return eval(node->left.get()) || eval(node->right.get());
+    case CAST:
+        if (type::isInteger(node->type.get())) {
+            if (node->type->size == 1) {
+                return static_cast<int64_t>(static_cast<uint8_t>(eval(node->left.get())));
+            } else if (node->type->size == 2) {
+                return static_cast<int64_t>(static_cast<uint16_t>(eval(node->left.get())));
+            } else if (node->type->size == 4) {
+                return static_cast<int64_t>(static_cast<uint32_t>(eval(node->left.get())));
+            } else if (node->type->size == 8) {
+                return static_cast<int64_t>(static_cast<uint64_t>(eval(node->left.get())));
+            }
+        }
+        return eval(node->left.get());
+    case NUMBER:
+        return node->value;
+    default:
+        // TODO: 列挙体の文字列表現
+        Log::error("token::eval: unsupported node type: {}", std::to_underlying(node->nodeType));
+        return 0;
+    }
 }
 
 } // namespace yoctocc

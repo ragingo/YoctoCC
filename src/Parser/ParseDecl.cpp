@@ -117,7 +117,7 @@ std::shared_ptr<Type> Parser::unionDecl(Token*& token) {
 // enum-specifier = ident? "{" enum-list? "}"
 //                | ident ("{" enum-list? "}")?
 //
-// enum-list      = ident ("=" num)? ("," ident ("=" num)?)*
+// enum-list      = ident ("=" const-expr)? ("," ident ("=" const-expr)?)*
 std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
     Token* tag = nullptr;
 
@@ -148,8 +148,7 @@ std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
 
         if (token::is(token, "=")) {
             token = token->next.get();
-            value = token::getNumber(token);
-            token = token->next.get();
+            value = constExpression(token);
         }
 
         auto scope = _parseScope.pushVariableScope(name);
@@ -370,7 +369,7 @@ std::shared_ptr<Type> Parser::functionParameters(Token*& token, std::shared_ptr<
     return type;
 }
 
-// array-dimensions = num? "]" type-suffix
+// array-dimensions = const-expr? "]" type-suffix
 std::shared_ptr<Type> Parser::arrayDimensions(Token*& token, std::shared_ptr<Type>& type) {
     if (token::is(token, "]")) {
         token = token->next.get();
@@ -378,8 +377,7 @@ std::shared_ptr<Type> Parser::arrayDimensions(Token*& token, std::shared_ptr<Typ
         return type::arrayOf(type, -1);
     }
 
-    int size = token::getNumber(token);
-    token = token->next.get();
+    int size = constExpression(token);
     token = token::skipIf(token, "]");
     type = typeSuffix(token, type);
     return type::arrayOf(type, size);

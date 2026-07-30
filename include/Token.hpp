@@ -79,6 +79,7 @@ struct Token {
 };
 
 namespace token {
+
 inline bool is(const Token* token, std::string_view originalValue) {
     return token && token->originalValue == originalValue;
 }
@@ -107,10 +108,6 @@ inline const std::string& getIdentifier(const Token* token) {
     return token->originalValue;
 }
 
-inline int64_t getNumber(const Token* token) {
-    assert(token && token->kind == TokenKind::DIGIT);
-    return token->numberValue;
-}
 } // namespace token
 
 } // namespace yoctocc

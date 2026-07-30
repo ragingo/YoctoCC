@@ -191,6 +191,10 @@ void addType(Node* node) {
         case NodeType::RETURN:
         case NodeType::UNKNOWN:
         case NodeType::CAST:
+        case NodeType::SWITCH:
+        case NodeType::CASE:
+        case NodeType::GOTO:
+        case NodeType::LABEL:
             // skip
             return;
     }
