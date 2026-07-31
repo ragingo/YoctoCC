@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -9,10 +9,10 @@ RUN apt-get update && apt-get install -y \
     make \
     cmake \
     qemu-user \
-    gcc-14 \
-    g++-14 \
-    gcc-x86-64-linux-gnu \
-    g++-x86-64-linux-gnu \
+    gcc-15 \
+    g++-15 \
+    gcc-15-x86-64-linux-gnu \
+    g++-15-x86-64-linux-gnu \
     libc6-dev-amd64-cross \
     lsb-release \
     software-properties-common \
@@ -20,8 +20,11 @@ RUN apt-get update && apt-get install -y \
     gdb \
     && rm -rf /var/lib/apt/lists/*
 
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
+
+RUN update-alternatives --install /usr/bin/x86_64-linux-gnu-gcc x86_64-linux-gnu-gcc /usr/bin/x86_64-linux-gnu-gcc-15 100 \
+    && update-alternatives --install /usr/bin/x86_64-linux-gnu-g++ x86_64-linux-gnu-g++ /usr/bin/x86_64-linux-gnu-g++-15 100
 
 RUN wget https://apt.llvm.org/llvm.sh \
     && chmod +x llvm.sh \
