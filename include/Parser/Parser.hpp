@@ -5,6 +5,7 @@
 
 namespace yoctocc {
 
+struct Initializer;
 struct Node;
 struct Object;
 struct Token;
@@ -70,6 +71,9 @@ private:
     ParseResult createLogicalAndNode(Token* token);
     ParseResult createLogicalOrNode(Token* token);
     ParseResult declaration(Token* token, const std::shared_ptr<Type>& baseType);
+    ParseResult parseVariableInitializer(Token* token, Object* variable);
+    std::unique_ptr<Initializer> parseInitializer(Token*& token, const std::shared_ptr<Type>& type);
+    void parseInitializer2(Token*& token, Initializer* initializer);
     ParseResult parseExpression(Token* token);
     ParseResult parseAssignment(Token* token);
     ParseResult parseConditional(Token* token);

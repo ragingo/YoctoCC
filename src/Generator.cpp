@@ -309,6 +309,8 @@ void Generator::generateExpression(const Node* node) {
     emitLocation(node);
 
     switch (node->nodeType) {
+        case NodeType::NULL_EXPRESSION:
+            return;
         case NodeType::NUMBER:
             addCode(mov(RAX, node->value));
             return;

@@ -3,6 +3,7 @@
 #include <utility>
 #include "Logger.hpp"
 #include "Node/NodeTypes.hpp"
+#include "Parser/Common.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
 
@@ -151,6 +152,39 @@ std::unique_ptr<Node> createCastNode(std::unique_ptr<Node> expression, const std
     auto node = createUnaryNode(NodeType::CAST, token, std::move(expression));
     node->type = targetType;
     return node;
+}
+
+std::unique_ptr<Node> createInitDesignetorExpressionNode(const Token* token, const InitDesignator* initDesignator) {
+    if (initDesignator->variable) {
+        return createVariableNode(token, initDesignator->variable);
+    }
+
+    auto left = createInitDesignetorExpressionNode(token, initDesignator->next);
+    auto right = createNumberNode(token, initDesignator->index);
+    auto addNode = createAddNode(token, std::move(left), std::move(right));
+    auto unaryNode = createUnaryNode(NodeType::DEREFERENCE, token, std::move(addNode));
+    return unaryNode;
+}
+
+std::unique_ptr<Node> createVariableInitializerNode(
+    const Token* token,
+    Initializer* initializer,
+    const InitDesignator* initDesignator,
+    const std::shared_ptr<Type>& type
+) {
+    if (type->kind == TypeKind::ARRAY) {
+        auto node = std::make_unique<Node>(NodeType::NULL_EXPRESSION, token);
+        for (int i = 0; i < type->arraySize; i++) {
+            InitDesignator initDesignator2{initDesignator, i, nullptr};
+            auto right = createVariableInitializerNode(token, initializer->children[i].get(), &initDesignator2, type->base);
+            node = createBinaryNode(NodeType::COMMA, token, std::move(node), std::move(right));
+        }
+        return node;
+    }
+
+    auto left = createInitDesignetorExpressionNode(token, initDesignator);
+    auto right = std::move(initializer->expression);
+    return createBinaryNode(NodeType::ASSIGN, token, std::move(left), std::move(right));
 }
 
 int64_t eval(Node* node) {

@@ -19,6 +19,7 @@ struct Member {
 
 enum class NodeType {
     UNKNOWN,
+    NULL_EXPRESSION,
     ADD,           // +
     SUB,           // -
     MUL,           // *

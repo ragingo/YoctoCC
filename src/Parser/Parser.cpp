@@ -105,20 +105,51 @@ ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseT
         auto varName = token::getIdentifier(varType->name);
         auto var = createLocalVariable(varName, varType);
 
-        if (!token::is(token, "=")) {
-            continue;
+        if (token::is(token, "=")) {
+            auto [node, rest] = parseVariableInitializer(token->next.get(), var);
+            token = rest;
+            current->next = createUnaryNode(NodeType::EXPRESSION_STATEMENT, token, std::move(node));
+            current = current->next.get();
         }
-
-        auto lhs = createVariableNode(token, var);
-        auto [rhs, rest] = parseAssignment(token->next.get());
-        token = rest;
-        auto assignNode = createBinaryNode(NodeType::ASSIGN, token, std::move(lhs), std::move(rhs));
-        current->next = createUnaryNode(NodeType::EXPRESSION_STATEMENT, token, std::move(assignNode));
-        current = current->next.get();
     }
 
     auto node = createBlockNode(token, std::move(head->next));
     return {std::move(node), token->next.get()};
+}
+
+ParseResult Parser::parseVariableInitializer(Token* token, Object* variable) {
+    auto rest = token;
+    auto initializer = parseInitializer(rest, variable->type);
+    InitDesignator initDesignator{nullptr, 0, variable};
+    auto node = createVariableInitializerNode(token, initializer.get(), &initDesignator, variable->type);
+    return {std::move(node), rest};
+}
+
+std::unique_ptr<Initializer> Parser::parseInitializer(Token*& token, const std::shared_ptr<Type>& type) {
+    auto initializer = createInitializer(type);
+    initializer->token = token;
+    parseInitializer2(token, initializer.get());
+    return initializer;
+}
+
+void Parser::parseInitializer2(Token*& token, Initializer* initializer) {
+    if (initializer->type->kind == TypeKind::ARRAY) {
+        token = token::skipIf(token, "{");
+
+        for (int i = 0; i < initializer->type->arraySize; i++) {
+            if (i > 0) {
+                token = token::skipIf(token, ",");
+            }
+            parseInitializer2(token, initializer->children[i].get());
+        }
+
+        token = token::skipIf(token, "}");
+        return;
+    }
+
+    auto [node, rest] = parseAssignment(token);
+    initializer->expression = std::move(node);
+    token = rest;
 }
 
 // expr = assign ("," expr)?

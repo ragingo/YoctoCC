@@ -195,6 +195,7 @@ void addType(Node* node) {
         case NodeType::CASE:
         case NodeType::GOTO:
         case NodeType::LABEL:
+        case NodeType::NULL_EXPRESSION:
             // skip
             return;
     }

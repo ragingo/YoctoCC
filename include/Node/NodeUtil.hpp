@@ -6,6 +6,8 @@
 namespace yoctocc {
 
 struct Token;
+struct Initializer;
+struct InitDesignator;
 
 std::unique_ptr<Node> createNumberNode(const Token* token, int64_t value);
 std::unique_ptr<Node> createLongNode(const Token* token, int64_t value);
@@ -20,6 +22,13 @@ std::unique_ptr<Node> createAddNode(const Token* token, std::unique_ptr<Node> le
 std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> left, std::unique_ptr<Node> right);
 std::unique_ptr<Node> createStructRefNode(const Token* token, std::unique_ptr<Node> left);
 std::unique_ptr<Node> createCastNode(std::unique_ptr<Node> expression, const std::shared_ptr<Type>& targetType);
+std::unique_ptr<Node> createInitDesignetorExpressionNode(const Token* token, const InitDesignator* initDesignator);
+std::unique_ptr<Node> createVariableInitializerNode(
+    const Token* token,
+    Initializer* initializer,
+    const InitDesignator* initDesignator,
+    const std::shared_ptr<Type>& type
+);
 int64_t eval(Node* node);
 
 } // namespace yoctocc
