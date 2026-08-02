@@ -205,11 +205,11 @@ int64_t eval(Node* node) {
         return -eval(node->left.get());
     case MOD:
         return eval(node->left.get()) % eval(node->right.get());
-    case BITAND:
+    case BIT_AND:
         return eval(node->left.get()) & eval(node->right.get());
-    case BITOR:
+    case BIT_OR:
         return eval(node->left.get()) | eval(node->right.get());
-    case BITXOR:
+    case BIT_XOR:
         return eval(node->left.get()) ^ eval(node->right.get());
     case SHL:
         return eval(node->left.get()) << eval(node->right.get());
@@ -233,7 +233,7 @@ int64_t eval(Node* node) {
         return eval(node->right.get());
     case NOT:
         return !eval(node->left.get());
-    case BITNOT:
+    case BIT_NOT:
         return ~eval(node->left.get());
     case LOGICAL_AND:
         return eval(node->left.get()) && eval(node->right.get());

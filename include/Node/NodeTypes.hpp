@@ -28,9 +28,9 @@ enum class NodeType {
     MOD,           // %
     SHL,           // <<
     SHR,           // >>
-    BITAND,        // &
-    BITOR,         // |
-    BITXOR,        // ^
+    BIT_AND,       // &
+    BIT_OR,        // |
+    BIT_XOR,       // ^
     LOGICAL_AND,   // &&
     LOGICAL_OR,    // ||
     EQUAL,         // ==
@@ -46,7 +46,7 @@ enum class NodeType {
     ADDRESS,       // unary &
     DEREFERENCE,   // unary *
     NOT,           // !
-    BITNOT,        // ~
+    BIT_NOT,       // ~
     RETURN,        // return
     IF,            // if
     FOR,           // for or while

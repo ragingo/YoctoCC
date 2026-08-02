@@ -212,7 +212,7 @@ ParseResult Parser::createBitAndNode(Token* token) {
     while (token::is(rest, "&")) {
         auto start = rest;
         auto [right, rest2] = parseEquality(rest->next.get());
-        left = createBinaryNode(NodeType::BITAND, start, std::move(left), std::move(right));
+        left = createBinaryNode(NodeType::BIT_AND, start, std::move(left), std::move(right));
         rest = rest2;
     }
     return {std::move(left), rest};
@@ -224,7 +224,7 @@ ParseResult Parser::createBitOrNode(Token* token) {
     while (token::is(rest, "|")) {
         auto start = rest;
         auto [right, rest2] = createBitXorNode(rest->next.get());
-        left = createBinaryNode(NodeType::BITOR, start, std::move(left), std::move(right));
+        left = createBinaryNode(NodeType::BIT_OR, start, std::move(left), std::move(right));
         rest = rest2;
     }
     return {std::move(left), rest};
@@ -236,7 +236,7 @@ ParseResult Parser::createBitXorNode(Token* token) {
     while (token::is(rest, "^")) {
         auto start = rest;
         auto [right, rest2] = createBitAndNode(rest->next.get());
-        left = createBinaryNode(NodeType::BITXOR, start, std::move(left), std::move(right));
+        left = createBinaryNode(NodeType::BIT_XOR, start, std::move(left), std::move(right));
         rest = rest2;
     }
     return {std::move(left), rest};
@@ -316,21 +316,21 @@ ParseResult Parser::parseAssignment(Token* token) {
     if (token::is(rest, "&=")) {
         auto start = rest;
         auto [right, rest2] = parseAssignment(rest->next.get());
-        auto binary = createBinaryNode(NodeType::BITAND, start, std::move(node), std::move(right));
+        auto binary = createBinaryNode(NodeType::BIT_AND, start, std::move(node), std::move(right));
         return {toAssign(std::move(binary)), rest2};
     }
 
     if (token::is(rest, "|=")) {
         auto start = rest;
         auto [right, rest2] = parseAssignment(rest->next.get());
-        auto binary = createBinaryNode(NodeType::BITOR, start, std::move(node), std::move(right));
+        auto binary = createBinaryNode(NodeType::BIT_OR, start, std::move(node), std::move(right));
         return {toAssign(std::move(binary)), rest2};
     }
 
     if (token::is(rest, "^=")) {
         auto start = rest;
         auto [right, rest2] = parseAssignment(rest->next.get());
-        auto binary = createBinaryNode(NodeType::BITXOR, start, std::move(node), std::move(right));
+        auto binary = createBinaryNode(NodeType::BIT_XOR, start, std::move(node), std::move(right));
         return {toAssign(std::move(binary)), rest2};
     }
 
@@ -818,7 +818,7 @@ ParseResult Parser::parseUnary(Token* token) {
     if (token::is(token, "~")) {
         auto start = token;
         auto [operand, rest] = parseCast(token->next.get());
-        return {createUnaryNode(NodeType::BITNOT, start, std::move(operand)), rest};
+        return {createUnaryNode(NodeType::BIT_NOT, start, std::move(operand)), rest};
     }
     if (token::is(token, "++")) {
         auto start = token;

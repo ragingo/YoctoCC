@@ -81,9 +81,9 @@ void addType(Node* node) {
         case NodeType::MUL:
         case NodeType::DIV:
         case NodeType::MOD:
-        case NodeType::BITAND:
-        case NodeType::BITOR:
-        case NodeType::BITXOR: {
+        case NodeType::BIT_AND:
+        case NodeType::BIT_OR:
+        case NodeType::BIT_XOR: {
             auto [newLhsNode, newRhsNode] = convertUsualArithmetic(std::move(node->left), std::move(node->right));
             node->left = std::move(newLhsNode);
             node->right = std::move(newRhsNode);
@@ -126,7 +126,7 @@ void addType(Node* node) {
         case NodeType::LOGICAL_OR:
             node->type = type::intType();
             return;
-        case NodeType::BITNOT:
+        case NodeType::BIT_NOT:
         case NodeType::SHL:
         case NodeType::SHR:
             node->type = node->left->type;

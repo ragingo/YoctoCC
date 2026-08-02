@@ -384,7 +384,7 @@ void Generator::generateExpression(const Node* node) {
             addCode(sete(AL));
             addCode(movzx(RAX, AL));
             return;
-        case NodeType::BITNOT:
+        case NodeType::BIT_NOT:
             generateExpression(node->left.get());
             addCode(not_(RAX));
             return;
@@ -467,13 +467,13 @@ void Generator::generateExpression(const Node* node) {
             }
         }
             return;
-        case NodeType::BITAND:
+        case NodeType::BIT_AND:
             addCode(and_(RAX, RDI));
             return;
-        case NodeType::BITOR:
+        case NodeType::BIT_OR:
             addCode(or_(RAX, RDI));
             return;
-        case NodeType::BITXOR:
+        case NodeType::BIT_XOR:
             addCode(xor_(RAX, RDI));
             return;
         case NodeType::EQUAL:
