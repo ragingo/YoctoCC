@@ -46,7 +46,8 @@ enum class OpCode {
     JLE,
     JG,
     JGE,
-    SYSCALL
+    SYSCALL,
+    REP_STOSB
 };
 
 constexpr std::string to_string(OpCode op) {
@@ -138,6 +139,8 @@ constexpr std::string to_string(OpCode op) {
             return "jge";
         case SYSCALL:
             return "syscall";
+        case REP_STOSB:
+            return "rep stosb";
         default:
             return "???";
     }

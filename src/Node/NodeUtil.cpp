@@ -182,6 +182,10 @@ std::unique_ptr<Node> createVariableInitializerNode(
         return node;
     }
 
+    if (!initializer->expression) {
+        return std::make_unique<Node>(NodeType::NULL_EXPRESSION, token);
+    }
+
     auto left = createInitDesignetorExpressionNode(token, initDesignator);
     auto right = std::move(initializer->expression);
     return createBinaryNode(NodeType::ASSIGN, token, std::move(left), std::move(right));

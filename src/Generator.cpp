@@ -349,6 +349,12 @@ void Generator::generateExpression(const Node* node) {
             generateExpression(node->left.get());
             cast(node);
             return;
+        case NodeType::MEMORY_CLEAR:
+            addCode(mov(RCX, node->variable->type->size));
+            addCode(lea(RDI, Address{RBP, node->variable->offset}));
+            addCode(mov(AL, 0));
+            addCode(rep_stosb());
+            return;
         case NodeType::FUNCTION_CALL: {
             int argCount = 0;
             for (const Node* arg = node->arguments.get(); arg; arg = arg->next.get()) {

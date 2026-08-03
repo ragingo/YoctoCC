@@ -61,6 +61,7 @@ enum class NodeType {
     STATEMENT_EXPRESSION,
     NUMBER,
     CAST,
+    MEMORY_CLEAR,
 };
 
 struct Node {

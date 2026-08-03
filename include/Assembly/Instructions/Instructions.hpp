@@ -111,6 +111,7 @@ inline constexpr Instruction<JMP> jmp;
 inline constexpr Instruction<JE> je;
 inline constexpr Instruction<JNE> jne;
 inline constexpr Instruction<CALL> call;
+inline constexpr Instruction<REP_STOSB> rep_stosb;
 
 static_assert(mov(RAX, 42) == "mov rax, 42");
 static_assert(add(Address{RAX}, 42) == "add [rax], 42");

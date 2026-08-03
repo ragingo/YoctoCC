@@ -121,8 +121,11 @@ ParseResult Parser::parseVariableInitializer(Token* token, Object* variable) {
     auto rest = token;
     auto initializer = parseInitializer(rest, variable->type);
     InitDesignator initDesignator{nullptr, 0, variable};
-    auto node = createVariableInitializerNode(token, initializer.get(), &initDesignator, variable->type);
-    return {std::move(node), rest};
+    auto left = std::make_unique<Node>(NodeType::MEMORY_CLEAR, token);
+    left->variable = variable;
+    auto right = createVariableInitializerNode(token, initializer.get(), &initDesignator, variable->type);
+    auto binary = createBinaryNode(NodeType::COMMA, token, std::move(left), std::move(right));
+    return {std::move(binary), rest};
 }
 
 std::unique_ptr<Initializer> Parser::parseInitializer(Token*& token, const std::shared_ptr<Type>& type) {
@@ -137,6 +140,9 @@ void Parser::parseInitializer2(Token*& token, Initializer* initializer) {
         token = token::skipIf(token, "{");
 
         for (int i = 0; i < initializer->type->arraySize; i++) {
+            if (token::is(token, "}")) {
+                break;
+            }
             if (i > 0) {
                 token = token::skipIf(token, ",");
             }
