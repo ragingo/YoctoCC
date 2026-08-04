@@ -139,22 +139,33 @@ void Parser::parseInitializer2(Token*& token, Initializer* initializer) {
     if (initializer->type->kind == TypeKind::ARRAY) {
         token = token::skipIf(token, "{");
 
-        for (int i = 0; i < initializer->type->arraySize; i++) {
-            if (token::is(token, "}")) {
-                break;
-            }
+        for (int i = 0; !token::consume(token, "}"); i++) {
             if (i > 0) {
                 token = token::skipIf(token, ",");
             }
-            parseInitializer2(token, initializer->children[i].get());
+            if (i < initializer->type->arraySize) {
+                parseInitializer2(token, initializer->children[i].get());
+            } else {
+                skipExcessElement(token);
+            }
         }
-
-        token = token::skipIf(token, "}");
         return;
     }
 
     auto [node, rest] = parseAssignment(token);
     initializer->expression = std::move(node);
+    token = rest;
+}
+
+void Parser::skipExcessElement(Token*& token) {
+    if (token::is(token, "{")) {
+        token = token->next.get();
+        skipExcessElement(token);
+        token = token::skipIf(token, "}");
+        return;
+    }
+
+    auto [_, rest] = parseAssignment(token);
     token = rest;
 }
 
