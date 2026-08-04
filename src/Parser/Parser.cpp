@@ -135,19 +135,38 @@ std::unique_ptr<Initializer> Parser::parseInitializer(Token*& token, const std::
     return initializer;
 }
 
+// string-initializer = string-literal
+void Parser::stringInitializer(Token*& token, Initializer* initializer) {
+    int length = std::min(initializer->type->arraySize, token->type->arraySize);
+    for (int i = 0; i < length; i++) {
+        initializer->children[i]->expression = createNumberNode(token, *(token->originalValue.data() + i));
+    }
+    token = token->next.get();
+}
+
+// array-initializer = "{" initializer ("," initializer)* "}"
+void Parser::arrayInitializer(Token*& token, Initializer* initializer) {
+    token = token::skipIf(token, "{");
+
+    for (int i = 0; !token::consume(token, "}"); i++) {
+        if (i > 0) {
+            token = token::skipIf(token, ",");
+        }
+        if (i < initializer->type->arraySize) {
+            parseInitializer2(token, initializer->children[i].get());
+        } else {
+            skipExcessElement(token);
+        }
+    }
+}
+
+// initializer = string-initializer | array-initializer | assign
 void Parser::parseInitializer2(Token*& token, Initializer* initializer) {
     if (initializer->type->kind == TypeKind::ARRAY) {
-        token = token::skipIf(token, "{");
-
-        for (int i = 0; !token::consume(token, "}"); i++) {
-            if (i > 0) {
-                token = token::skipIf(token, ",");
-            }
-            if (i < initializer->type->arraySize) {
-                parseInitializer2(token, initializer->children[i].get());
-            } else {
-                skipExcessElement(token);
-            }
+        if (token->kind == TokenKind::STRING) {
+            stringInitializer(token, initializer);
+        } else {
+            arrayInitializer(token, initializer);
         }
         return;
     }

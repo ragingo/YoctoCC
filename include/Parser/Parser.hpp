@@ -73,6 +73,8 @@ private:
     ParseResult declaration(Token* token, const std::shared_ptr<Type>& baseType);
     ParseResult parseVariableInitializer(Token* token, Object* variable);
     std::unique_ptr<Initializer> parseInitializer(Token*& token, const std::shared_ptr<Type>& type);
+    void stringInitializer(Token*& token, Initializer* initializer);
+    void arrayInitializer(Token*& token, Initializer* initializer);
     void parseInitializer2(Token*& token, Initializer* initializer);
     void skipExcessElement(Token*& token);
     ParseResult parseExpression(Token* token);
