@@ -18,6 +18,7 @@ struct Initializer {
     Initializer* next;
     std::shared_ptr<Type> type;
     Token* token;
+    bool isFlexibleArray;
     std::unique_ptr<Node> expression;
     std::vector<std::unique_ptr<Initializer>> children;
 };
@@ -28,6 +29,6 @@ struct InitDesignator {
     Object* variable;
 };
 
-std::unique_ptr<Initializer> createInitializer(const std::shared_ptr<Type>& type);
+std::unique_ptr<Initializer> createInitializer(const std::shared_ptr<Type>& type, bool isFlexibleArray = false);
 
 } // namespace yoctocc

@@ -94,22 +94,25 @@ ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseT
             token = token::skipIf(token, ",");
         }
         auto varType = declarator(token, baseType);
-        if (varType->size < 0) {
-            Log::error("Variable has incomplete type"sv, token);
-            return {};
-        }
         if (varType->kind == TypeKind::VOID) {
             Log::error("Variable cannot be of type void"sv, token);
             return {};
         }
         auto varName = token::getIdentifier(varType->name);
         auto var = createLocalVariable(varName, varType);
-
         if (token::is(token, "=")) {
             auto [node, rest] = parseVariableInitializer(token->next.get(), var);
             token = rest;
             current->next = createUnaryNode(NodeType::EXPRESSION_STATEMENT, token, std::move(node));
             current = current->next.get();
+        }
+        if (var->type->size < 0) {
+            Log::error("Variable has incomplete type"sv, token);
+            return {};
+        }
+        if (var->type->kind == TypeKind::VOID) {
+            Log::error("Variable cannot be of type void"sv, token);
+            return {};
         }
     }
 
@@ -128,32 +131,56 @@ ParseResult Parser::parseVariableInitializer(Token* token, Object* variable) {
     return {std::move(binary), rest};
 }
 
-std::unique_ptr<Initializer> Parser::parseInitializer(Token*& token, const std::shared_ptr<Type>& type) {
-    auto initializer = createInitializer(type);
+std::unique_ptr<Initializer> Parser::parseInitializer(Token*& token, std::shared_ptr<Type>& type) {
+    auto initializer = createInitializer(type, type->kind == TypeKind::ARRAY && type->arraySize < 0);
     initializer->token = token;
-    parseInitializer2(token, initializer.get());
+    parseInitializer2(token, initializer);
+    type = initializer->type;
     return initializer;
 }
 
 // string-initializer = string-literal
-void Parser::stringInitializer(Token*& token, Initializer* initializer) {
+void Parser::stringInitializer(Token*& token, std::unique_ptr<Initializer>& initializer) {
+    if (initializer->isFlexibleArray) {
+        initializer = createInitializer(type::arrayOf(initializer->type->base, token->type->arraySize));
+    }
+
     int length = std::min(initializer->type->arraySize, token->type->arraySize);
+
     for (int i = 0; i < length; i++) {
         initializer->children[i]->expression = createNumberNode(token, *(token->originalValue.data() + i));
     }
+
     token = token->next.get();
 }
 
 // array-initializer = "{" initializer ("," initializer)* "}"
-void Parser::arrayInitializer(Token*& token, Initializer* initializer) {
+void Parser::arrayInitializer(Token*& token, std::unique_ptr<Initializer>& initializer) {
+    auto countElements = [=, this](Token* token, std::shared_ptr<Type> type) {
+        auto dummyInitializer = createInitializer(type);
+        int i = 0;
+        for (; !token::is(token, "}"); i++) {
+            if (i > 0) {
+                token = token::skipIf(token, ",");
+            }
+            parseInitializer2(token, dummyInitializer);
+        }
+        return i;
+    };
+
     token = token::skipIf(token, "{");
+
+    if (initializer->isFlexibleArray) {
+        int count = countElements(token, initializer->type->base);
+        initializer = createInitializer(type::arrayOf(initializer->type->base, count));
+    }
 
     for (int i = 0; !token::consume(token, "}"); i++) {
         if (i > 0) {
             token = token::skipIf(token, ",");
         }
         if (i < initializer->type->arraySize) {
-            parseInitializer2(token, initializer->children[i].get());
+            parseInitializer2(token, initializer->children[i]);
         } else {
             skipExcessElement(token);
         }
@@ -161,7 +188,7 @@ void Parser::arrayInitializer(Token*& token, Initializer* initializer) {
 }
 
 // initializer = string-initializer | array-initializer | assign
-void Parser::parseInitializer2(Token*& token, Initializer* initializer) {
+void Parser::parseInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer) {
     if (initializer->type->kind == TypeKind::ARRAY) {
         if (token->kind == TokenKind::STRING) {
             stringInitializer(token, initializer);

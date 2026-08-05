@@ -72,10 +72,10 @@ private:
     ParseResult createLogicalOrNode(Token* token);
     ParseResult declaration(Token* token, const std::shared_ptr<Type>& baseType);
     ParseResult parseVariableInitializer(Token* token, Object* variable);
-    std::unique_ptr<Initializer> parseInitializer(Token*& token, const std::shared_ptr<Type>& type);
-    void stringInitializer(Token*& token, Initializer* initializer);
-    void arrayInitializer(Token*& token, Initializer* initializer);
-    void parseInitializer2(Token*& token, Initializer* initializer);
+    std::unique_ptr<Initializer> parseInitializer(Token*& token, std::shared_ptr<Type>& type);
+    void stringInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
+    void arrayInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
+    void parseInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer);
     void skipExcessElement(Token*& token);
     ParseResult parseExpression(Token* token);
     ParseResult parseAssignment(Token* token);
