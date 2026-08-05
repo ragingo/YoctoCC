@@ -10,7 +10,7 @@ https://github.com/rui314/chibicc をベースに C++ で書きながら学習�
 ## 必要環境
 
 - C++26 対応コンパイラ
-- Ubuntu 24.04
+- Ubuntu 26.04
 
 詳細は [./.devcontainer/Dockerfile](./.devcontainer/Dockerfile) を参照。
 
@@ -22,9 +22,6 @@ make
 
 # clang でビルド
 make CXX=clang++ CC=clang
-
-# 古いコンパイラの場合（C++23 にフォールバック）
-make CXX=clang++ CC=clang CXX_STD=-std=c++23
 
 # テスト実行
 make test
