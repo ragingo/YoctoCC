@@ -14,6 +14,7 @@ struct Member {
     const Token* name = nullptr;
     std::shared_ptr<Type> type;
     int offset = 0;
+    int index = 0;
     std::unique_ptr<Member> next;
 };
 

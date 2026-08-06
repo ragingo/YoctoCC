@@ -17,19 +17,22 @@ namespace yoctocc {
 void Parser::structMembers(Token*& token, std::shared_ptr<Type>& structType) {
     auto head = std::make_unique<Member>();
     Member* current = head.get();
+    int index = 0;
 
     while (!token::is(token, "}")) {
         auto baseType = declSpec(token, nullptr);
 
-        int i = 0;
+        bool isFirst = true;
         while (!token::consume(token, ";")) {
-            if (i++ > 0) {
+            if (!isFirst) {
                 token = token::skipIf(token, ",");
             }
+            isFirst = false;
             auto memberType = declarator(token, baseType);
             auto member = std::make_unique<Member>();
             member->type = memberType;
             member->name = memberType->name;
+            member->index = index++;
             current->next = std::move(member);
             current = current->next.get();
         }

@@ -159,6 +159,17 @@ std::unique_ptr<Node> createInitDesignetorExpressionNode(const Token* token, con
         return createVariableNode(token, initDesignator->variable);
     }
 
+    if (initDesignator->member) {
+        auto initDesgExprNode = createInitDesignetorExpressionNode(token, initDesignator->next);
+        auto memberNode = createUnaryNode(NodeType::MEMBER, token, std::move(initDesgExprNode));
+        memberNode->member = std::make_unique<Member>();
+        memberNode->member->name = initDesignator->member->name;
+        memberNode->member->type = initDesignator->member->type;
+        memberNode->member->offset = initDesignator->member->offset;
+        memberNode->member->index = initDesignator->member->index;
+        return memberNode;
+    }
+
     auto left = createInitDesignetorExpressionNode(token, initDesignator->next);
     auto right = createNumberNode(token, initDesignator->index);
     auto addNode = createAddNode(token, std::move(left), std::move(right));
@@ -175,8 +186,18 @@ std::unique_ptr<Node> createVariableInitializerNode(
     if (type->kind == TypeKind::ARRAY) {
         auto node = std::make_unique<Node>(NodeType::NULL_EXPRESSION, token);
         for (int i = 0; i < type->arraySize; i++) {
-            InitDesignator initDesignator2{initDesignator, i, nullptr};
+            InitDesignator initDesignator2{initDesignator, i, nullptr, nullptr};
             auto right = createVariableInitializerNode(token, initializer->children[i].get(), &initDesignator2, type->base);
+            node = createBinaryNode(NodeType::COMMA, token, std::move(node), std::move(right));
+        }
+        return node;
+    }
+
+    if (type->kind == TypeKind::STRUCT) {
+        auto node = std::make_unique<Node>(NodeType::NULL_EXPRESSION, token);
+        for (auto member = type->members.get(); member; member = member->next.get()) {
+            InitDesignator initDesignator2{initDesignator, 0, member, nullptr};
+            auto right = createVariableInitializerNode(token, initializer->children[member->index].get(), &initDesignator2, member->type);
             node = createBinaryNode(NodeType::COMMA, token, std::move(node), std::move(right));
         }
         return node;

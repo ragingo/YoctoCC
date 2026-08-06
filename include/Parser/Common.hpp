@@ -4,6 +4,7 @@
 
 namespace yoctocc {
 
+struct Member;
 struct Node;
 struct Object;
 struct Token;
@@ -26,6 +27,7 @@ struct Initializer {
 struct InitDesignator {
     const InitDesignator* next;
     int index;
+    Member* member;
     Object* variable;
 };
 

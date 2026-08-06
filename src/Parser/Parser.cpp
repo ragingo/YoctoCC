@@ -123,7 +123,7 @@ ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseT
 ParseResult Parser::parseVariableInitializer(Token* token, Object* variable) {
     auto rest = token;
     auto initializer = parseInitializer(rest, variable->type);
-    InitDesignator initDesignator{nullptr, 0, variable};
+    InitDesignator initDesignator{nullptr, 0, nullptr, variable};
     auto left = std::make_unique<Node>(NodeType::MEMORY_CLEAR, token);
     left->variable = variable;
     auto right = createVariableInitializerNode(token, initializer.get(), &initDesignator, variable->type);
@@ -187,7 +187,28 @@ void Parser::arrayInitializer(Token*& token, std::unique_ptr<Initializer>& initi
     }
 }
 
-// initializer = string-initializer | array-initializer | assign
+// struct-initializer = "{" initializer ("," initializer)* "}"
+void Parser::structInitializer(Token*& token, std::unique_ptr<Initializer>& initializer) {
+    token = token::skipIf(token, "{");
+
+    auto members = initializer->type->members.get();
+
+    while (!token::consume(token, "}")) {
+        if (members != initializer->type->members.get()) {
+            token = token::skipIf(token, ",");
+        }
+
+        if (members) {
+            parseInitializer2(token, initializer->children[members->index]);
+            members = members->next.get();
+        } else {
+            skipExcessElement(token);
+        }
+    }
+}
+
+// initializer = string-initializer | array-initializer
+//             | struct-initializer | assign
 void Parser::parseInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer) {
     if (initializer->type->kind == TypeKind::ARRAY) {
         if (token->kind == TokenKind::STRING) {
@@ -195,6 +216,11 @@ void Parser::parseInitializer2(Token*& token, std::unique_ptr<Initializer>& init
         } else {
             arrayInitializer(token, initializer);
         }
+        return;
+    }
+
+    if (initializer->type->kind == TypeKind::STRUCT) {
+        structInitializer(token, initializer);
         return;
     }
 

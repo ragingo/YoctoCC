@@ -22,6 +22,14 @@ std::unique_ptr<Initializer> createInitializer(const std::shared_ptr<Type>& type
                 initializer->children.emplace_back(createInitializer(type->base));
             }
         }
+        return initializer;
+    }
+
+    if (type->kind == TypeKind::STRUCT) {
+        for (auto member = type->members.get(); member; member = member->next.get()) {
+            initializer->children.emplace_back(createInitializer(member->type));
+        }
+        return initializer;
     }
 
     return initializer;
