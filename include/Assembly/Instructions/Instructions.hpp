@@ -54,16 +54,15 @@ inline constexpr std::string operand_to_string(T&& operand) {
 template <typename... Operands>
 inline constexpr std::string instruction(OpCode opCode, Operands&&... operands) {
     std::vector<std::string> operandStrings = {operand_to_string(std::forward<Operands>(operands))...};
-    std::string result = to_string(opCode) + " ";
+    std::string result = to_string(opCode);
     for (size_t i = 0; i < operandStrings.size(); ++i) {
+        result += (i == 0 ? " " : ", ");
         result += operandStrings[i];
-        if (i + 1 < operandStrings.size()) {
-            result += ", ";
-        }
     }
     return result;
 }
 static_assert(instruction(MOV, RAX, 42) == "mov rax, 42");
+static_assert(instruction(RET) == "ret");
 
 template <OpCode Op>
 struct Instruction {
