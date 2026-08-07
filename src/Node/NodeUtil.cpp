@@ -299,6 +299,13 @@ void writeGlobalVariableData(const Initializer* initializer, const std::shared_p
         return;
     }
 
+    if (type->kind == TypeKind::STRUCT) {
+        for (auto member = type->members.get(); member; member = member->next.get()) {
+            writeGlobalVariableData(initializer->children[member->index].get(), member->type, buf, offset + member->offset);
+        }
+        return;
+    }
+
     if (initializer->expression) {
         int64_t value = eval(initializer->expression.get());
         switch (type->size) {
