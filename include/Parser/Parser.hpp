@@ -79,6 +79,7 @@ private:
     void unionInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
     void parseInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer);
     void skipExcessElement(Token*& token);
+    void globalVariableInitializer(Token*& token, Object* variable);
     ParseResult parseExpression(Token* token);
     ParseResult parseAssignment(Token* token);
     ParseResult parseConditional(Token* token);

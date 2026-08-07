@@ -2,6 +2,7 @@
 #include "Node/NodeTypes.hpp"
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace yoctocc {
 
@@ -30,5 +31,6 @@ std::unique_ptr<Node> createVariableInitializerNode(
     const std::shared_ptr<Type>& type
 );
 int64_t eval(Node* node);
+void writeGlobalVariableData(const Initializer* initializer, const std::shared_ptr<Type>& type, std::vector<char>& buf, size_t offset);
 
 } // namespace yoctocc

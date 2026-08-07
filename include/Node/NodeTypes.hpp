@@ -1,7 +1,9 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace yoctocc {
 
@@ -111,7 +113,7 @@ struct Object {
     bool isDefinition = false;
     bool isStatic = false;
     // global variable
-    std::string initialData;
+    std::vector<char> initialData;
     // local variable
     int offset = 0;
     std::string name;

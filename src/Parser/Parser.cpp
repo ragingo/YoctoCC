@@ -262,6 +262,13 @@ void Parser::skipExcessElement(Token*& token) {
     token = rest;
 }
 
+void Parser::globalVariableInitializer(Token*& token, Object* variable) {
+    auto initializer = parseInitializer(token, variable->type);
+    std::vector<char> buf(variable->type->size);
+    writeGlobalVariableData(initializer.get(), variable->type, buf, 0);
+    variable->initialData = std::vector(buf.begin(), buf.end());
+}
+
 // expr = assign ("," expr)?
 ParseResult Parser::parseExpression(Token* token) {
     auto [node, rest] = parseAssignment(token);
@@ -1105,7 +1112,11 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
         isFirst = false;
         auto varType = declarator(token, baseType);
         auto varName = token::getIdentifier(varType->name);
-        createGlobalVariable(varName, varType);
+        auto var = createGlobalVariable(varName, varType);
+        if (token::is(token, "=")) {
+            token = token->next.get();
+            globalVariableInitializer(token, var);
+        }
     }
 
     return token;
@@ -1176,7 +1187,8 @@ ParseResult Parser::parsePrimary(Token* token) {
 
     if (token->kind == TokenKind::STRING) {
         auto var = createGlobalVariable(makeUniqueName(), token->type);
-        var->initialData = token->originalValue;
+        var->initialData = std::vector<char>(token->originalValue.begin(), token->originalValue.end());
+        var->initialData.emplace_back('\0');
         return {createVariableNode(token, var), token->next.get()};
     }
 

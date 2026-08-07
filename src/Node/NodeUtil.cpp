@@ -291,4 +291,33 @@ int64_t eval(Node* node) {
     }
 }
 
+void writeGlobalVariableData(const Initializer* initializer, const std::shared_ptr<Type>& type, std::vector<char>& buf, size_t offset) {
+    if (type->kind == TypeKind::ARRAY) {
+        for (int i = 0; i < type->arraySize; i++) {
+            writeGlobalVariableData(initializer->children[i].get(), type->base, buf, offset + i * type->base->size);
+        }
+        return;
+    }
+
+    if (initializer->expression) {
+        int64_t value = eval(initializer->expression.get());
+        switch (type->size) {
+            case 1:
+                buf[offset] = static_cast<char>(value);
+                break;
+            case 2:
+                *reinterpret_cast<int16_t*>(&buf[offset]) = static_cast<int16_t>(value);
+                break;
+            case 4:
+                *reinterpret_cast<int32_t*>(&buf[offset]) = static_cast<int32_t>(value);
+                break;
+            case 8:
+                *reinterpret_cast<int64_t*>(&buf[offset]) = static_cast<int64_t>(value);
+                break;
+            default:
+                std::unreachable();
+        }
+    }
+}
+
 } // namespace yoctocc

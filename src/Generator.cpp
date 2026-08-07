@@ -574,7 +574,7 @@ void Generator::emitData(const Object* obj) {
         if (var->initialData.empty()) {
             addCode(directive::zero(var->type->size));
         } else {
-            assert((var->initialData.size() + 1uz) == static_cast<size_t>(var->type->size));
+            assert((var->initialData.size()) == static_cast<size_t>(var->type->size));
             for (int i = 0; i < var->type->size; i++) {
                 addCode(directive::byte(var->initialData[i]));
             }
