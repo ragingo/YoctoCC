@@ -193,7 +193,7 @@ std::unique_ptr<Node> createVariableInitializerNode(
         return node;
     }
 
-    if (type->kind == TypeKind::STRUCT) {
+    if (type->kind == TypeKind::STRUCT && !initializer->expression) {
         auto node = std::make_unique<Node>(NodeType::NULL_EXPRESSION, token);
         for (auto member = type->members.get(); member; member = member->next.get()) {
             InitDesignator initDesignator2{initDesignator, 0, member, nullptr};

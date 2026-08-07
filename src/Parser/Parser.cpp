@@ -220,6 +220,15 @@ void Parser::parseInitializer2(Token*& token, std::unique_ptr<Initializer>& init
     }
 
     if (initializer->type->kind == TypeKind::STRUCT) {
+        if (!token::is(token, "{")) {
+            auto [node, rest] = parseAssignment(token);
+            type::addType(node.get());
+            if (node->type->kind == TypeKind::STRUCT) {
+                initializer->expression = std::move(node);
+                token = rest;
+                return;
+            }
+        }
         structInitializer(token, initializer);
         return;
     }
