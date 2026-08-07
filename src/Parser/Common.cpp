@@ -25,7 +25,7 @@ std::unique_ptr<Initializer> createInitializer(const std::shared_ptr<Type>& type
         return initializer;
     }
 
-    if (type->kind == TypeKind::STRUCT) {
+    if (type->kind == TypeKind::STRUCT || type->kind == TypeKind::UNION) {
         for (auto member = type->members.get(); member; member = member->next.get()) {
             initializer->children.emplace_back(createInitializer(member->type));
         }

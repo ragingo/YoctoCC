@@ -203,6 +203,11 @@ std::unique_ptr<Node> createVariableInitializerNode(
         return node;
     }
 
+    if (type->kind == TypeKind::UNION) {
+        InitDesignator initDesignator2{initDesignator, 0, type->members.get(), nullptr};
+        return createVariableInitializerNode(token, initializer->children[0].get(), &initDesignator2, type->members->type);
+    }
+
     if (!initializer->expression) {
         return std::make_unique<Node>(NodeType::NULL_EXPRESSION, token);
     }

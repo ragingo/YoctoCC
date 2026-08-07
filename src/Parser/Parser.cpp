@@ -207,8 +207,15 @@ void Parser::structInitializer(Token*& token, std::unique_ptr<Initializer>& init
     }
 }
 
+void Parser::unionInitializer(Token*& token, std::unique_ptr<Initializer>& initializer) {
+    token = token::skipIf(token, "{");
+    parseInitializer2(token, initializer->children[0]);
+    token = token::skipIf(token, "}");
+}
+
 // initializer = string-initializer | array-initializer
-//             | struct-initializer | assign
+//             | struct-initializer | union-initializer
+//             | assign
 void Parser::parseInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer) {
     if (initializer->type->kind == TypeKind::ARRAY) {
         if (token->kind == TokenKind::STRING) {
@@ -230,6 +237,11 @@ void Parser::parseInitializer2(Token*& token, std::unique_ptr<Initializer>& init
             }
         }
         structInitializer(token, initializer);
+        return;
+    }
+
+    if (initializer->type->kind == TypeKind::UNION) {
+        unionInitializer(token, initializer);
         return;
     }
 

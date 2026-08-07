@@ -76,6 +76,7 @@ private:
     void stringInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
     void arrayInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
     void structInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
+    void unionInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
     void parseInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer);
     void skipExcessElement(Token*& token);
     ParseResult parseExpression(Token* token);
