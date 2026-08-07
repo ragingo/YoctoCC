@@ -58,6 +58,17 @@ profile: clean
 	@$(QEMU_WRAPPER) ./$(COMPILER) /dev/stdin /dev/null
 	@gprof ./$(COMPILER) gmon.out | tee profile.log
 
+# --- ビルドチェック（GCC と Clang の両方でビルド） ---
+build_check:
+	$(MAKE) clean
+	$(MAKE) CXX=g++
+	$(MAKE) clean
+	$(MAKE) CXX=clang++
+	$(MAKE) clean
+	$(MAKE) CXX=g++ test
+	$(MAKE) clean
+	$(MAKE) CXX=clang++ test
+
 # --- ヘルプ ---
 help:
 	@echo "Available targets:"
