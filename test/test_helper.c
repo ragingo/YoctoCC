@@ -113,3 +113,22 @@ int printf(const char *fmt, ...) {
     write_str(1, fmt);
     return 0;
 }
+
+int memcmp(const void *s1, const void *s2, unsigned long n) {
+    const unsigned char *a = (const unsigned char *)s1;
+    const unsigned char *b = (const unsigned char *)s2;
+    for (unsigned long i = 0; i < n; i++) {
+        if (a[i] != b[i]) {
+            return a[i] < b[i] ? -1 : 1;
+        }
+    }
+    return 0;
+}
+
+int strcmp(const char *s1, const char *s2) {
+    while (*s1 && *s1 == *s2) {
+        s1++;
+        s2++;
+    }
+    return (unsigned char)*s1 - (unsigned char)*s2;
+}
