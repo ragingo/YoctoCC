@@ -44,7 +44,8 @@ ifeq ($(MODE), release)
 else ifneq (,$(filter clang%,$(CXX)))
     CXXFLAGS := $(CXX_STD) $(CLANG_LIBCXX_FLAGS) -g -O0 -Wall -Wextra -I./include -c
 else
-    CXXFLAGS := $(CXX_STD) -g -O0 -Wall -Wextra -I./include -c
+    CXXFLAGS := $(CXX_STD) -g -O0 -Wall -Wextra -I./include -c -fcontracts -fcontract-evaluation-semantic=observe
+    LDFLAGS  := -fcontracts
 endif
 
 # プロファイル

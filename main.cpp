@@ -12,6 +12,14 @@
 
 using namespace yoctocc;
 
+#if defined(__clang__)
+#elif defined(__GNUC__)
+#include <contracts>
+void handle_contract_violation(const std::contracts::contract_violation& violation) {
+    Log::error(std::format("Contract violation: {}", violation.comment()));
+}
+#endif
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         Log::error("Usage: yoctocc <source_file> [output_file]");
