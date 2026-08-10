@@ -85,33 +85,27 @@ inline constexpr std::string byte(uint8_t value) {
     return to_string(BYTE) + " " + to_string(value);
 }
 
-inline constexpr std::string byte(const std::string& symbol, uint8_t offset) {
-    return to_string(BYTE) + " " + symbol + "+" + to_string(offset);
-}
-
 inline constexpr std::string word(uint16_t value) {
     return to_string(WORD) + " " + to_string(value);
-}
-
-inline constexpr std::string word(const std::string& symbol, uint16_t offset) {
-    return to_string(WORD) + " " + symbol + "+" + to_string(offset);
 }
 
 inline constexpr std::string long_(uint32_t value) {
     return to_string(LONG) + " " + to_string(value);
 }
 
-inline constexpr std::string long_(const std::string& symbol, uint32_t offset) {
-    return to_string(LONG) + " " + symbol + "+" + to_string(offset);
-}
-
 inline constexpr std::string quad(uint64_t value) {
     return to_string(QUAD) + " " + to_string(value);
 }
 
-inline constexpr std::string quad(const std::string& symbol, uint64_t offset) {
-    return to_string(QUAD) + " " + symbol + "+" + to_string(offset);
+template <typename T>
+    requires std::is_integral_v<T>
+inline constexpr std::string allocate(GasDirective directive, const std::string& symbol, T offset) {
+    auto sign = offset >= 0 ? "+" : "-";
+    return to_string(directive) + " " + symbol + sign + to_string(abs(offset));
 }
+static_assert(directive::allocate(GasDirective::BYTE, "foo", 0) == ".byte foo+0");
+static_assert(directive::allocate(GasDirective::BYTE, "foo", 1) == ".byte foo+1");
+static_assert(directive::allocate(GasDirective::BYTE, "foo", -1) == ".byte foo-1");
 
 inline constexpr std::string loc(int fileNumber, int line, std::optional<int> column = std::nullopt) {
     return to_string(LOC) + " " + to_string(fileNumber) + " " + to_string(line) + " " +
