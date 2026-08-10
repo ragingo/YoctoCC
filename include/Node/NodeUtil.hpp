@@ -31,6 +31,20 @@ std::unique_ptr<Node> createVariableInitializerNode(
     const std::shared_ptr<Type>& type
 );
 int64_t eval(Node* node);
-void writeGlobalVariableData(const Initializer* initializer, const std::shared_ptr<Type>& type, std::vector<char>& buf, size_t offset);
+int64_t eval2(Node* node, std::string& label);
+int64_t eval_rvalue(Node* node, std::string& label)
+#if defined(__clang__)
+#elif defined(__GNUC__)
+    post(ret: ret >= 0)
+#else
+#endif
+;
+Relocation* writeGlobalVariableData(
+    Relocation* relocations,
+    const Initializer* initializer,
+    const std::shared_ptr<Type>& type,
+    std::vector<char>& buf,
+    size_t offset
+);
 
 } // namespace yoctocc

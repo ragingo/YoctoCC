@@ -9,6 +9,7 @@ namespace yoctocc {
 
 struct Node;
 struct Object;
+struct Relocation;
 struct Token;
 struct Type;
 
@@ -114,6 +115,7 @@ struct Object {
     bool isStatic = false;
     // global variable
     std::vector<char> initialData;
+    std::unique_ptr<Relocation> relocations;
     // local variable
     int offset = 0;
     std::string name;
@@ -126,6 +128,13 @@ struct Object {
     int stackSize = 0;
 
     std::unique_ptr<Object> next;
+};
+
+struct Relocation {
+    int offset = 0;
+    std::string label;
+    int64_t addend = 0;
+    std::unique_ptr<Relocation> next;
 };
 
 inline std::unique_ptr<Object> makeVariable(const std::string& name, const std::shared_ptr<Type>& type, bool isLocal) {

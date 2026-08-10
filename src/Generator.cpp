@@ -575,8 +575,19 @@ void Generator::emitData(const Object* obj) {
             addCode(directive::zero(var->type->size));
         } else {
             assert((var->initialData.size()) == static_cast<size_t>(var->type->size));
-            for (int i = 0; i < var->type->size; i++) {
-                addCode(directive::byte(var->initialData[i]));
+
+            auto relocation = var->relocations.get();
+            int pos = 0;
+
+            while (pos < var->type->size) {
+                if (relocation && relocation->offset == pos) {
+                    addCode(directive::allocate(directive::QUAD, relocation->label, relocation->addend));
+                    relocation = relocation->next.get();
+                    pos += 8;
+                } else {
+                    addCode(directive::byte(var->initialData[pos]));
+                    pos++;
+                }
             }
         }
     }

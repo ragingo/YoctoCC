@@ -218,15 +218,20 @@ std::unique_ptr<Node> createVariableInitializerNode(
 }
 
 int64_t eval(Node* node) {
+    std::string dummy;
+    return eval2(node, dummy);
+}
+
+int64_t eval2(Node* node, std::string& label) {
     using enum NodeType;
     assert(node);
     type::addType(node);
 
     switch (node->nodeType) {
     case ADD:
-        return eval(node->left.get()) + eval(node->right.get());
+        return eval2(node->left.get(), label) + eval(node->right.get());
     case SUB:
-        return eval(node->left.get()) - eval(node->right.get());
+        return eval2(node->left.get(), label) - eval(node->right.get());
     case MUL:
         return eval(node->left.get()) * eval(node->right.get());
     case DIV:
@@ -258,9 +263,9 @@ int64_t eval(Node* node) {
     case GREATER_EQUAL:
         return eval(node->left.get()) >= eval(node->right.get());
     case CONDITIONAL:
-        return eval(node->condition.get()) ? eval(node->then.get()) : eval(node->els.get());
+        return eval(node->condition.get()) ? eval2(node->then.get(), label) : eval2(node->els.get(), label);
     case COMMA:
-        return eval(node->right.get());
+        return eval2(node->right.get(), label);
     case NOT:
         return !eval(node->left.get());
     case BIT_NOT:
@@ -269,45 +274,92 @@ int64_t eval(Node* node) {
         return eval(node->left.get()) && eval(node->right.get());
     case LOGICAL_OR:
         return eval(node->left.get()) || eval(node->right.get());
-    case CAST:
+    case CAST: {
+        int64_t value = eval2(node->left.get(), label);
         if (type::isInteger(node->type.get())) {
             if (node->type->size == 1) {
-                return static_cast<int64_t>(static_cast<uint8_t>(eval(node->left.get())));
+                return static_cast<int64_t>(static_cast<uint8_t>(value));
             } else if (node->type->size == 2) {
-                return static_cast<int64_t>(static_cast<uint16_t>(eval(node->left.get())));
+                return static_cast<int64_t>(static_cast<uint16_t>(value));
             } else if (node->type->size == 4) {
-                return static_cast<int64_t>(static_cast<uint32_t>(eval(node->left.get())));
+                return static_cast<int64_t>(static_cast<uint32_t>(value));
             } else if (node->type->size == 8) {
-                return static_cast<int64_t>(static_cast<uint64_t>(eval(node->left.get())));
+                return static_cast<int64_t>(static_cast<uint64_t>(value));
             }
         }
-        return eval(node->left.get());
+        return eval2(node->left.get(), label);
+    }
+    case ADDRESS:
+        return eval_rvalue(node->left.get(), label);
+    case MEMBER:
+        if (node->type->kind != TypeKind::ARRAY) {
+            Log::error("eval2: member node is not an array type"sv, node->token);
+            return 0;
+        }
+        return eval_rvalue(node->left.get(), label) + node->member->offset;
+    case VARIABLE:
+        if (node->variable->type->kind != TypeKind::ARRAY && node->variable->type->kind != TypeKind::FUNCTION) {
+            Log::error("eval2: variable node is not an array or function type"sv, node->token);
+            return 0;
+        }
+        label = node->variable->name;
+        return 0;
     case NUMBER:
         return node->value;
     default:
         // TODO: 列挙体の文字列表現
-        Log::error("token::eval: unsupported node type: {}", std::to_underlying(node->nodeType));
+        Log::error(std::format("token::eval: unsupported node type: {}", std::to_underlying(node->nodeType)));
         return 0;
     }
 }
 
-void writeGlobalVariableData(const Initializer* initializer, const std::shared_ptr<Type>& type, std::vector<char>& buf, size_t offset) {
+int64_t eval_rvalue(Node* node, std::string& label) {
+    switch (node->nodeType) {
+    case NodeType::VARIABLE:
+        if (node->variable->isLocal) {
+            Log::error("eval_rvalue: local variable is not supported");
+            return 0;
+        }
+        label = node->variable->name;
+        return 0;
+    case NodeType::DEREFERENCE:
+        return eval2(node->left.get(), label);
+    case NodeType::MEMBER:
+        return eval_rvalue(node->left.get(), label) + node->member->offset;
+    default:
+        Log::error(std::format("eval_rvalue: unsupported node type: {}", std::to_underlying(node->nodeType)));
+        return 0;
+    }
+}
+
+Relocation* writeGlobalVariableData(Relocation* relocations, const Initializer* initializer, const std::shared_ptr<Type>& type, std::vector<char>& buf, size_t offset) {
     if (type->kind == TypeKind::ARRAY) {
         for (int i = 0; i < type->arraySize; i++) {
-            writeGlobalVariableData(initializer->children[i].get(), type->base, buf, offset + i * type->base->size);
+            relocations = writeGlobalVariableData(relocations, initializer->children[i].get(), type->base, buf, offset + i * type->base->size);
         }
-        return;
+        return relocations;
     }
 
     if (type->kind == TypeKind::STRUCT) {
         for (auto member = type->members.get(); member; member = member->next.get()) {
-            writeGlobalVariableData(initializer->children[member->index].get(), member->type, buf, offset + member->offset);
+            relocations = writeGlobalVariableData(relocations, initializer->children[member->index].get(), member->type, buf, offset + member->offset);
         }
-        return;
+        return relocations;
     }
 
-    if (initializer->expression) {
-        int64_t value = eval(initializer->expression.get());
+    if (type->kind == TypeKind::UNION) {
+        relocations = writeGlobalVariableData(relocations, initializer->children[0].get(), type->members->type, buf, offset);
+        return relocations;
+    }
+
+    if (!initializer->expression) {
+        return relocations;
+    }
+
+    std::string label;
+    int64_t value = eval2(initializer->expression.get(), label);
+
+    if (label.empty()) {
         switch (type->size) {
             case 1:
                 buf[offset] = static_cast<char>(value);
@@ -324,7 +376,16 @@ void writeGlobalVariableData(const Initializer* initializer, const std::shared_p
             default:
                 std::unreachable();
         }
+        return relocations;
     }
+
+    auto relocation = std::make_unique<Relocation>();
+    relocation->offset = offset;
+    relocation->label = label;
+    relocation->addend = value;
+
+    relocations->next = std::move(relocation);
+    return relocations->next.get();
 }
 
 } // namespace yoctocc

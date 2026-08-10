@@ -264,9 +264,11 @@ void Parser::skipExcessElement(Token*& token) {
 
 void Parser::globalVariableInitializer(Token*& token, Object* variable) {
     auto initializer = parseInitializer(token, variable->type);
+    auto relocation = std::make_unique<Relocation>();
     std::vector<char> buf(variable->type->size);
-    writeGlobalVariableData(initializer.get(), variable->type, buf, 0);
+    writeGlobalVariableData(relocation.get(), initializer.get(), variable->type, buf, 0);
     variable->initialData = std::vector(buf.begin(), buf.end());
+    variable->relocations = std::move(relocation->next);
 }
 
 // expr = assign ("," expr)?
