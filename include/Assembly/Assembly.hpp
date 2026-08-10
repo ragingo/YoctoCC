@@ -4,7 +4,6 @@
 
 namespace yoctocc {
 
-constexpr std::string SYSTEM_ENTRY_POINT = "_start";
 constexpr std::string USER_ENTRY_POINT = "main";
 
 } // namespace yoctocc

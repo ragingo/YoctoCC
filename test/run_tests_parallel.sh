@@ -83,7 +83,7 @@ echo ""
 
 # コンパイラ本体のビルド
 echo -e "${YELLOW}コンパイラをビルド中...${NC}"
-if ! (cd "$PROJECT_ROOT" && make -s build/yoctocc > /dev/null 2>&1); then
+if ! (cd "$PROJECT_ROOT" && make -s build/yoctocc 2>&1); then
     echo -e "${RED}コンパイラのビルドに失敗しました${NC}"
     exit 1
 fi
@@ -91,7 +91,7 @@ echo -e "${GREEN}コンパイラ本体のビルドが完了しました${NC}"
 
 # テストヘルパーのビルド
 echo -e "${YELLOW}テストヘルパーをビルド中...${NC}"
-if ! (cd "$PROJECT_ROOT" && make -s $MAKE_X86_FLAG build/test_helper.o > /dev/null 2>&1); then
+if ! (cd "$PROJECT_ROOT" && make -s $MAKE_X86_FLAG build/test_helper.o 2>&1); then
     echo -e "${RED}テストヘルパーのビルドに失敗しました${NC}"
     exit 1
 fi
@@ -127,7 +127,7 @@ run_single_test() {
     fi
 
     # リンク
-    if ! "$X86_64_CC" -nostdlib -no-pie -o "$bin_file" "$obj_file" "$TEST_HELPER_O" > "$test_work/link.log" 2>&1; then
+    if ! "$X86_64_CC" -no-pie -o "$bin_file" "$obj_file" "$TEST_HELPER_O" > "$test_work/link.log" 2>&1; then
         echo "FAIL link" > "$result_file"
         cp "$test_work/link.log" "$test_work/error.log"
         return

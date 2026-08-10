@@ -51,7 +51,6 @@ int main() {
 ```
 
 - `ASSERT` は `test_helper.c` / `test_helper.h` で定義
-- `-nostdlib` 環境で動作（syscall ベース）
 - 失敗時は stderr にエラーを出力し、プロセスが非ゼロで終了
 
 ## ファイル構成

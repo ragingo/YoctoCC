@@ -14,11 +14,6 @@ void AssemblyWriter::compile(const std::vector<std::string>& code) noexcept {
     std::string RETURN_LABEL = ".L.return";
     _code.emplace_back(".intel_syntax noprefix\n");
     _code.emplace_back(std::format("{}\n", to_string(TEXT)));
-    _code.emplace_back(std::format("    {} {}\n", to_string(GLOBAL), SYSTEM_ENTRY_POINT));
-    _code.emplace_back(std::format("{}:\n", SYSTEM_ENTRY_POINT));
-    _code.emplace_back(std::format("    {}\n", call(USER_ENTRY_POINT)));
-    _code.emplace_back(std::format("    {}\n", jmp(RETURN_LABEL)));
-
     _code.emplace_back("\n");
     _code.emplace_back("# ===== Generated Code Start =====\n");
     _code.emplace_back("\n");
