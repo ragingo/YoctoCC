@@ -33,19 +33,18 @@ else
     QEMU_WRAPPER :=
 endif
 
-# Clang 用の libc++ フラグ（-stdlib=libc++）
-ifneq (,$(filter clang%,$(CXX)))
-    CXXFLAGS += -stdlib=libc++
-endif
+CLANG_CXX := $(filter clang%,$(notdir $(CXX)))
 
 # ビルドモード別フラグ
 ifeq ($(MODE), release)
-    CXXFLAGS := $(CXX_STD) -O3 -DNDEBUG -Wall -Wextra -I./include -c
-else ifneq (,$(filter clang%,$(CXX)))
-    CXXFLAGS := $(CXX_STD) $(CLANG_LIBCXX_FLAGS) -g -O0 -Wall -Wextra -I./include -c
+    CXXFLAGS += $(CXX_STD) -O3 -DNDEBUG -Wall -Wextra -I./include -c
 else
-    CXXFLAGS := $(CXX_STD) -g -O0 -Wall -Wextra -I./include -c -fcontracts -fcontract-evaluation-semantic=observe
-    LDFLAGS  := -fcontracts
+    CXXFLAGS += $(CXX_STD) -g -O0 -Wall -Wextra -I./include -c
+    # contracts は GCC のみ（https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html）
+    ifeq (,$(CLANG_CXX))
+        CXXFLAGS += -fcontracts -fcontract-evaluation-semantic=observe
+        LDFLAGS  += -fcontracts
+    endif
 endif
 
 # プロファイル
