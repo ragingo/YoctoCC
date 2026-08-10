@@ -59,6 +59,7 @@ namespace yoctocc {
 
 using enum GasDirective;
 using enum Register;
+using namespace directive;
 using namespace std::string_view_literals;
 
 std::vector<std::string> Generator::run(Object* obj) {
@@ -186,7 +187,7 @@ void Generator::generateAddress(const Node* node) {
 
 void Generator::emitLocation(const Node* node) {
     if (node->token->line != lastEmittedLine) {
-        addCode(directive::loc(1, static_cast<int>(node->token->line)));
+        addCode(loc(1, static_cast<int>(node->token->line)));
         lastEmittedLine = node->token->line;
     }
 }
@@ -300,7 +301,6 @@ void Generator::generateStatement(const Node* node) {
         return;
     }
 
-    using namespace std::literals;
     Log::error("Invalid statement"sv, node->token);
 }
 
@@ -519,9 +519,9 @@ void Generator::generateFunction(const Object* obj) {
     lastEmittedLine = 0;
 
     if (obj->isStatic) {
-        addCode(directive::local(obj->name));
+        addCode(local(obj->name));
     } else {
-        addCode(directive::global(obj->name));
+        addCode(global(obj->name));
     }
 
     addCode(makeLabel(obj->name).def(),
@@ -568,11 +568,11 @@ void Generator::emitData(const Object* obj) {
         }
         addCode(to_string(DATA));
         if (!var->name.starts_with(".L")) {
-            addCode(directive::global(var->name));
+            addCode(global(var->name));
         }
         addCode(makeLabel(var->name).def());
         if (var->initialData.empty()) {
-            addCode(directive::zero(var->type->size));
+            addCode(zero(var->type->size));
         } else {
             assert((var->initialData.size()) == static_cast<size_t>(var->type->size));
 
@@ -581,11 +581,11 @@ void Generator::emitData(const Object* obj) {
 
             while (pos < var->type->size) {
                 if (relocation && relocation->offset == pos) {
-                    addCode(directive::allocate(directive::QUAD, relocation->label, relocation->addend));
+                    addCode(allocate(QUAD, relocation->label, relocation->addend));
                     relocation = relocation->next.get();
                     pos += 8;
                 } else {
-                    addCode(directive::byte(var->initialData[pos]));
+                    addCode(byte(var->initialData[pos]));
                     pos++;
                 }
             }

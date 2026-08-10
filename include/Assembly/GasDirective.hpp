@@ -103,16 +103,16 @@ inline constexpr std::string allocate(GasDirective directive, const std::string&
     auto sign = offset >= 0 ? "+" : "-";
     return to_string(directive) + " " + symbol + sign + to_string(abs(offset));
 }
-static_assert(directive::allocate(GasDirective::BYTE, "foo", 0) == ".byte foo+0");
-static_assert(directive::allocate(GasDirective::BYTE, "foo", 1) == ".byte foo+1");
-static_assert(directive::allocate(GasDirective::BYTE, "foo", -1) == ".byte foo-1");
+static_assert(allocate(BYTE, "foo", 0) == ".byte foo+0");
+static_assert(allocate(BYTE, "foo", 1) == ".byte foo+1");
+static_assert(allocate(BYTE, "foo", -1) == ".byte foo-1");
 
 inline constexpr std::string loc(int fileNumber, int line, std::optional<int> column = std::nullopt) {
     return to_string(LOC) + " " + to_string(fileNumber) + " " + to_string(line) + " " +
            (column ? to_string(*column) : "");
 }
-static_assert(directive::loc(1, 2, 3) == ".loc 1 2 3");
-static_assert(directive::loc(1, 2, std::nullopt) == ".loc 1 2 ");
+static_assert(loc(1, 2, 3) == ".loc 1 2 3");
+static_assert(loc(1, 2, std::nullopt) == ".loc 1 2 ");
 
 inline constexpr std::string file(int fileNumber, const std::string& filename) {
     return to_string(FILE) + " " + to_string(fileNumber) + " \"" + filename + "\"";
