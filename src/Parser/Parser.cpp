@@ -285,6 +285,13 @@ void Parser::parseInitializer2(Token*& token, std::unique_ptr<Initializer>& init
         return;
     }
 
+    if (token::is(token, "{")) {
+        token = token->next.get();
+        parseInitializer2(token, initializer);
+        token = token::skipIf(token, "}");
+        return;
+    }
+
     auto [node, rest] = parseAssignment(token);
     initializer->expression = std::move(node);
     token = rest;
