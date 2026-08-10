@@ -74,8 +74,11 @@ private:
     ParseResult parseVariableInitializer(Token* token, Object* variable);
     std::unique_ptr<Initializer> parseInitializer(Token*& token, std::shared_ptr<Type>& type);
     void stringInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
-    void arrayInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
-    void structInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
+    int countElements(Token* token, std::shared_ptr<Type> type);
+    void arrayInitializer1(Token*& token, std::unique_ptr<Initializer>& initializer);
+    void arrayInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer);
+    void structInitializer1(Token*& token, std::unique_ptr<Initializer>& initializer);
+    void structInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer);
     void unionInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
     void parseInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer);
     void skipExcessElement(Token*& token);

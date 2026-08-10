@@ -154,20 +154,20 @@ void Parser::stringInitializer(Token*& token, std::unique_ptr<Initializer>& init
     token = token->next.get();
 }
 
-// array-initializer = "{" initializer ("," initializer)* "}"
-void Parser::arrayInitializer(Token*& token, std::unique_ptr<Initializer>& initializer) {
-    auto countElements = [=, this](Token* token, std::shared_ptr<Type> type) {
-        auto dummyInitializer = createInitializer(type);
-        int i = 0;
-        for (; !token::is(token, "}"); i++) {
-            if (i > 0) {
-                token = token::skipIf(token, ",");
-            }
-            parseInitializer2(token, dummyInitializer);
+int Parser::countElements(Token* token, std::shared_ptr<Type> type) {
+    auto dummyInitializer = createInitializer(type);
+    int i = 0;
+    for (; !token::is(token, "}"); i++) {
+        if (i > 0) {
+            token = token::skipIf(token, ",");
         }
-        return i;
-    };
+        parseInitializer2(token, dummyInitializer);
+    }
+    return i;
+}
 
+// array-initializer1 = "{" initializer ("," initializer)* "}"
+void Parser::arrayInitializer1(Token*& token, std::unique_ptr<Initializer>& initializer) {
     token = token::skipIf(token, "{");
 
     if (initializer->isFlexibleArray) {
@@ -187,8 +187,23 @@ void Parser::arrayInitializer(Token*& token, std::unique_ptr<Initializer>& initi
     }
 }
 
-// struct-initializer = "{" initializer ("," initializer)* "}"
-void Parser::structInitializer(Token*& token, std::unique_ptr<Initializer>& initializer) {
+// array-initializer2 = initializer ("," initializer)*
+void Parser::arrayInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer) {
+    if (initializer->isFlexibleArray) {
+        int count = countElements(token, initializer->type->base);
+        initializer = createInitializer(type::arrayOf(initializer->type->base, count));
+    }
+
+    for (int i = 0; i < initializer->type->arraySize && !token::consume(token, "}"); i++) {
+        if (i > 0) {
+            token = token::skipIf(token, ",");
+        }
+        parseInitializer2(token, initializer->children[i]);
+    }
+}
+
+// struct-initializer1 = "{" initializer ("," initializer)* "}"
+void Parser::structInitializer1(Token*& token, std::unique_ptr<Initializer>& initializer) {
     token = token::skipIf(token, "{");
 
     auto members = initializer->type->members.get();
@@ -207,10 +222,27 @@ void Parser::structInitializer(Token*& token, std::unique_ptr<Initializer>& init
     }
 }
 
+// struct-initializer2 = initializer ("," initializer)*
+void Parser::structInitializer2(Token*& token, std::unique_ptr<Initializer>& initializer) {
+    bool isFirst = true;
+
+    for (auto member = initializer->type->members.get(); member; member = member->next.get()) {
+        if (!isFirst) {
+            token = token::skipIf(token, ",");
+        }
+        isFirst = false;
+        parseInitializer2(token, initializer->children[member->index]);
+    }
+}
+
 void Parser::unionInitializer(Token*& token, std::unique_ptr<Initializer>& initializer) {
-    token = token::skipIf(token, "{");
-    parseInitializer2(token, initializer->children[0]);
-    token = token::skipIf(token, "}");
+    if (token::is(token, "{")) {
+        token = token->next.get();
+        parseInitializer2(token, initializer->children[0]);
+        token = token::skipIf(token, "}");
+    } else {
+        parseInitializer2(token, initializer->children[0]);
+    }
 }
 
 // initializer = string-initializer | array-initializer
@@ -221,22 +253,30 @@ void Parser::parseInitializer2(Token*& token, std::unique_ptr<Initializer>& init
         if (token->kind == TokenKind::STRING) {
             stringInitializer(token, initializer);
         } else {
-            arrayInitializer(token, initializer);
+            if (token::is(token, "{")) {
+                arrayInitializer1(token, initializer);
+            } else {
+                arrayInitializer2(token, initializer);
+            }
         }
         return;
     }
 
     if (initializer->type->kind == TypeKind::STRUCT) {
-        if (!token::is(token, "{")) {
-            auto [node, rest] = parseAssignment(token);
-            type::addType(node.get());
-            if (node->type->kind == TypeKind::STRUCT) {
-                initializer->expression = std::move(node);
-                token = rest;
-                return;
-            }
+        if (token::is(token, "{")) {
+            structInitializer1(token, initializer);
+            return;
         }
-        structInitializer(token, initializer);
+
+        auto [node, rest] = parseAssignment(token);
+        type::addType(node.get());
+        if (node->type->kind == TypeKind::STRUCT) {
+            initializer->expression = std::move(node);
+            token = rest;
+            return;
+        }
+
+        structInitializer2(token, initializer);
         return;
     }
 
