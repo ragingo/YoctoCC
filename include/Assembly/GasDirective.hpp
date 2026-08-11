@@ -65,6 +65,14 @@ constexpr std::string to_string(GasDirective directive) {
 namespace directive {
 using enum GasDirective;
 
+namespace section {
+
+inline constexpr std::string text = to_string(TEXT);
+inline constexpr std::string data = to_string(DATA);
+inline constexpr std::string bss = to_string(BSS);
+
+} // namespace section
+
 inline constexpr std::string extern_(const std::string& symbol) {
     return to_string(EXTERN) + " " + symbol;
 }

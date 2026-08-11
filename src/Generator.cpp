@@ -566,15 +566,16 @@ void Generator::emitData(const Object* obj) {
         if (var->isFunction) {
             continue;
         }
-        addCode(to_string(DATA));
+
         if (!var->name.starts_with(".L")) {
             addCode(global(var->name));
         }
-        addCode(makeLabel(var->name).def());
-        if (var->initialData.empty()) {
-            addCode(zero(var->type->size));
-        } else {
+
+        if (!var->initialData.empty()) {
             assert((var->initialData.size()) == static_cast<size_t>(var->type->size));
+
+            addCode(section::data);
+            addCode(makeLabel(var->name).def());
 
             auto relocation = var->relocations.get();
             int pos = 0;
@@ -589,14 +590,20 @@ void Generator::emitData(const Object* obj) {
                     pos++;
                 }
             }
+
+            continue;
         }
+
+        addCode(section::bss);
+        addCode(makeLabel(var->name).def());
+        addCode(zero(var->type->size));
     }
 }
 
 void Generator::emitText(const Object* obj) {
     assert(obj);
 
-    addCode(to_string(TEXT));
+    addCode(section::text);
 
     for (const Object* fn = obj; fn; fn = fn->next.get()) {
         if (!fn->isFunction || !fn->isDefinition) {
