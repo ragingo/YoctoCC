@@ -34,7 +34,7 @@ private:
     // enum-specifier = ident? "{" enum-list? "}"
     //                | ident ("{" enum-list? "}")?
     //
-    // enum-list      = ident ("=" num)? ("," ident ("=" num)?)*
+    // enum-list      = ident ("=" num)? ("," ident ("=" num)?)* ","?
     std::shared_ptr<Type> enumSpecifier(Token*& token);
     // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
     //             | "typedef" | "static"

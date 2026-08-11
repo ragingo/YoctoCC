@@ -108,6 +108,15 @@ inline const std::string& getIdentifier(const Token* token) {
     return token->originalValue;
 }
 
+inline bool isEnd(const Token* token) {
+    assert(token);
+    return is(token, "}") || (is(token, ",") && is(token->next.get(), "}"));
+}
+
+inline bool consumeEnd(Token*& token) {
+    return consume(token, "}") || (consume(token, ",") && consume(token, "}"));
+}
+
 } // namespace token
 
 } // namespace yoctocc

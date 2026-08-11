@@ -157,7 +157,7 @@ void Parser::stringInitializer(Token*& token, std::unique_ptr<Initializer>& init
 int Parser::countElements(Token* token, std::shared_ptr<Type> type) {
     auto dummyInitializer = createInitializer(type);
     int i = 0;
-    for (; !token::is(token, "}"); i++) {
+    for (; !token::consumeEnd(token); i++) {
         if (i > 0) {
             token = token::skipIf(token, ",");
         }
@@ -166,7 +166,7 @@ int Parser::countElements(Token* token, std::shared_ptr<Type> type) {
     return i;
 }
 
-// array-initializer1 = "{" initializer ("," initializer)* "}"
+// array-initializer1 = "{" initializer ("," initializer)* ","? "}"
 void Parser::arrayInitializer1(Token*& token, std::unique_ptr<Initializer>& initializer) {
     token = token::skipIf(token, "{");
 
@@ -175,7 +175,7 @@ void Parser::arrayInitializer1(Token*& token, std::unique_ptr<Initializer>& init
         initializer = createInitializer(type::arrayOf(initializer->type->base, count));
     }
 
-    for (int i = 0; !token::consume(token, "}"); i++) {
+    for (int i = 0; !token::consumeEnd(token); i++) {
         if (i > 0) {
             token = token::skipIf(token, ",");
         }
@@ -194,7 +194,7 @@ void Parser::arrayInitializer2(Token*& token, std::unique_ptr<Initializer>& init
         initializer = createInitializer(type::arrayOf(initializer->type->base, count));
     }
 
-    for (int i = 0; i < initializer->type->arraySize && !token::consume(token, "}"); i++) {
+    for (int i = 0; i < initializer->type->arraySize && !token::isEnd(token); i++) {
         if (i > 0) {
             token = token::skipIf(token, ",");
         }
@@ -202,13 +202,13 @@ void Parser::arrayInitializer2(Token*& token, std::unique_ptr<Initializer>& init
     }
 }
 
-// struct-initializer1 = "{" initializer ("," initializer)* "}"
+// struct-initializer1 = "{" initializer ("," initializer)* ","? "}"
 void Parser::structInitializer1(Token*& token, std::unique_ptr<Initializer>& initializer) {
     token = token::skipIf(token, "{");
 
     auto members = initializer->type->members.get();
 
-    while (!token::consume(token, "}")) {
+    while (!token::consumeEnd(token)) {
         if (members != initializer->type->members.get()) {
             token = token::skipIf(token, ",");
         }
@@ -227,6 +227,9 @@ void Parser::structInitializer2(Token*& token, std::unique_ptr<Initializer>& ini
     bool isFirst = true;
 
     for (auto member = initializer->type->members.get(); member; member = member->next.get()) {
+        if (token::isEnd(token)) {
+            break;
+        }
         if (!isFirst) {
             token = token::skipIf(token, ",");
         }
@@ -239,6 +242,7 @@ void Parser::unionInitializer(Token*& token, std::unique_ptr<Initializer>& initi
     if (token::is(token, "{")) {
         token = token->next.get();
         parseInitializer2(token, initializer->children[0]);
+        token::consume(token, ",");
         token = token::skipIf(token, "}");
     } else {
         parseInitializer2(token, initializer->children[0]);

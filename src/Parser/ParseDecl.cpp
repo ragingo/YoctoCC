@@ -120,7 +120,7 @@ std::shared_ptr<Type> Parser::unionDecl(Token*& token) {
 // enum-specifier = ident? "{" enum-list? "}"
 //                | ident ("{" enum-list? "}")?
 //
-// enum-list      = ident ("=" const-expr)? ("," ident ("=" const-expr)?)*
+// enum-list      = ident ("=" num)? ("," ident ("=" num)?)* ","?
 std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
     Token* tag = nullptr;
 
@@ -142,7 +142,7 @@ std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
     int i = 0;
     int value = 0;
     auto type = type::enumType();
-    while (!token::is(token, "}")) {
+    while (!token::consumeEnd(token)) {
         if (i++ > 0) {
             token = token::skipIf(token, ",");
         }
@@ -158,8 +158,6 @@ std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
         scope->enumType = type;
         scope->enumValue = value++;
     }
-
-    token = token->next.get();
 
     if (tag) {
         _parseScope.pushTagScope(tag->originalValue, type);
