@@ -151,6 +151,6 @@ inline std::unique_ptr<Object> makeFunction(const std::string& name, const std::
     func->name = name;
     func->type = returnType;
     return func;
-};
+}
 
 } // namespace yoctocc
