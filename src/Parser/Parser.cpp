@@ -576,7 +576,7 @@ ParseResult Parser::parseConditional(Token* token) {
     return {std::move(node), afterElse};
 }
 
-// stmt = "return" expr ";"
+// stmt = "return" expr? ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "switch" "(" expr ")" stmt
 //      | "case" const-expr ":" stmt
@@ -592,12 +592,21 @@ ParseResult Parser::parseConditional(Token* token) {
 ParseResult Parser::parseStatement(Token* token) {
     if (token::is(token, "return")) {
         assert(_currentFunction);
+        auto returnNode = std::make_unique<Node>(NodeType::RETURN, token);
+
         auto start = token;
+        token = token->next.get();
+        if (token::consume(token, ";")) {
+            return {std::move(returnNode), token};
+        }
+        token = start;
+
         auto [expr, rest] = parseExpression(token->next.get());
         rest = token::skipIf(rest, ";");
         type::addType(expr.get());
         auto lhsNode = createCastNode(std::move(expr), _currentFunction->type->returnType);
-        return {createUnaryNode(NodeType::RETURN, start, std::move(lhsNode)), rest};
+        returnNode->left = std::move(lhsNode);
+        return {std::move(returnNode), rest};
     }
 
     if (token::is(token, "if")) {

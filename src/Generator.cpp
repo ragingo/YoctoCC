@@ -291,7 +291,9 @@ void Generator::generateStatement(const Node* node) {
     }
 
     if (node->nodeType == NodeType::RETURN) {
-        generateExpression(node->left.get());
+        if (node->left) {
+            generateExpression(node->left.get());
+        }
         addCode(jmp(labels::label("return", currentFunction->name).ref()));
         return;
     }
