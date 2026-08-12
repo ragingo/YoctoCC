@@ -46,6 +46,7 @@ struct Type {
 
     // struct type
     std::shared_ptr<Member> members;
+    bool isFlexibleArray = false;
 
     // function type
     std::shared_ptr<Type> returnType;
@@ -58,6 +59,7 @@ struct Type {
 };
 
 namespace type {
+
 using enum TypeKind;
 
 inline std::shared_ptr<Type> voidType() {
@@ -154,6 +156,8 @@ std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base);
 std::shared_ptr<Type> functionType(const std::shared_ptr<Type>& returnType);
 std::shared_ptr<Type> arrayOf(const std::shared_ptr<Type>& base, int size);
 void addType(Node* node);
+std::shared_ptr<Type> copyStructType(const std::shared_ptr<Type>& from);
+
 } // namespace type
 
 } // namespace yoctocc

@@ -27,7 +27,14 @@ std::unique_ptr<Initializer> createInitializer(const std::shared_ptr<Type>& type
 
     if (type->kind == TypeKind::STRUCT || type->kind == TypeKind::UNION) {
         for (auto member = type->members.get(); member; member = member->next.get()) {
-            initializer->children.emplace_back(createInitializer(member->type));
+            if (isFlexibleArray && type->isFlexibleArray && !member->next) {
+                auto child = std::make_unique<Initializer>();
+                child->type = member->type;
+                child->isFlexibleArray = true;
+                initializer->children.emplace_back(std::move(child));
+            } else {
+                initializer->children.emplace_back(createInitializer(member->type));
+            }
         }
         return initializer;
     }

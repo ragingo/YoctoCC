@@ -202,4 +202,23 @@ void addType(Node* node) {
     }
 }
 
+std::shared_ptr<Type> copyStructType(const std::shared_ptr<Type>& from) {
+    auto to = std::make_shared<Type>(*from);
+    auto head = std::make_unique<Member>();
+    auto current = head.get();
+
+    for (auto member = from->members.get(); member; member = member->next.get()) {
+        auto copy = std::make_unique<Member>();
+        copy->name = member->name;
+        copy->type = member->type;
+        copy->offset = member->offset;
+        copy->index = member->index;
+        current->next = std::move(copy);
+        current = current->next.get();
+    }
+
+    to->members = std::move(head->next);
+    return to;
+}
+
 } // namespace yoctocc::type

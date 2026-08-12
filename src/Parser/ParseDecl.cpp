@@ -41,6 +41,7 @@ void Parser::structMembers(Token*& token, std::shared_ptr<Type>& structType) {
     if (current != head.get()) {
         if (current->type->kind == TypeKind::ARRAY && current->type->arraySize < 0) {
             current->type = type::arrayOf(current->type->base, 0);
+            structType->isFlexibleArray = true;
         }
     }
 

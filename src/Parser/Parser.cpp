@@ -132,9 +132,22 @@ ParseResult Parser::parseVariableInitializer(Token* token, Object* variable) {
 }
 
 std::unique_ptr<Initializer> Parser::parseInitializer(Token*& token, std::shared_ptr<Type>& type) {
-    auto initializer = createInitializer(type, type->kind == TypeKind::ARRAY && type->arraySize < 0);
+    auto initializer = createInitializer(type, true);
     initializer->token = token;
     parseInitializer2(token, initializer);
+
+    if ((type::is(type, TypeKind::STRUCT) || type::is(type, TypeKind::UNION)) && type->isFlexibleArray) {
+        auto newType = type::copyStructType(type);
+        auto member = newType->members.get();
+        while (member->next) {
+            member = member->next.get();
+        }
+        member->type = initializer->children[member->index]->type;
+        newType->size += member->type->size;
+        type = newType;
+        return initializer;
+    }
+
     type = initializer->type;
     return initializer;
 }
