@@ -47,7 +47,7 @@ private:
     std::shared_ptr<Type> declarator(Token*& token, const std::shared_ptr<Type>& baseType);
     // type-name = declspec abstract-declarator
     std::shared_ptr<Type> typeName(Token*& token);
-    // func-params = (param ("," param)*)? ")"
+    // func-params = ("void" | param ("," param)*)? ")"
     // param       = declspec declarator
     std::shared_ptr<Type> functionParameters(Token*& token, std::shared_ptr<Type>& type);
     // array-dimensions = num? "]" type-suffix
