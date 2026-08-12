@@ -21,7 +21,8 @@ enum class GasDirective {
     ASCII,
     ASCIZ,
     LOC,
-    FILE
+    FILE,
+    ALIGN
 };
 
 constexpr std::string to_string(GasDirective directive) {
@@ -57,6 +58,8 @@ constexpr std::string to_string(GasDirective directive) {
             return ".loc";
         case FILE:
             return ".file";
+        case ALIGN:
+            return ".align";
         default:
             return "???";
     }
@@ -124,6 +127,10 @@ static_assert(loc(1, 2, std::nullopt) == ".loc 1 2 ");
 
 inline constexpr std::string file(int fileNumber, const std::string& filename) {
     return to_string(FILE) + " " + to_string(fileNumber) + " \"" + filename + "\"";
+}
+
+inline constexpr std::string align(int size) {
+    return to_string(ALIGN) + " " + to_string(size);
 }
 
 } // namespace directive

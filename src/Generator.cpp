@@ -567,9 +567,8 @@ void Generator::emitData(const Object* obj) {
             continue;
         }
 
-        if (!var->name.starts_with(".L")) {
-            addCode(global(var->name));
-        }
+        addCode(global(var->name));
+        addCode(align(var->type->alignment));
 
         if (!var->initialData.empty()) {
             assert((var->initialData.size()) == static_cast<size_t>(var->type->size));
