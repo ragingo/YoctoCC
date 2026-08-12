@@ -998,6 +998,12 @@ ParseResult Parser::parseCast(Token* token) {
         auto next = token->next.get();
         auto type = typeName(next);
         token = token::skipIf(next, ")");
+
+        // compound literal
+        if (token::is(token, "{")) {
+            return parseUnary(start);
+        }
+
         auto [expr, rest] = parseCast(token);
         auto node = createCastNode(std::move(expr), type);
         node->token = start;
@@ -1053,8 +1059,28 @@ ParseResult Parser::parseUnary(Token* token) {
     return parsePostfix(token);
 }
 
-// postfix = primary ("[" expr "]" | "." ident | "->" ident | "++" | "--")*
+// postfix = "(" type-name ")" "{" initializer-list "}"
+//         | primary ("[" expr "]" | "." ident | "->" ident | "++" | "--")*
 ParseResult Parser::parsePostfix(Token* token) {
+    if (token::is(token, "(") && parser::isTypeName(token->next.get(), _parseScope)) {
+        // compound literal
+        auto start = token;
+        token = token->next.get();
+        auto type = typeName(token);
+        token = token::skipIf(token, ")");
+
+        if (!_parseScope.currentScope()->next) {
+            auto var = createGlobalAnonymousVariable(type);
+            globalVariableInitializer(token, var);
+            return {createVariableNode(start, var), token};
+        }
+
+        auto var = createLocalVariable("", type);
+        auto [left, rest] = parseVariableInitializer(token, var);
+        auto right = createVariableNode(token, var);
+        return {createBinaryNode(NodeType::COMMA, start, std::move(left), std::move(right)), rest};
+    }
+
     auto [node, rest] = parsePrimary(token);
     token = rest;
 
