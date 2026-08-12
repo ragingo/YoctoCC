@@ -783,8 +783,19 @@ ParseResult Parser::parseCompoundStatement(Token* token) {
         if (parser::isTypeName(token, _parseScope) && !token::is(token->next.get(), ":")) {
             VariableAttribute attr{};
             auto baseType = declSpec(token, &attr);
+
             if (attr.isTypeDef) {
                 token = parseTypeDef(token, baseType);
+                continue;
+            }
+
+            if (isFunction(token)) {
+                token = parseFunction(token, baseType, attr);
+                continue;
+            }
+
+            if (attr.isExtern) {
+                token = parseGlobalVariable(token, baseType, attr);
                 continue;
             }
 
