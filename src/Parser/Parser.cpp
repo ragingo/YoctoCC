@@ -1217,6 +1217,7 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
 //         | "sizeof" "(" type-name ")"
 //         | "sizeof" unary
 //         | "_Alignof" "(" type-name ")"
+//         | "_Alignof" unary
 //         | ident func-args?
 //         | str
 //         | num
@@ -1253,11 +1254,15 @@ ParseResult Parser::parsePrimary(Token* token) {
     }
 
     if (token::is(token, Keyword::ALIGNOF)) {
-        token = token->next.get();
-        token = token::skipIf(token, "(");
-        auto type = typeName(token);
-        auto rest = token::skipIf(token, ")");
-        return {createNumberNode(token, type->alignment), rest};
+        if (token::is(token->next.get(), "(") && type::isTypeName(token->next->next.get())) {
+            token = token->next->next.get();
+            auto type = typeName(token);
+            auto rest = token::skipIf(token, ")");
+            return {createNumberNode(token, type->alignment), rest};
+        }
+        auto [node, rest] = parseUnary(token->next.get());
+        type::addType(node.get());
+        return {createNumberNode(token, node->type->alignment), rest};
     }
 
     if (token->kind == TokenKind::IDENTIFIER) {
