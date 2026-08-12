@@ -83,6 +83,10 @@ Object* Parser::createGlobalVariable(const std::string& name, const std::shared_
     return raw;
 }
 
+Object* Parser::createGlobalAnonymousVariable(const std::shared_ptr<Type>& type) {
+    return createGlobalVariable(makeUniqueName(), type);
+}
+
 // declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
 ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseType, const VariableAttribute* attr) {
     auto head = std::make_unique<Node>(NodeType::UNKNOWN, token);
@@ -94,11 +98,23 @@ ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseT
         if (i++ > 0) {
             token = token::skipIf(token, ",");
         }
+
         auto varType = declarator(token, baseType);
         if (varType->kind == TypeKind::VOID) {
             Log::error("Variable cannot be of type void"sv, token);
             return {};
         }
+
+        if (attr && attr->isStatic) {
+            auto var = createGlobalAnonymousVariable(varType);
+            _parseScope.pushVariableScope(token::getIdentifier(varType->name))->variable = var;
+            if (token::is(token, "=")) {
+                token = token->next.get();
+                globalVariableInitializer(token, var);
+            }
+            continue;
+        }
+
         auto varName = token::getIdentifier(varType->name);
         auto var = createLocalVariable(varName, varType);
 
@@ -112,10 +128,12 @@ ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseT
             current->next = createUnaryNode(NodeType::EXPRESSION_STATEMENT, token, std::move(node));
             current = current->next.get();
         }
+
         if (var->type->size < 0) {
             Log::error("Variable has incomplete type"sv, token);
             return {};
         }
+
         if (var->type->kind == TypeKind::VOID) {
             Log::error("Variable cannot be of type void"sv, token);
             return {};
@@ -1290,7 +1308,7 @@ ParseResult Parser::parsePrimary(Token* token) {
     }
 
     if (token->kind == TokenKind::STRING) {
-        auto var = createGlobalVariable(makeUniqueName(), token->type);
+        auto var = createGlobalAnonymousVariable(token->type);
         var->initialData = std::vector<char>(token->originalValue.begin(), token->originalValue.end());
         var->initialData.emplace_back('\0');
         return {createVariableNode(token, var), token->next.get()};
