@@ -23,39 +23,43 @@ private:
     std::string name;
 };
 
-inline constexpr Label makeLabel(const std::string& name) {
+namespace labels {
+
+inline constexpr Label label(const std::string& name) {
     return Label(name);
 }
 
-inline constexpr Label makeLabel(const std::string& prefix, uint64_t id) {
+inline constexpr Label label(const std::string& prefix, uint64_t id) {
     return Label(".L." + prefix + "." + to_string(id));
 }
 
-inline constexpr Label makeLabel(const std::string& prefix, const std::string& name) {
+inline constexpr Label label(const std::string& prefix, const std::string& name) {
     return Label(".L." + prefix + "." + name);
 }
 
-inline constexpr Label makeBeginLabel(uint64_t id) {
-    return makeLabel("begin", id);
+inline constexpr Label begin(uint64_t id) {
+    return label("begin", id);
 }
 
-inline constexpr Label makeElseLabel(uint64_t id) {
-    return makeLabel("else", id);
+inline constexpr Label else_(uint64_t id) {
+    return label("else", id);
 }
 
-inline constexpr Label makeEndLabel(uint64_t id) {
-    return makeLabel("end", id);
+inline constexpr Label end(uint64_t id) {
+    return label("end", id);
 }
 
-inline constexpr Label makeFalseLabel(uint64_t id) {
-    return makeLabel("false", id);
+inline constexpr Label false_(uint64_t id) {
+    return label("false", id);
 }
 
-inline constexpr Label makeTrueLabel(uint64_t id) {
-    return makeLabel("true", id);
+inline constexpr Label true_(uint64_t id) {
+    return label("true", id);
 }
 
-static_assert(makeBeginLabel(1).ref() == ".L.begin.1");
-static_assert(makeElseLabel(1).def() == ".L.else.1:");
+static_assert(begin(1).ref() == ".L.begin.1");
+static_assert(else_(1).def() == ".L.else.1:");
+
+} // namespace labels
 
 } // namespace yoctocc

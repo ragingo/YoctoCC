@@ -199,8 +199,8 @@ void Generator::generateStatement(const Node* node) {
 
     if (node->nodeType == NodeType::IF) {
         uint64_t count = labelCount++;
-        auto elseLabel = makeElseLabel(count);
-        auto endLabel = makeEndLabel(count);
+        auto elseLabel = labels::else_(count);
+        auto endLabel = labels::end(count);
 
         generateExpression(node->condition.get());
         // if
@@ -220,9 +220,9 @@ void Generator::generateStatement(const Node* node) {
 
     if (node->nodeType == NodeType::FOR) {
         uint64_t count = labelCount++;
-        auto beginLabel = makeBeginLabel(count);
-        auto breakLabel = makeLabel(node->breakLabel);
-        auto continueLabel = makeLabel(node->continueLabel);
+        auto beginLabel = labels::begin(count);
+        auto breakLabel = labels::label(node->breakLabel);
+        auto continueLabel = labels::label(node->continueLabel);
 
         if (node->init) {
             generateStatement(node->init.get());
@@ -252,14 +252,14 @@ void Generator::generateStatement(const Node* node) {
             } else {
                 addCode(cmp(EAX, static_cast<int32_t>(caseNode->value)));
             }
-            addCode(je(makeLabel(caseNode->label).ref()));
+            addCode(je(labels::label(caseNode->label).ref()));
         }
 
         if (node->defaultCase) {
-            addCode(jmp(makeLabel(node->defaultCase->label).ref()));
+            addCode(jmp(labels::label(node->defaultCase->label).ref()));
         }
 
-        auto breakLabel = makeLabel(node->breakLabel);
+        auto breakLabel = labels::label(node->breakLabel);
         addCode(jmp(breakLabel.ref()));
         generateStatement(node->then.get());
         addCode(breakLabel.def());
@@ -267,7 +267,7 @@ void Generator::generateStatement(const Node* node) {
     }
 
     if (node->nodeType == NodeType::CASE) {
-        addCode(makeLabel(node->label).def());
+        addCode(labels::label(node->label).def());
         generateStatement(node->left.get());
         return;
     }
@@ -285,14 +285,14 @@ void Generator::generateStatement(const Node* node) {
     }
 
     if (node->nodeType == NodeType::LABEL) {
-        addCode(makeLabel(node->uniqueLabel).def());
+        addCode(labels::label(node->uniqueLabel).def());
         generateStatement(node->left.get());
         return;
     }
 
     if (node->nodeType == NodeType::RETURN) {
         generateExpression(node->left.get());
-        addCode(jmp(makeLabel("return", currentFunction->name).ref()));
+        addCode(jmp(labels::label("return", currentFunction->name).ref()));
         return;
     }
 
@@ -372,8 +372,8 @@ void Generator::generateExpression(const Node* node) {
             return;
         case NodeType::CONDITIONAL: {
             uint64_t count = labelCount++;
-            auto elseLabel = makeElseLabel(count);
-            auto endLabel = makeEndLabel(count);
+            auto elseLabel = labels::else_(count);
+            auto endLabel = labels::end(count);
             generateExpression(node->condition.get());
             addCode(cmp(RAX, 0));
             addCode(je(elseLabel.ref()));
@@ -396,8 +396,8 @@ void Generator::generateExpression(const Node* node) {
             return;
         case NodeType::LOGICAL_AND: {
             uint64_t count = labelCount++;
-            auto falseLabel = makeFalseLabel(count);
-            auto endLabel = makeEndLabel(count);
+            auto falseLabel = labels::false_(count);
+            auto endLabel = labels::end(count);
             generateExpression(node->left.get());
             addCode(cmp(RAX, 0));
             addCode(je(falseLabel.ref()));
@@ -413,8 +413,8 @@ void Generator::generateExpression(const Node* node) {
         }
         case NodeType::LOGICAL_OR: {
             uint64_t count = labelCount++;
-            auto trueLabel = makeTrueLabel(count);
-            auto endLabel = makeEndLabel(count);
+            auto trueLabel = labels::true_(count);
+            auto endLabel = labels::end(count);
             generateExpression(node->left.get());
             addCode(cmp(RAX, 0));
             addCode(jne(trueLabel.ref()));
@@ -524,7 +524,7 @@ void Generator::generateFunction(const Object* obj) {
         addCode(global(obj->name));
     }
 
-    addCode(makeLabel(obj->name).def(),
+    addCode(labels::label(obj->name).def(),
             // Prologue
             push(RBP),
             mov(RBP, RSP));
@@ -556,7 +556,7 @@ void Generator::generateFunction(const Object* obj) {
 
     generateStatement(obj->body.get());
     // Epilogue
-    addCode(makeLabel("return", obj->name).def(), mov(RSP, RBP), pop(RBP), ret());
+    addCode(labels::label("return", obj->name).def(), mov(RSP, RBP), pop(RBP), ret());
 }
 
 void Generator::emitData(const Object* obj) {
@@ -574,7 +574,7 @@ void Generator::emitData(const Object* obj) {
             assert((var->initialData.size()) == static_cast<size_t>(var->type->size));
 
             addCode(section::data);
-            addCode(makeLabel(var->name).def());
+            addCode(labels::label(var->name).def());
 
             auto relocation = var->relocations.get();
             int pos = 0;
@@ -594,7 +594,7 @@ void Generator::emitData(const Object* obj) {
         }
 
         addCode(section::bss);
-        addCode(makeLabel(var->name).def());
+        addCode(labels::label(var->name).def());
         addCode(zero(var->type->size));
     }
 }
