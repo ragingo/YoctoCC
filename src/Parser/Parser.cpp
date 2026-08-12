@@ -84,7 +84,7 @@ Object* Parser::createGlobalVariable(const std::string& name, const std::shared_
 }
 
 // declaration = declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
-ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseType) {
+ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseType, const VariableAttribute* attr) {
     auto head = std::make_unique<Node>(NodeType::UNKNOWN, token);
     Node* current = head.get();
 
@@ -101,6 +101,11 @@ ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseT
         }
         auto varName = token::getIdentifier(varType->name);
         auto var = createLocalVariable(varName, varType);
+
+        if (attr && attr->alignment) {
+            var->alignment = attr->alignment;
+        }
+
         if (token::is(token, "=")) {
             auto [node, rest] = parseVariableInitializer(token->next.get(), var);
             token = rest;
@@ -671,7 +676,7 @@ ParseResult Parser::parseStatement(Token* token) {
 
         if (type::isTypeName(token)) {
             auto baseType = declSpec(token, nullptr);
-            auto [initDecl, afterDecl] = declaration(token, baseType);
+            auto [initDecl, afterDecl] = declaration(token, baseType, nullptr);
             node->init = std::move(initDecl);
             token = afterDecl;
         } else {
@@ -799,7 +804,7 @@ ParseResult Parser::parseCompoundStatement(Token* token) {
                 continue;
             }
 
-            auto [decl, rest] = declaration(token, baseType);
+            auto [decl, rest] = declaration(token, baseType, &attr);
             current->next = std::move(decl);
             token = rest;
         } else {
@@ -1188,10 +1193,16 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
             token = token::skipIf(token, ",");
         }
         isFirst = false;
+
         auto varType = declarator(token, baseType);
         auto varName = token::getIdentifier(varType->name);
         auto var = createGlobalVariable(varName, varType);
         var->isDefinition = !attr.isExtern;
+
+        if (attr.alignment) {
+            var->alignment = attr.alignment;
+        }
+
         if (token::is(token, "=")) {
             token = token->next.get();
             globalVariableInitializer(token, var);
@@ -1205,6 +1216,7 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
 //         | "(" expr ")"
 //         | "sizeof" "(" type-name ")"
 //         | "sizeof" unary
+//         | "_Alignof" "(" type-name ")"
 //         | ident func-args?
 //         | str
 //         | num
@@ -1238,6 +1250,14 @@ ParseResult Parser::parsePrimary(Token* token) {
         auto [operand, rest] = parseUnary(token->next.get());
         type::addType(operand.get());
         return {createNumberNode(token, operand->type->size), rest};
+    }
+
+    if (token::is(token, Keyword::ALIGNOF)) {
+        token = token->next.get();
+        token = token::skipIf(token, "(");
+        auto type = typeName(token);
+        auto rest = token::skipIf(token, ")");
+        return {createNumberNode(token, type->alignment), rest};
     }
 
     if (token->kind == TokenKind::IDENTIFIER) {

@@ -14,6 +14,7 @@ struct VariableAttribute {
     bool isTypeDef;
     bool isStatic;
     bool isExtern;
+    int alignment;
 };
 
 struct Initializer {

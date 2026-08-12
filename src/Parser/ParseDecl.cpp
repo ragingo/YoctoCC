@@ -20,7 +20,8 @@ void Parser::structMembers(Token*& token, std::shared_ptr<Type>& structType) {
     int index = 0;
 
     while (!token::is(token, "}")) {
-        auto baseType = declSpec(token, nullptr);
+        VariableAttribute attr;
+        auto baseType = declSpec(token, &attr);
 
         bool isFirst = true;
         while (!token::consume(token, ";")) {
@@ -33,6 +34,7 @@ void Parser::structMembers(Token*& token, std::shared_ptr<Type>& structType) {
             member->type = memberType;
             member->name = memberType->name;
             member->index = index++;
+            member->alignment = attr.alignment ? attr.alignment : member->type->alignment;
             current->next = std::move(member);
             current = current->next.get();
         }
@@ -94,10 +96,10 @@ std::shared_ptr<Type> Parser::structDecl(Token*& token) {
 
     int offset = 0;
     for (auto member = type->members.get(); member; member = member->next.get()) {
-        offset = alignTo(offset, member->type->alignment);
+        offset = alignTo(offset, member->alignment);
         member->offset = offset;
         offset += member->type->size;
-        type->alignment = std::max(type->alignment, member->type->alignment);
+        type->alignment = std::max(type->alignment, member->alignment);
     }
 
     type->size = alignTo(offset, type->alignment);
@@ -116,7 +118,7 @@ std::shared_ptr<Type> Parser::unionDecl(Token*& token) {
 
     for (auto member = type->members.get(); member; member = member->next.get()) {
         type->size = std::max(type->size, member->type->size);
-        type->alignment = std::max(type->alignment, member->type->alignment);
+        type->alignment = std::max(type->alignment, member->alignment);
     }
 
     type->size = alignTo(type->size, type->alignment);
@@ -208,6 +210,21 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
                 return nullptr;
             }
             token = token->next.get();
+            continue;
+        }
+
+        if (token::is(token, Keyword::ALIGNAS)) {
+            if (!attr) {
+                Log::error("alignas is not allowed here"sv, token);
+                return nullptr;
+            }
+            token = token::skipIf(token->next.get(), "(");
+            if (type::isTypeName(token)) {
+                attr->alignment = typeName(token)->alignment;
+            } else {
+                attr->alignment = constExpression(token);
+            }
+            token = token::skipIf(token, ")");
             continue;
         }
 

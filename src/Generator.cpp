@@ -149,7 +149,7 @@ void Generator::assignLocalVariableOffsets(Object* obj) {
         int offset = 0;
         for (Object* local = fn->locals.get(); local; local = local->next.get()) {
             offset += local->type->size;
-            offset = alignTo(offset, local->type->alignment);
+            offset = alignTo(offset, local->alignment);
             local->offset = -offset;
         }
         fn->stackSize = alignTo(offset, STACK_ALIGNMENT);
@@ -568,7 +568,7 @@ void Generator::emitData(const Object* obj) {
         }
 
         addCode(global(var->name));
-        addCode(align(var->type->alignment));
+        addCode(align(var->alignment));
 
         if (!var->initialData.empty()) {
             assert((var->initialData.size()) == static_cast<size_t>(var->type->size));

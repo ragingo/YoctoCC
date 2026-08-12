@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "Type.hpp"
 
 namespace yoctocc {
 
@@ -11,11 +12,11 @@ struct Node;
 struct Object;
 struct Relocation;
 struct Token;
-struct Type;
 
 struct Member {
     const Token* name = nullptr;
     std::shared_ptr<Type> type;
+    int alignment = 0;
     int offset = 0;
     int index = 0;
     std::unique_ptr<Member> next;
@@ -109,6 +110,7 @@ struct Node {
 struct Object {
     // local or global variable/function
     bool isLocal = false;
+    int alignment = 0;
     // global variable or function
     bool isFunction = false;
     bool isDefinition = false;
@@ -142,6 +144,7 @@ inline std::unique_ptr<Object> makeVariable(const std::string& name, const std::
     var->isLocal = isLocal;
     var->name = name;
     var->type = type;
+    var->alignment = type->alignment;
     return var;
 }
 

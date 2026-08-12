@@ -70,7 +70,7 @@ private:
     ParseResult createBitXorNode(Token* token);
     ParseResult createLogicalAndNode(Token* token);
     ParseResult createLogicalOrNode(Token* token);
-    ParseResult declaration(Token* token, const std::shared_ptr<Type>& baseType);
+    ParseResult declaration(Token* token, const std::shared_ptr<Type>& baseType, const VariableAttribute* attr);
     ParseResult parseVariableInitializer(Token* token, Object* variable);
     std::unique_ptr<Initializer> parseInitializer(Token*& token, std::shared_ptr<Type>& type);
     void stringInitializer(Token*& token, std::unique_ptr<Initializer>& initializer);
