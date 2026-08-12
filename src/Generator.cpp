@@ -569,7 +569,11 @@ void Generator::emitData(const Object* obj) {
             continue;
         }
 
-        addCode(global(var->name));
+        if (var->isStatic) {
+            addCode(local(var->name));
+        } else {
+            addCode(global(var->name));
+        }
         addCode(align(var->alignment));
 
         if (!var->initialData.empty()) {

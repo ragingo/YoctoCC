@@ -77,6 +77,7 @@ Object* Parser::createGlobalVariable(const std::string& name, const std::shared_
     auto var = makeVariable(name, type, false);
     Object* raw = var.get();
     var->next = std::move(_globals);
+    var->isStatic = true;
     var->isDefinition = true;
     _parseScope.pushVariableScope(name)->variable = raw;
     _globals = std::move(var);
@@ -1251,6 +1252,7 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
         auto varName = token::getIdentifier(varType->name);
         auto var = createGlobalVariable(varName, varType);
         var->isDefinition = !attr.isExtern;
+        var->isStatic = attr.isStatic;
 
         if (attr.alignment) {
             var->alignment = attr.alignment;
