@@ -13,6 +13,7 @@ struct Type;
 struct VariableAttribute {
     bool isTypeDef;
     bool isStatic;
+    bool isExtern;
 };
 
 struct Initializer {

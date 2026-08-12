@@ -174,7 +174,7 @@ std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
 }
 
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
-//             | "typedef" | "static"
+//             | "typedef" | "static" | "extern"
 //             | struct-decl | union-decl | typedef-name
 //             | enum-specifier)+
 std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
@@ -191,18 +191,20 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
     int counter = 0;
 
     while (parser::isTypeName(token, _parseScope)) {
-        if (token::is(token, Keyword::TYPEDEF) || token::is(token, Keyword::STATIC)) {
+        if (token::is(token, Keyword::TYPEDEF) || token::is(token, Keyword::STATIC) || token::is(token, Keyword::EXTERN)) {
             if (!attr) {
                 Log::error("typedef or static is not allowed here"sv, token);
                 return nullptr;
             }
             if (token::is(token, Keyword::TYPEDEF)) {
                 attr->isTypeDef = true;
-            } else {
+            } else if (token::is(token, Keyword::STATIC)) {
                 attr->isStatic = true;
+            } else {
+                attr->isExtern = true;
             }
-            if (attr->isTypeDef && attr->isStatic) {
-                Log::error("typedef and static cannot be used together"sv, token);
+            if (attr->isTypeDef && (attr->isStatic || attr->isExtern)) {
+                Log::error("typedef may not be used together with static or extern"sv, token);
                 return nullptr;
             }
             token = token->next.get();

@@ -37,7 +37,7 @@ private:
     // enum-list      = ident ("=" num)? ("," ident ("=" num)?)* ","?
     std::shared_ptr<Type> enumSpecifier(Token*& token);
     // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
-    //             | "typedef" | "static"
+    //             | "typedef" | "static" | "extern"
     //             | struct-decl | union-decl | typedef-name
     //             | enum-specifier)+
     std::shared_ptr<Type> declSpec(Token*& token, VariableAttribute* attr);
@@ -100,7 +100,7 @@ private:
     ParseResult parseFunctionCall(Token* token);
     Token* parseTypeDef(Token* token, std::shared_ptr<Type>& baseType);
     Token* parseFunction(Token* token, std::shared_ptr<Type>& baseType, const VariableAttribute& attr);
-    Token* parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType);
+    Token* parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType, const VariableAttribute& attr);
     ParseResult parsePrimary(Token* token);
     void applyParamLVars(const std::shared_ptr<Type>& parameter);
     void resolveGotoLabels();

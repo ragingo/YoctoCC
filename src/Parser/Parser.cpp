@@ -51,7 +51,7 @@ std::unique_ptr<Object> Parser::parse(Token* token) {
             continue;
         }
 
-        token = parseGlobalVariable(token, baseType);
+        token = parseGlobalVariable(token, baseType, attr);
     }
     return std::move(_globals);
 }
@@ -77,6 +77,7 @@ Object* Parser::createGlobalVariable(const std::string& name, const std::shared_
     auto var = makeVariable(name, type, false);
     Object* raw = var.get();
     var->next = std::move(_globals);
+    var->isDefinition = true;
     _parseScope.pushVariableScope(name)->variable = raw;
     _globals = std::move(var);
     return raw;
@@ -1168,7 +1169,7 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType, cons
     return token;
 }
 
-Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType) {
+Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType, const VariableAttribute& attr) {
     bool isFirst = true;
 
     while (!token::consume(token, ";")) {
@@ -1179,6 +1180,7 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
         auto varType = declarator(token, baseType);
         auto varName = token::getIdentifier(varType->name);
         auto var = createGlobalVariable(varName, varType);
+        var->isDefinition = !attr.isExtern;
         if (token::is(token, "=")) {
             token = token->next.get();
             globalVariableInitializer(token, var);

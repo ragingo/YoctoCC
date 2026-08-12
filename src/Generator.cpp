@@ -563,7 +563,7 @@ void Generator::emitData(const Object* obj) {
     assert(obj);
 
     for (const Object* var = obj; var; var = var->next.get()) {
-        if (var->isFunction) {
+        if (var->isFunction || !var->isDefinition) {
             continue;
         }
 

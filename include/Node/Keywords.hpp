@@ -22,6 +22,7 @@ enum class Keyword {
     ENUM,
     TYPEDEF,
     STATIC,
+    EXTERN,
     GOTO,
     BREAK,
     CONTINUE,
@@ -67,6 +68,8 @@ inline constexpr std::string_view to_string_view(Keyword keyword) {
             return "typedef";
         case STATIC:
             return "static";
+        case EXTERN:
+            return "extern";
         case GOTO:
             return "goto";
         case BREAK:
@@ -102,6 +105,7 @@ inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
     {to_string_view(Keyword::ENUM), Keyword::ENUM},
     {to_string_view(Keyword::TYPEDEF), Keyword::TYPEDEF},
     {to_string_view(Keyword::STATIC), Keyword::STATIC},
+    {to_string_view(Keyword::EXTERN), Keyword::EXTERN},
     {to_string_view(Keyword::GOTO), Keyword::GOTO},
     {to_string_view(Keyword::BREAK), Keyword::BREAK},
     {to_string_view(Keyword::CONTINUE), Keyword::CONTINUE},

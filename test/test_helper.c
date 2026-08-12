@@ -29,3 +29,7 @@ void ASSERT(int expected, int actual) {
     fprintf(stderr, "%d", actual);
     fprintf(stderr, "%s", "\n");
 }
+
+static int static_fn() { return 5; }
+int ext1 = 5;
+int *ext2 = &ext1;
