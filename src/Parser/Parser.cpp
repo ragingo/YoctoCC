@@ -591,7 +591,7 @@ ParseResult Parser::parseConditional(Token* token) {
 //      | "{" compound-stmt
 //      | expr-stmt
 ParseResult Parser::parseStatement(Token* token) {
-    if (token::is(token, "return")) {
+    if (token::is(token, Keyword::RETURN)) {
         assert(_currentFunction);
         auto returnNode = std::make_unique<Node>(NodeType::RETURN, token);
 
@@ -610,7 +610,7 @@ ParseResult Parser::parseStatement(Token* token) {
         return {std::move(returnNode), rest};
     }
 
-    if (token::is(token, "if")) {
+    if (token::is(token, Keyword::IF)) {
         auto node = std::make_unique<Node>(NodeType::IF, token);
         token = token::skipIf(token->next.get(), "(");
 
@@ -630,7 +630,7 @@ ParseResult Parser::parseStatement(Token* token) {
         return {std::move(node), token};
     }
 
-    if (token::is(token, "switch")) {
+    if (token::is(token, Keyword::SWITCH)) {
         auto node = std::make_unique<Node>(NodeType::SWITCH, token);
         token = token::skipIf(token->next.get(), "(");
 
@@ -652,7 +652,7 @@ ParseResult Parser::parseStatement(Token* token) {
         return {std::move(node), afterBody};
     }
 
-    if (token::is(token, "case")) {
+    if (token::is(token, Keyword::CASE)) {
         if (!_currentSwitch) {
             Log::error("case statement not within a switch"sv, token);
             return {};
@@ -673,7 +673,7 @@ ParseResult Parser::parseStatement(Token* token) {
         return {std::move(node), rest};
     }
 
-    if (token::is(token, "default")) {
+    if (token::is(token, Keyword::DEFAULT)) {
         if (!_currentSwitch) {
             Log::error("default statement not within a switch"sv, token);
             return {};
@@ -691,7 +691,7 @@ ParseResult Parser::parseStatement(Token* token) {
         return {std::move(node), rest};
     }
 
-    if (token::is(token, "for")) {
+    if (token::is(token, Keyword::FOR)) {
         auto node = std::make_unique<Node>(NodeType::FOR, token);
         token = token::skipIf(token->next.get(), "(");
 
@@ -737,7 +737,7 @@ ParseResult Parser::parseStatement(Token* token) {
         return {std::move(node), afterBody};
     }
 
-    if (token::is(token, "while")) {
+    if (token::is(token, Keyword::WHILE)) {
         auto node = std::make_unique<Node>(NodeType::FOR, token);
         token = token::skipIf(token->next.get(), "(");
 
@@ -759,7 +759,7 @@ ParseResult Parser::parseStatement(Token* token) {
         return {std::move(node), afterBody};
     }
 
-    if (token::is(token, "goto")) {
+    if (token::is(token, Keyword::GOTO)) {
         auto node = std::make_unique<Node>(NodeType::GOTO, token);
         node->label = token::getIdentifier(token->next.get());
         node->gotoNext = _gotos;
@@ -767,7 +767,7 @@ ParseResult Parser::parseStatement(Token* token) {
         return {std::move(node), token::skipIf(token->next.get()->next.get(), ";")};
     }
 
-    if (token::is(token, "break")) {
+    if (token::is(token, Keyword::BREAK)) {
         if (_breakLabel.empty()) {
             Log::error("break statement not within a loop"sv, token);
             return {};
@@ -777,7 +777,7 @@ ParseResult Parser::parseStatement(Token* token) {
         return {std::move(node), token::skipIf(token->next.get(), ";")};
     }
 
-    if (token::is(token, "continue")) {
+    if (token::is(token, Keyword::CONTINUE)) {
         if (_continueLabel.empty()) {
             Log::error("continue statement not within a loop"sv, token);
             return {};
