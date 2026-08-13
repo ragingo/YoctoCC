@@ -1,365 +1,430 @@
-#!/bin/bash
+#!/usr/bin/env python3
+"""
+Parallel test framework for YoctoCC.
 
-# 並列テストフレームワーク
-# バックグラウンドジョブを使用して高速化
-#
-# 使い方:
-#   bash run_tests_parallel.sh              # 全テスト実行
-#   bash run_tests_parallel.sh arith        # ファイル名に "arith" を含むテストのみ
-#   bash run_tests_parallel.sh arith pointer # 複数フィルタ (OR)
+Usage:
+    python3 run_tests_parallel.sh              # Run all tests
+    python3 run_tests_parallel.sh arith        # Run tests matching "arith"
+    python3 run_tests_parallel.sh arith pointer # Multiple filters (OR)
 
-set -o pipefail
+Environment:
+    FORMAT=md       Output in Markdown format (default: simple, matches the
+                     original bash script's terminal output 1:1)
+"""
 
-# テスト実行タイムアウト（秒）
-TEST_TIMEOUT=${TEST_TIMEOUT:-10}
+import os
+import platform
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import List, Optional, Tuple
 
-# 色の定義
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# --- Configuration ---
 
-# プロジェクトルートディレクトリ
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CASES_DIR="$SCRIPT_DIR/cases"
+TEST_TIMEOUT = int(os.environ.get("TEST_TIMEOUT", "10"))
+PARALLEL_JOBS = int(os.environ.get("PARALLEL_JOBS", os.cpu_count() or 4))
+OUTPUT_MD = os.environ.get("FORMAT", "simple") == "md"
+FILTERS = sys.argv[1:]
 
-# Makefile ターゲット
-COMPILER="$PROJECT_ROOT/build/yoctocc"
-TEST_HELPER_O="$PROJECT_ROOT/build/test_helper.o"
 
-# アーキテクチャ検出とツール選択
-# YoctoCC は x86-64 アセンブリを出力するため、arm64 では
-# x86-64 クロスコンパイラ + QEMU が必要
-UNAME_M=$(uname -m)
-if [ "$UNAME_M" = "aarch64" ]; then
-    X86_64_CC="x86_64-linux-gnu-gcc"
-    QEMU_EXEC="qemu-x86_64"
-    MAKE_X86_FLAG="X86_64_CC=$X86_64_CC"
-else
-    # x86-64 ではネイティブの gcc をそのまま使用
-    X86_64_CC="gcc"
-    QEMU_EXEC=""
-    MAKE_X86_FLAG=""
-fi
+class C:
+    GREEN, RED, YELLOW, BLUE, NC = "\033[0;32m", "\033[0;31m", "\033[1;33m", "\033[0;34m", "\033[0m"
 
-# 並列数（CPU コア数、nproc がなければ 4 にフォールバック）
-PARALLEL_JOBS=${PARALLEL_JOBS:-$(nproc 2>/dev/null || echo 4)}
 
-# テストフィルタ（コマンドライン引数）
-TEST_FILTERS=("$@")
+def color(text: str, code: str) -> str:
+    """Colorize for terminal output. No-op in Markdown mode (colors don't render there)."""
+    return text if OUTPUT_MD else f"{code}{text}{C.NC}"
 
-# 一時ディレクトリ
-WORK_DIR=$(mktemp -d)
 
-# シグナルハンドリング
-cleanup() {
-    local pids
-    pids=$(jobs -p 2>/dev/null)
-    if [ -n "$pids" ]; then
-        kill $pids 2>/dev/null
-        wait $pids 2>/dev/null
-    fi
-    rm -rf "$WORK_DIR"
-}
-trap cleanup EXIT
-trap 'echo -e "\n${RED}中断されました${NC}"; exit 130' INT TERM
+# --- Project paths ---
 
-# 計測開始
-START_TIME=$(date +%s%N 2>/dev/null || date +%s)
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+CASES_DIR = SCRIPT_DIR / "cases"
+COMPILER = PROJECT_ROOT / "build" / "yoctocc"
+TEST_HELPER_O = PROJECT_ROOT / "build" / "test_helper.o"
 
-# ヘッダー表示
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}      Yoctocc テストスイート (並列)${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo -e "アーキテクチャ: $UNAME_M"
-echo -e "並列数: $PARALLEL_JOBS"
-echo -e "タイムアウト: ${TEST_TIMEOUT}s"
-if [ ${#TEST_FILTERS[@]} -gt 0 ]; then
-    echo -e "フィルタ: ${TEST_FILTERS[*]}"
-fi
-echo ""
+# --- Architecture detection: arm64 needs an x86-64 cross compiler + QEMU ---
 
-# コンパイラ本体のビルド
-echo -e "${YELLOW}コンパイラをビルド中...${NC}"
-if ! (cd "$PROJECT_ROOT" && make -s build/yoctocc 2>&1); then
-    echo -e "${RED}コンパイラのビルドに失敗しました${NC}"
-    exit 1
-fi
-echo -e "${GREEN}コンパイラ本体のビルドが完了しました${NC}"
+UNAME_M = platform.machine()
+if UNAME_M == "aarch64":
+    X86_64_CC, QEMU_EXEC, MAKE_X86_FLAG = "x86_64-linux-gnu-gcc", "qemu-x86_64", "X86_64_CC=x86_64-linux-gnu-gcc"
+else:
+    X86_64_CC, QEMU_EXEC, MAKE_X86_FLAG = "gcc", "", ""
 
-# テストヘルパーのビルド
-echo -e "${YELLOW}テストヘルパーをビルド中...${NC}"
-if ! (cd "$PROJECT_ROOT" && make -s $MAKE_X86_FLAG build/test_helper.o 2>&1); then
-    echo -e "${RED}テストヘルパーのビルドに失敗しました${NC}"
-    exit 1
-fi
-echo -e "${GREEN}テストヘルパーのビルドが完了しました${NC}"
-echo ""
+# Matches `ASSERT(expected, actual);` and captures both source expressions.
+ASSERT_CALL_RE = re.compile(r"^\s*ASSERT\(([^,]+),\s*(.+)\)\s*;\s*$")
+ASSERT_RESULT_RE = re.compile(r"ASSERT_RESULT\s+(PASS|FAIL)\s+#(\d+)\s+expected\s+(-?\d+)\s+actual\s+(-?\d+)")
 
-# 単一テスト実行関数
-run_single_test() {
-    local test_num="$1"
-    local expected_exit="$2"
-    local test_file="$3"
 
-    local test_work="$WORK_DIR/test_$test_num"
-    mkdir -p "$test_work"
+# --- Data structures ---
 
-    local asm_file="$test_work/program.s"
-    local obj_file="$test_work/program.o"
-    local bin_file="$test_work/program"
-    local result_file="$test_work/result"
+@dataclass
+class TestCase:
+    num: int
+    file: Path
+    name: str
+    expected_exit: int = 0
 
-    # コンパイル（YoctoCC で .c → .s）
-    if ! "$COMPILER" "$test_file" "$asm_file" > "$test_work/compiler.log" 2>&1; then
-        echo "FAIL compile" > "$result_file"
-        cp "$test_work/compiler.log" "$test_work/error.log"
-        return
-    fi
 
-    # アセンブル
-    if ! "$X86_64_CC" -c -o "$obj_file" "$asm_file" > "$test_work/assemble.log" 2>&1; then
-        echo "FAIL assemble" > "$result_file"
-        cp "$test_work/assemble.log" "$test_work/error.log"
-        return
-    fi
+@dataclass
+class AssertResult:
+    index: int
+    code: str       # the `actual` expression under test, from source
+    expected: str   # expected value (runtime value if the assert ran, else the source literal)
+    actual: str     # actual value if the assert ran, else "—"
+    status: str     # PASS / FAIL / SKIP
 
-    # リンク
-    if ! "$X86_64_CC" -no-pie -o "$bin_file" "$obj_file" "$TEST_HELPER_O" > "$test_work/link.log" 2>&1; then
-        echo "FAIL link" > "$result_file"
-        cp "$test_work/link.log" "$test_work/error.log"
-        return
-    fi
 
-    # 実行（arm64 では qemu-x86_64 経由、x86-64 では直接）
-    if command -v timeout > /dev/null 2>&1; then
-        timeout "$TEST_TIMEOUT" $QEMU_EXEC "$bin_file" > /dev/null 2>"$test_work/stderr.log"
-        local actual_exit=$?
-        if [ "$actual_exit" -eq 124 ]; then
-            echo "FAIL timeout" > "$result_file"
-            return
-        fi
-    else
-        $QEMU_EXEC "$bin_file" > /dev/null 2>"$test_work/stderr.log"
-        local actual_exit=$?
-    fi
+@dataclass
+class TestResult:
+    name: str
+    file: Path
+    status: str = "PASS"   # PASS / FAIL
+    reason: str = ""       # compile / assemble / link / timeout / result / noresult
+    expected_exit: int = 0
+    actual_exit: int = 0
+    error_log: str = ""
+    stderr_log: str = ""
+    asserts: List[AssertResult] = field(default_factory=list)
 
-    if [ "$actual_exit" -eq "$expected_exit" ]; then
-        echo "PASS $actual_exit" > "$result_file"
-    else
-        echo "FAIL result $expected_exit $actual_exit" > "$result_file"
-    fi
-}
 
-# テストケースを収集
-declare -a TEST_FILES TEST_EXPECTED TEST_NAMES
-test_num=0
+# --- Build ---
 
-if [ -d "$CASES_DIR" ]; then
-    while IFS= read -r test_file; do
-        if ! grep -q 'ASSERT(' "$test_file"; then
-            echo -e "${YELLOW}警告: $test_file に ASSERT() がありません。スキップします${NC}"
+def make(target: str, extra_flag: str = "") -> bool:
+    cmd = ["make", "-s"] + ([extra_flag] if extra_flag else []) + [target]
+    return subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True).returncode == 0
+
+
+# --- Test execution ---
+
+def run_step(cmd: List[str]) -> Tuple[bool, str, Optional[int]]:
+    """Run one subprocess step. Returns (ok, combined_output, returncode).
+    returncode is None on timeout."""
+    try:
+        cp = subprocess.run(cmd, capture_output=True, text=True, timeout=TEST_TIMEOUT)
+        return cp.returncode == 0, cp.stdout + cp.stderr, cp.returncode
+    except subprocess.TimeoutExpired:
+        return False, "", None
+
+
+def run_single_test(tc: TestCase, work_dir: Path) -> TestResult:
+    d = work_dir / f"t{tc.num}"
+    d.mkdir(parents=True, exist_ok=True)
+    asm, obj, binf = d / "a.s", d / "a.o", d / "a"
+    r = TestResult(name=tc.name, file=tc.file, expected_exit=tc.expected_exit)
+
+    build_steps = [
+        ("compile", [str(COMPILER), str(tc.file), str(asm)]),
+        ("assemble", [X86_64_CC, "-c", "-o", str(obj), str(asm)]),
+        ("link", [X86_64_CC, "-no-pie", "-o", str(binf), str(obj), str(TEST_HELPER_O)]),
+    ]
+    for reason, cmd in build_steps:
+        ok, out, rc = run_step(cmd)
+        if rc is None:
+            r.status, r.reason = "FAIL", "timeout"
+            return r
+        if not ok:
+            r.status, r.reason, r.error_log = "FAIL", reason, out
+            return r
+
+    run_cmd = ([QEMU_EXEC] if QEMU_EXEC else []) + [str(binf)]
+    _, out, rc = run_step(run_cmd)
+    if rc is None:
+        r.status, r.reason = "FAIL", "timeout"
+        return r
+    r.actual_exit, r.stderr_log = rc, out
+    if rc != tc.expected_exit:
+        r.status, r.reason = "FAIL", "result"
+    return r
+
+
+# --- ASSERT parsing ---
+
+def extract_asserts(test_file: Path) -> List[Tuple[str, str]]:
+    """Pull (expected_src, actual_src) out of every ASSERT() call, skipping
+    comments, preprocessor lines, and the `void ASSERT(...)` prototype."""
+    out = []
+    for line in test_file.read_text().splitlines():
+        s = line.strip()
+        if not s or s.startswith(("//", "#", "void ")) or "ASSERT(" not in s:
             continue
-        fi
+        m = ASSERT_CALL_RE.match(s)
+        if m:
+            out.append((m.group(1).strip(), m.group(2).strip()))
+    return out
 
-        # フィルタチェック
-        if [ ${#TEST_FILTERS[@]} -gt 0 ]; then
-            _matched=0
-            for _filter in "${TEST_FILTERS[@]}"; do
-                if [[ "$test_file" == *"$_filter"* ]]; then
-                    _matched=1
-                    break
-                fi
-            done
-            [ $_matched -eq 0 ] && continue
-        fi
 
-        test_num=$((test_num + 1))
-        TEST_FILES[$test_num]="$test_file"
-        TEST_EXPECTED[$test_num]=0
-        TEST_NAMES[$test_num]=$(echo "$test_file" | sed "s|^$CASES_DIR/||")
-    done < <(find "$CASES_DIR" -name "*.c" -type f | sort)
-fi
+def count_asserts(test_file: Path) -> int:
+    return len(extract_asserts(test_file))
 
-TOTAL_TESTS=$test_num
 
-# ケース数集計
-ESTIMATED_CASES=0
-for i in $(seq 1 $TOTAL_TESTS); do
-    _n=$(grep -v '^\s*//' "${TEST_FILES[$i]}" | grep 'ASSERT(' | grep -cv '^void ' || true)
-    ESTIMATED_CASES=$((ESTIMATED_CASES + _n))
-done
+def parse_asserts(r: TestResult) -> List[AssertResult]:
+    by_idx = {}
+    for line in r.stderr_log.splitlines():
+        m = ASSERT_RESULT_RE.search(line)
+        if m:
+            status, idx, expected, actual = m.groups()
+            by_idx[int(idx)] = (status, expected, actual)
 
-echo -e "${YELLOW}テスト実行中... ($ESTIMATED_CASES ケース / $TOTAL_TESTS ファイル)${NC}"
+    out = []
+    for i, (expected_src, actual_src) in enumerate(extract_asserts(r.file), 1):
+        if i in by_idx:
+            status, expected, actual = by_idx[i]
+        else:
+            status, expected, actual = "SKIP", expected_src, "—"
+        out.append(AssertResult(i, actual_src, expected, actual, status))
+    return out
 
-# 並列実行
-running=0
-for i in $(seq 1 $TOTAL_TESTS); do
-    run_single_test "$i" "${TEST_EXPECTED[$i]}" "${TEST_FILES[$i]}" &
-    running=$((running + 1))
-    if [ $running -ge $PARALLEL_JOBS ]; then
-        wait -n 2>/dev/null || true
-        running=$((running - 1))
-    fi
-done
-wait
 
-# ASSERT 結果の解析と表示
-show_assert_details() {
-    local test_num="$1"
-    local test_file="$2"
-    local count_file="$3"
-    local skip_reason="${4:-}"
-    local stderr_log="$WORK_DIR/test_$test_num/stderr.log"
-    local pass=0 fail=0 skip=0
+# --- Test collection ---
 
-    mapfile -t assert_exprs < <(grep 'ASSERT(' "$test_file" | grep -v '^\s*//' | grep -v '^#' | grep -v '^void ')
-    local total=${#assert_exprs[@]}
+def collect_tests(filters: List[str]) -> List[TestCase]:
+    tests = []
+    if not CASES_DIR.is_dir():
+        return tests
+    num = 0
+    for f in sorted(CASES_DIR.glob("*.c")):
+        if "ASSERT(" not in f.read_text():
+            print(color(f"警告: {f.name} に ASSERT() がありません。スキップします", C.YELLOW))
+            continue
+        if filters and not any(flt in str(f) for flt in filters):
+            continue
+        num += 1
+        tests.append(TestCase(num, f, f.name))
+    return tests
 
-    [ "$total" -eq 0 ] && { echo "0 0 0" > "$count_file"; return; }
 
-    declare -A _ar_status _ar_detail
-    if [ -f "$stderr_log" ] && [ -s "$stderr_log" ]; then
-        while IFS= read -r sline; do
-            if [[ "$sline" =~ ^ASSERT_RESULT\ (PASS|FAIL)\ #([0-9]+)\ expected\ (-?[0-9]+)\ actual\ (-?[0-9]+) ]]; then
-                _ar_status[${BASH_REMATCH[2]}]="${BASH_REMATCH[1]}"
-                _ar_detail[${BASH_REMATCH[2]}]="expected: ${BASH_REMATCH[3]}, actual: ${BASH_REMATCH[4]}"
-            fi
-        done < "$stderr_log"
-    fi
+# --- Failure description (shared by both output formats) ---
 
-    for idx in $(seq 1 "$total"); do
-        _src="${assert_exprs[$((idx-1))]}"
-        _expr=$(echo "$_src" | sed 's/^[[:space:]]*ASSERT([^,]*, //' | sed 's/);[[:space:]]*$//')
-        _st="${_ar_status[$idx]:-SKIP}"
-        case "$_st" in
-            PASS) echo -e "    ${GREEN}#$idx $_expr => ${_ar_detail[$idx]}${NC}"; pass=$((pass + 1)) ;;
-            FAIL) echo -e "    ${RED}#$idx $_expr => ${_ar_detail[$idx]}${NC}"; fail=$((fail + 1)) ;;
-            SKIP)
-                if [ -n "$skip_reason" ]; then
-                    echo -e "    ${YELLOW}#$idx $_expr => (skipped: $skip_reason)${NC}"
-                else
-                    echo -e "    ${YELLOW}#$idx $_expr => (skipped)${NC}"
-                fi
-                skip=$((skip + 1)) ;;
-        esac
-    done
-    echo "$pass $fail $skip" > "$count_file"
-}
+def signal_name(n: int) -> str:
+    try:
+        return signal.Signals(n).name
+    except ValueError:
+        return f"signal {n}"
 
-# 結果集計
-TOTAL_CASES=0 PASSED_CASES=0 FAILED_CASES=0 SKIPPED_CASES=0 FAILED_FILES=0
-echo ""
 
-for i in $(seq 1 $TOTAL_TESTS); do
-    result_file="$WORK_DIR/test_$i/result"
-    test_name="${TEST_NAMES[$i]}"
-    test_file="${TEST_FILES[$i]}"
+def failure_info(r: TestResult) -> Tuple[str, Optional[str]]:
+    """Returns (short title for the file-level line, skip_reason for SKIPed asserts)."""
+    if r.reason in ("compile", "assemble", "link"):
+        return f"{r.reason} error", f"{r.reason} failed"
+    if r.reason == "timeout":
+        return f"timeout: {TEST_TIMEOUT}s", "program timed out"
+    if r.reason == "result":
+        actual = r.actual_exit
+        if actual > 128:
+            reason = f"program crashed with {signal_name(actual - 128)}"
+        else:
+            reason = f"program exited with code {actual}"
+        return f"exit code: expected={r.expected_exit}, actual={actual}", reason
+    return "no result", "no result"
 
-    if [ ! -f "$result_file" ]; then
-        echo -e "${RED}[$test_name] FAILED (no result)${NC}"
-        _fc=$(grep -v '^\s*//' "$test_file" 2>/dev/null | grep 'ASSERT(' | grep -cv '^void ' || echo 0)
-        [ "$_fc" -eq 0 ] && _fc=1
-        FAILED_CASES=$((FAILED_CASES + _fc))
-        TOTAL_CASES=$((TOTAL_CASES + _fc))
-        FAILED_FILES=$((FAILED_FILES + 1))
-        continue
-    fi
 
-    result=$(cat "$result_file")
-    status=$(echo "$result" | awk '{print $1}')
+# --- Rendering ---
 
-    if [ "$status" = "PASS" ]; then
-        local_count_file="$WORK_DIR/test_${i}_counts"
-        local_detail_file="$WORK_DIR/test_${i}_detail"
-        show_assert_details "$i" "$test_file" "$local_count_file" > "$local_detail_file"
-        read -r p f s < "$local_count_file"
-        PASSED_CASES=$((PASSED_CASES + p))
-        FAILED_CASES=$((FAILED_CASES + f))
-        SKIPPED_CASES=$((SKIPPED_CASES + s))
-        TOTAL_CASES=$((TOTAL_CASES + p + f + s))
-        if [ "$f" -gt 0 ]; then
-            echo -e "${RED}[$test_name] FAILED${NC}"
-            FAILED_FILES=$((FAILED_FILES + 1))
-        else
-            echo -e "${GREEN}[$test_name]${NC}"
-        fi
-        cat "$local_detail_file"
-    else
-        reason=$(echo "$result" | awk '{print $2}')
-        error_log="$WORK_DIR/test_$i/error.log"
-        case "$reason" in
-            compile|assemble|link)
-                echo -e "${RED}[$test_name] FAILED ($reason error)${NC}"
-                [ -f "$error_log" ] && [ -s "$error_log" ] && echo -e "${YELLOW}  Error details:${NC}" && sed 's/^/    /' "$error_log"
-                ;;
-            timeout) echo -e "${RED}[$test_name] FAILED (timeout: ${TEST_TIMEOUT}s)${NC}" ;;
-            result)
-                _exp=$(echo "$result" | awk '{print $3}')
-                _act=$(echo "$result" | awk '{print $4}')
-                echo -e "${RED}[$test_name] FAILED (exit code: expected=$_exp, actual=$_act)${NC}"
-                ;;
-        esac
+def header_lines() -> List[str]:
+    if OUTPUT_MD:
+        lines = [
+            "# 🧪 YoctoCC テストスイート (並列)", "",
+            f"- **アーキテクチャ**: {UNAME_M}",
+            f"- **並列数**: {PARALLEL_JOBS}",
+            f"- **タイムアウト**: {TEST_TIMEOUT}s",
+        ]
+        if FILTERS:
+            lines.append(f"- **フィルタ**: {' '.join(FILTERS)}")
+        return lines + [""]
 
-        _skip_reason=""
-        if [ "$reason" = "result" ]; then
-            _act=$(echo "$result" | awk '{print $4}')
-            if [ "$_act" -gt 128 ] 2>/dev/null; then
-                _sig=$((_act - 128))
-                case $_sig in
-                    4)  _signame="SIGILL" ;; 6)  _signame="SIGABRT" ;;
-                    8)  _signame="SIGFPE" ;; 9)  _signame="SIGKILL" ;;
-                    11) _signame="SIGSEGV" ;; 13) _signame="SIGPIPE" ;;
-                    14) _signame="SIGALRM" ;; 15) _signame="SIGTERM" ;;
-                    *)  _signame="signal $_sig" ;;
-                esac
-                _skip_reason="program crashed with $_signame"
-            else
-                _skip_reason="program exited with code $_act"
-            fi
-        elif [ "$reason" = "timeout" ]; then
-            _skip_reason="program timed out"
-        elif [ "$reason" = "compile" ] || [ "$reason" = "assemble" ] || [ "$reason" = "link" ]; then
-            _skip_reason="$reason failed"
-        fi
-        local_count_file="$WORK_DIR/test_${i}_counts"
-        show_assert_details "$i" "$test_file" "$local_count_file" "$_skip_reason"
-        read -r p f s < "$local_count_file"
-        PASSED_CASES=$((PASSED_CASES + p))
-        FAILED_CASES=$((FAILED_CASES + f))
-        SKIPPED_CASES=$((SKIPPED_CASES + s))
-        TOTAL_CASES=$((TOTAL_CASES + p + f + s))
-        FAILED_FILES=$((FAILED_FILES + 1))
-    fi
-done
+    bar = color("=" * 40, C.BLUE)
+    lines = [bar, color("      Yoctocc テストスイート (並列)", C.BLUE), bar,
+             f"アーキテクチャ: {UNAME_M}", f"並列数: {PARALLEL_JOBS}", f"タイムアウト: {TEST_TIMEOUT}s"]
+    if FILTERS:
+        lines.append(f"フィルタ: {' '.join(FILTERS)}")
+    return lines + [""]
 
-# サマリー
-echo ""
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}      テスト結果サマリー${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo -e "ファイル数:   $TOTAL_TESTS (失敗: $FAILED_FILES)"
-echo -e "総ケース数:   $TOTAL_CASES"
-echo -e "${GREEN}成功:         $PASSED_CASES${NC}"
-[ "$FAILED_CASES" -gt 0 ] && echo -e "${RED}失敗:         $FAILED_CASES${NC}"
-[ "$SKIPPED_CASES" -gt 0 ] && echo -e "${YELLOW}スキップ:     $SKIPPED_CASES${NC}"
-echo ""
 
-END_TIME=$(date +%s%N 2>/dev/null || date +%s)
-if [ ${#END_TIME} -gt 10 ]; then
-    ELAPSED=$(( (END_TIME - START_TIME) / 1000000 ))
-    echo -e "経過時間:     $((ELAPSED / 1000)).$(printf '%03d' $((ELAPSED % 1000)))s"
-else
-    echo -e "経過時間:     $((END_TIME - START_TIME))s"
-fi
-echo ""
+STATUS_ICON = {"PASS": "✅", "FAIL": "❌", "SKIP": "⏭️"}
 
-if [ "$FAILED_FILES" -eq 0 ]; then
-    echo -e "${GREEN}すべてのテストが成功しました! ($PASSED_CASES/$TOTAL_CASES)${NC}"
-    exit 0
-else
-    echo -e "${RED}一部のテストが失敗しました (ファイル: $FAILED_FILES/$TOTAL_TESTS, ケース: 成功 $PASSED_CASES / 失敗 $FAILED_CASES / スキップ $SKIPPED_CASES)${NC}"
-    exit 1
-fi
+
+def md_escape(s: str) -> str:
+    """Escape pipes so a `code` value with `|` in it doesn't break the table row."""
+    return s.replace("|", "\\|")
+
+
+def assert_table(asserts: List[AssertResult], skip_reason: Optional[str]) -> List[str]:
+    """# | Code | Expected | Actual | Note"""
+    if not asserts:
+        return []
+    lines = ["| # | Code | Expected | Actual | Note |", "|---|---|---|---|---|"]
+    for a in asserts:
+        note = (skip_reason or "skipped") if a.status == "SKIP" else ""
+        lines.append(f"| {STATUS_ICON[a.status]} {a.index} "
+                      f"| `{md_escape(a.code)}` | {md_escape(a.expected)} | {md_escape(a.actual)} | {note} |")
+    return lines
+
+
+def assert_lines_simple(asserts: List[AssertResult], skip_reason: Optional[str]) -> List[str]:
+    lines = []
+    for a in asserts:
+        if a.status == "SKIP":
+            detail = f"skipped: {skip_reason}" if skip_reason else "skipped"
+            sep = f" => ({detail})"
+        else:
+            sep = f" => expected: {a.expected}, actual: {a.actual}"
+        code = C.GREEN if a.status == "PASS" else C.RED if a.status == "FAIL" else C.YELLOW
+        lines.append(color(f"    #{a.index} {a.code}{sep}", code))
+    return lines
+
+
+def render_result(r: TestResult) -> List[str]:
+    lines = []
+    if r.status == "PASS":
+        lines.append(f"### ✅ `{r.name}`" if OUTPUT_MD else color(f"[{r.name}]", C.GREEN))
+        skip_reason = None
+    else:
+        title, skip_reason = failure_info(r)
+        if OUTPUT_MD:
+            lines.append(f"### ❌ `{r.name}` — **{title}**")
+            if r.error_log:
+                lines += ["", "```", r.error_log.rstrip("\n"), "```"]
+        else:
+            lines.append(color(f"[{r.name}] FAILED ({title})", C.RED))
+            if r.error_log:
+                lines.append(color("  Error details:", C.YELLOW))
+                lines += [f"    {ln}" for ln in r.error_log.rstrip("\n").splitlines()]
+
+    if OUTPUT_MD:
+        table = assert_table(r.asserts, skip_reason)
+        if table:
+            lines += [""] + table
+        lines.append("")
+    else:
+        lines += assert_lines_simple(r.asserts, skip_reason)
+    return lines
+
+
+def summarize(results: List[TestResult]):
+    total_cases = passed = failed = skipped = failed_files = 0
+    for r in results:
+        p = sum(a.status == "PASS" for a in r.asserts)
+        f = sum(a.status == "FAIL" for a in r.asserts)
+        s = sum(a.status == "SKIP" for a in r.asserts)
+        if r.status == "FAIL" and not r.asserts:
+            f = max(f, count_asserts(r.file))
+        total_cases += p + f + s
+        passed += p
+        failed += f
+        skipped += s
+        if r.status == "FAIL" or f > 0:
+            failed_files += 1
+    return total_cases, passed, failed, skipped, failed_files
+
+
+def summary_lines(results: List[TestResult], elapsed: float) -> Tuple[List[str], int]:
+    total_cases, passed, failed, skipped, failed_files = summarize(results)
+    total_files = len(results)
+
+    if OUTPUT_MD:
+        lines = ["---", "", "## 📊 テスト結果サマリー", "",
+                 "| 項目 | 値 |", "|---|---|",
+                 f"| ファイル数 | {total_files} (失敗: {failed_files}) |",
+                 f"| 総ケース数 | {total_cases} |",
+                 f"| ✅ 成功 | {passed} |"]
+        if failed:
+            lines.append(f"| ❌ 失敗 | {failed} |")
+        if skipped:
+            lines.append(f"| ⏭️ スキップ | {skipped} |")
+        lines.append(f"| ⏱️ 経過時間 | {elapsed:.3f}s |")
+        lines.append("")
+        if failed_files == 0:
+            lines.append(f"**✅ すべてのテストが成功しました!** ({passed}/{total_cases})")
+        else:
+            lines.append(f"**❌ 一部のテストが失敗しました** "
+                          f"(ファイル: {failed_files}/{total_files}, ケース: ✅ {passed} / ❌ {failed} / ⏭️ {skipped})")
+        return lines, failed_files
+
+    bar = color("=" * 40, C.BLUE)
+    lines = ["", bar, color("      テスト結果サマリー", C.BLUE), bar,
+             f"ファイル数:   {total_files} (失敗: {failed_files})",
+             f"総ケース数:   {total_cases}",
+             color(f"成功:         {passed}", C.GREEN)]
+    if failed:
+        lines.append(color(f"失敗:         {failed}", C.RED))
+    if skipped:
+        lines.append(color(f"スキップ:     {skipped}", C.YELLOW))
+    lines.append("")
+    lines.append(f"経過時間:     {elapsed:.3f}s")
+    lines.append("")
+    if failed_files == 0:
+        lines.append(color(f"すべてのテストが成功しました! ({passed}/{total_cases})", C.GREEN))
+    else:
+        lines.append(color(f"一部のテストが失敗しました "
+                            f"(ファイル: {failed_files}/{total_files}, "
+                            f"ケース: 成功 {passed} / 失敗 {failed} / スキップ {skipped})", C.RED))
+    return lines, failed_files
+
+
+# --- Main ---
+
+def main():
+    start = time.time()
+    print("\n".join(header_lines()))
+
+    print(color("コンパイラをビルド中...", C.YELLOW))
+    if not make("build/yoctocc"):
+        print(color("コンパイラのビルドに失敗しました", C.RED))
+        sys.exit(1)
+    print(color("コンパイラ本体のビルドが完了しました", C.GREEN))
+
+    print(color("テストヘルパーをビルド中...", C.YELLOW))
+    if not make("build/test_helper.o", MAKE_X86_FLAG):
+        print(color("テストヘルパーのビルドに失敗しました", C.RED))
+        sys.exit(1)
+    print(color("テストヘルパーのビルドが完了しました", C.GREEN))
+    print()
+
+    tests = collect_tests(FILTERS)
+    if not tests:
+        print(color("テストケースが見つかりませんでした。", C.RED))
+        sys.exit(1)
+
+    est_cases = sum(count_asserts(t.file) for t in tests)
+    print(color(f"テスト実行中... ({est_cases} ケース / {len(tests)} ファイル)", C.YELLOW))
+    print()
+
+    work_dir = Path(tempfile.mkdtemp())
+    results: List[TestResult] = []
+    try:
+        with ThreadPoolExecutor(max_workers=PARALLEL_JOBS) as executor:
+            futures = {executor.submit(run_single_test, t, work_dir): t for t in tests}
+            for future in as_completed(futures):
+                tc = futures[future]
+                try:
+                    results.append(future.result())
+                except Exception as e:
+                    results.append(TestResult(name=tc.name, file=tc.file, status="FAIL",
+                                               reason="noresult", error_log=str(e)))
+    finally:
+        shutil.rmtree(work_dir, ignore_errors=True)
+
+    results.sort(key=lambda r: r.name)
+    for r in results:
+        r.asserts = parse_asserts(r)
+
+    for r in results:
+        print("\n".join(render_result(r)))
+
+    elapsed = time.time() - start
+    lines, failed_files = summary_lines(results, elapsed)
+    print("\n".join(lines))
+    sys.exit(0 if failed_files == 0 else 1)
+
+
+if __name__ == "__main__":
+    main()

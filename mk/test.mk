@@ -3,8 +3,12 @@
 # ==================================================
 
 include mk/common.mk
+include mk/output.mk
 
-test:
+# FORMAT=simple (default) | md
+FORMAT ?= simple
+
+test: $(COMPILER) $(TEST_HELPER_O)
 	@echo "Running parallel test suite..."
-	@bash test/run_tests_parallel.sh
+	@FORMAT=$(FORMAT) python3 test/run_tests_parallel.sh $(FILTERS)
 

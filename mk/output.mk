@@ -2,6 +2,9 @@
 #  YoctoCC コンパイラ成果物（アセンブル・リンク）
 # ==================================================
 
+ifndef _OUTPUT_MK
+_OUTPUT_MK := 1
+
 include mk/compiler.mk
 
 INPUT ?=
@@ -35,3 +38,5 @@ $(TEST_HELPER_O): $(TEST_HELPER_C) | $(BUILD_DIR)
 # yoctocc が生成したコード + テストヘルパーをリンク
 $(BIN): $(OBJ) $(TEST_HELPER_O)
 	$(X86_64_CC) -no-pie -o $@ $^
+
+endif
