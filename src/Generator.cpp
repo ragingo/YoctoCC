@@ -13,6 +13,18 @@ using namespace yoctocc;
 
 constexpr size_t STACK_ALIGNMENT = 16;
 
+int depth = 0;
+
+std::string push_rax() {
+    depth++;
+    return push(RAX);
+}
+
+std::string pop_reg(Register reg) {
+    depth--;
+    return pop(reg);
+}
+
 enum TypeID {
     I8,
     I16,
@@ -111,7 +123,7 @@ void Generator::load(const Type* type) {
 void Generator::store(const Type* type) {
     using enum TypeKind;
     assert(type);
-    addCode(pop(RDI));
+    addCode(pop_reg(RDI));
 
     if (type::is(type, STRUCT) || type::is(type, UNION)) {
         int i = 0;
@@ -354,7 +366,7 @@ void Generator::generateExpression(const Node* node) {
             return;
         case NodeType::ASSIGN:
             generateAddress(node->left.get());
-            addCode(push(RAX));
+            addCode(push_rax());
             generateExpression(node->right.get());
             store(node->type.get());
             return;
@@ -381,15 +393,21 @@ void Generator::generateExpression(const Node* node) {
             int argCount = 0;
             for (const Node* arg = node->arguments.get(); arg; arg = arg->next.get()) {
                 generateExpression(arg);
-                addCode(push(RAX));
+                addCode(push_rax());
                 argCount++;
             }
             assert(std::cmp_less_equal(argCount, ARG_REGISTERS64.size()));
             for (int i = argCount - 1; i >= 0; i--) {
-                addCode(pop(ARG_REGISTERS64[i]));
+                addCode(pop_reg(ARG_REGISTERS64[i]));
             }
             addCode(mov(RAX, 0));
-            addCode(call(node->functionName));
+            if (depth % 2 == 0) {
+                addCode(call(node->functionName));
+            } else {
+                addCode(sub(RSP, 8));
+                addCode(call(node->functionName));
+                addCode(add(RSP, 8));
+            }
         }
             return;
         case NodeType::CONDITIONAL: {
@@ -455,10 +473,10 @@ void Generator::generateExpression(const Node* node) {
     }
 
     generateExpression(node->right.get());
-    addCode(push(RAX));
+    addCode(push_rax());
 
     generateExpression(node->left.get());
-    addCode(pop(RDI));
+    addCode(pop_reg(RDI));
 
     Register ax;
     Register di;
