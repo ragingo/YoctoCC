@@ -367,7 +367,7 @@ std::shared_ptr<Type> Parser::typeName(Token*& token) {
     return abstractDeclarator(token, baseType);
 }
 
-// func-params = ("void" | param ("," param)*)? ")"
+// func-params = ("void" | param ("," param)*?)? ")"
 // param       = declspec declarator
 std::shared_ptr<Type> Parser::functionParameters(Token*& token, std::shared_ptr<Type>& type) {
     if (token::is(token, "void") && token::is(token->next.get(), ")")) {

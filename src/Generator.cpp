@@ -408,6 +408,20 @@ void Generator::generateExpression(const Node* node) {
                 addCode(call(node->functionName));
                 addCode(add(RSP, 8));
             }
+
+            switch (node->type->kind) {
+                case TypeKind::BOOL:
+                    addCode(movzx(EAX, AL));
+                    return;
+                case TypeKind::CHAR:
+                    addCode(movsbl(EAX, AL));
+                    return;
+                case TypeKind::SHORT:
+                    addCode(movswl(EAX, AX));
+                    return;
+                default:
+                    return;
+            }
         }
             return;
         case NodeType::CONDITIONAL: {
