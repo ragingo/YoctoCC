@@ -584,6 +584,7 @@ ParseResult Parser::parseConditional(Token* token) {
 //      | "default" ":" stmt
 //      | "for" "(" expr-stmt expr? ";" expr? ")" stmt
 //      | "while" "(" expr ")" stmt
+//      | "do" stmt "while" "(" expr ")" ";"
 //      | "goto" ident ";"
 //      | "break" ";"
 //      | "continue" ";"
@@ -757,6 +758,33 @@ ParseResult Parser::parseStatement(Token* token) {
         _continueLabel = continueLabel;
 
         return {std::move(node), afterBody};
+    }
+
+    if (token::is(token, Keyword::DO)) {
+        auto node = std::make_unique<Node>(NodeType::DO, token);
+
+        auto breakLabel = _breakLabel;
+        auto continueLabel = _continueLabel;
+        _breakLabel = node->breakLabel = makeUniqueName();
+        _continueLabel = node->continueLabel = makeUniqueName();
+
+        token = token->next.get();
+        auto [statementNode, rest] = parseStatement(token);
+        node->then = std::move(statementNode);
+        token = rest;
+
+        _breakLabel = breakLabel;
+        _continueLabel = continueLabel;
+
+        token = token::skipIf(token, "while");
+        token = token::skipIf(token, "(");
+        auto [expressionNode, rest2] = parseExpression(token);
+        node->condition = std::move(expressionNode);
+        token = rest2;
+        token = token::skipIf(token, ")");
+        token = token::skipIf(token, ";");
+
+        return {std::move(node), token};
     }
 
     if (token::is(token, Keyword::GOTO)) {

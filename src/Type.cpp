@@ -187,6 +187,7 @@ void addType(Node* node) {
         case NodeType::BLOCK:
         case NodeType::IF:
         case NodeType::FOR:
+        case NodeType::DO:
         case NodeType::EXPRESSION_STATEMENT:
         case NodeType::RETURN:
         case NodeType::UNKNOWN:

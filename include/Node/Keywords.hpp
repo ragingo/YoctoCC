@@ -16,6 +16,7 @@ enum class Keyword {
     ELSE,
     FOR,
     WHILE,
+    DO,
     SIZEOF,
     STRUCT,
     UNION,
@@ -58,6 +59,8 @@ inline constexpr std::string_view to_string_view(Keyword keyword) {
             return "for";
         case WHILE:
             return "while";
+        case DO:
+            return "do";
         case SIZEOF:
             return "sizeof";
         case STRUCT:
@@ -105,6 +108,7 @@ inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
     {to_string_view(Keyword::ELSE), Keyword::ELSE},
     {to_string_view(Keyword::FOR), Keyword::FOR},
     {to_string_view(Keyword::WHILE), Keyword::WHILE},
+    {to_string_view(Keyword::DO), Keyword::DO},
     {to_string_view(Keyword::SIZEOF), Keyword::SIZEOF},
     {to_string_view(Keyword::STRUCT), Keyword::STRUCT},
     {to_string_view(Keyword::UNION), Keyword::UNION},

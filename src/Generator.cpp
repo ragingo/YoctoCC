@@ -243,6 +243,26 @@ void Generator::generateStatement(const Node* node) {
         return;
     }
 
+    if (node->nodeType == NodeType::DO) {
+        int count = labelCount++;
+        auto beginLabel = labels::begin(count);
+        auto breakLabel = labels::label(node->breakLabel);
+        auto continueLabel = labels::label(node->continueLabel);
+
+        addCode(beginLabel.def());
+        if (node->then) {
+            generateStatement(node->then.get());
+        }
+        addCode(continueLabel.def());
+        if (node->condition) {
+            generateExpression(node->condition.get());
+        }
+        addCode(cmp(RAX, 0));
+        addCode(jne(beginLabel.ref()));
+        addCode(breakLabel.def());
+        return;
+    }
+
     if (node->nodeType == NodeType::SWITCH) {
         generateExpression(node->condition.get());
 

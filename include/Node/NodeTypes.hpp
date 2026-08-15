@@ -55,6 +55,7 @@ enum class NodeType {
     RETURN,        // return
     IF,            // if
     FOR,           // for or while
+    DO,            // do
     SWITCH,        // switch
     CASE,          // case
     BLOCK,         // { ... }
