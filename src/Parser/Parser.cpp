@@ -1251,6 +1251,10 @@ Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType, cons
     applyParamLVars(funcType->parameters);
     _currentFunction->parameters = _locals.get();
 
+    if (funcType->isVariadic) {
+        _currentFunction->vaArea = createLocalVariable("__va_area__", type::arrayOf(type::charType(), 136));
+    }
+
     token = token::skipIf(token, "{");
     auto [body, rest] = parseCompoundStatement(token);
     _currentFunction->body = std::move(body);

@@ -128,6 +128,7 @@ struct Object {
     Object* parameters = nullptr;
     std::unique_ptr<Node> body;
     std::unique_ptr<Object> locals;
+    Object* vaArea = nullptr;
     int stackSize = 0;
 
     std::unique_ptr<Object> next;

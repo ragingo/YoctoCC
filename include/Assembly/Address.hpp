@@ -46,6 +46,10 @@ inline constexpr std::string dword_ptr(Address<Register>&& addr) {
     return "DWORD PTR " + to_string(std::move(addr));
 }
 
+inline constexpr std::string qword_ptr(Address<Register>&& addr) {
+    return "QWORD PTR " + to_string(std::move(addr));
+}
+
 // RIP相対アドレッシング用 (グローバル変数用)
 struct RipRelativeAddress {
     std::string symbol;

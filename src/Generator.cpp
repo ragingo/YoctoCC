@@ -578,6 +578,7 @@ void Generator::generateFunction(const Object* obj) {
         addCode(global(obj->name));
     }
 
+    addCode(section::text);
     addCode(labels::label(obj->name).def(),
             // Prologue
             push(RBP),
@@ -585,6 +586,36 @@ void Generator::generateFunction(const Object* obj) {
 
     if (obj->stackSize > 0) {
         addCode(sub(RSP, obj->stackSize));
+    }
+
+    if (obj->vaArea) {
+        int argCount = 0;
+        for (auto param = obj->parameters; param; param = param->next.get()) {
+            argCount++;
+        }
+        int offset = obj->vaArea->offset;
+        addCode(
+            // va_elem
+            movl(dword_ptr(Address{RBP, offset}), argCount * 8),
+            movl(dword_ptr(Address{RBP, offset + 4}), 0),
+            movq(Address{RBP, offset + 16}, RBP),
+            addq(Address{RBP, offset + 16}, offset + 24),
+            // __reg_save_area__
+            movq(Address{RBP, offset + 24}, RDI),
+            movq(Address{RBP, offset + 32}, RSI),
+            movq(Address{RBP, offset + 40}, RDX),
+            movq(Address{RBP, offset + 48}, RCX),
+            movq(Address{RBP, offset + 56}, R8),
+            movq(Address{RBP, offset + 64}, R9),
+            movsd(Address{RBP, offset + 72}, XMM0),
+            movsd(Address{RBP, offset + 80}, XMM1),
+            movsd(Address{RBP, offset + 88}, XMM2),
+            movsd(Address{RBP, offset + 96}, XMM3),
+            movsd(Address{RBP, offset + 104}, XMM4),
+            movsd(Address{RBP, offset + 112}, XMM5),
+            movsd(Address{RBP, offset + 120}, XMM6),
+            movsd(Address{RBP, offset + 128}, XMM7)
+        );
     }
 
     int i = 0;
@@ -659,8 +690,6 @@ void Generator::emitData(const Object* obj) {
 
 void Generator::emitText(const Object* obj) {
     assert(obj);
-
-    addCode(section::text);
 
     for (const Object* fn = obj; fn; fn = fn->next.get()) {
         if (!fn->isFunction || !fn->isDefinition) {

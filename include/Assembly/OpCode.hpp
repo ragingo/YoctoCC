@@ -13,8 +13,10 @@ enum class OpCode {
     MOVSWL,
     MOVQ,
     MOVSD,
+    MOVL,
     LEA,
     ADD,
+    ADDQ,
     SUB,
     MUL,
     IMUL,
@@ -73,10 +75,14 @@ constexpr std::string to_string(OpCode op) {
             return "movq";
         case MOVSD:
           return "movsd";
+        case MOVL:
+            return "mov";
         case LEA:
             return "lea";
         case ADD:
             return "add";
+        case ADDQ:
+            return "addq";
         case SUB:
             return "sub";
         case MUL:
