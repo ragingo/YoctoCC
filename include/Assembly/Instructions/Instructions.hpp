@@ -78,6 +78,8 @@ inline constexpr Instruction<MOVSWQ> movswq;
 inline constexpr Instruction<MOVSXD> movsxd;
 inline constexpr Instruction<MOVSBL> movsbl;
 inline constexpr Instruction<MOVSWL> movswl;
+inline constexpr Instruction<MOVQ> movq;
+inline constexpr Instruction<MOVSD> movsd;
 inline constexpr Instruction<LEA> lea;
 inline constexpr Instruction<ADD> add;
 inline constexpr Instruction<SUB> sub;
