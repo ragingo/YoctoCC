@@ -250,7 +250,7 @@ std::unique_ptr<Token> parsePunctuator(char ch, ParseContext& context) {
     static const std::array operators = {
         "=="sv, "!="sv, "<="sv, ">="sv, "->"sv, "+="sv, "-="sv, "*="sv, "/="sv, "%="sv,
         "<<="sv, ">>="sv, "<<"sv, ">>"sv, "++"sv, "--"sv, "&="sv, "|="sv, "^="sv, "&&"sv,
-        "||"sv
+        "||"sv, "..."sv
     };
     // clang-format on
 

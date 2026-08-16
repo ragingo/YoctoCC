@@ -367,7 +367,7 @@ std::shared_ptr<Type> Parser::typeName(Token*& token) {
     return abstractDeclarator(token, baseType);
 }
 
-// func-params = ("void" | param ("," param)*?)? ")"
+// func-params = ("void" | param ("," param)* ("," "...")?)? ")"
 // param       = declspec declarator
 std::shared_ptr<Type> Parser::functionParameters(Token*& token, std::shared_ptr<Type>& type) {
     if (token::is(token, "void") && token::is(token->next.get(), ")")) {
@@ -376,11 +376,20 @@ std::shared_ptr<Type> Parser::functionParameters(Token*& token, std::shared_ptr<
     }
     std::shared_ptr<Type> head;
     auto current = &head;
+    bool isVariadic = false;
 
     while (!token::is(token, ")")) {
         if (head) {
             token = token::skipIf(token, ",");
         }
+
+        if (token::is(token, "...")) {
+            isVariadic = true;
+            token = token->next.get();
+            token::skipIf(token, ")");
+            break;
+        }
+
         auto paramType = declSpec(token, nullptr);
         paramType = declarator(token, paramType);
 
@@ -395,6 +404,7 @@ std::shared_ptr<Type> Parser::functionParameters(Token*& token, std::shared_ptr<
 
     type = type::functionType(type);
     type->parameters = head;
+    type->isVariadic = isVariadic;
     token = token->next.get();
 
     return type;

@@ -51,6 +51,7 @@ struct Type {
     // function type
     std::shared_ptr<Type> returnType;
     std::shared_ptr<Type> parameters;
+    bool isVariadic = false;
     std::shared_ptr<Type> next;
 
     Type(TypeKind kind, int size = 0, int alignment = 0)
