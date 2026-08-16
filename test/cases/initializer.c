@@ -1,6 +1,6 @@
 void ASSERT(int expected, int actual);
-int memcmp(const void *s1, const void *s2, unsigned long n);
-int strcmp(const char *s1, const char *s2);
+int memcmp(void *s1, void *s2, long n);
+int strcmp(char *s1, char *s2);
 
 char g3 = 3;
 short g4 = 4;

@@ -1,8 +1,7 @@
 void ASSERT(int expected, int actual);
-int strcmp(const char *s1, const char *s2);
+int strcmp(char *s1, char *s2);
 int printf(char *fmt, ...);
 int sprintf(char *buf, char *fmt, ...);
-int vsprintf(char *buf, char *fmt, va_list ap);
 
 int ret3(void) {
     return 3;
@@ -84,6 +83,8 @@ typedef struct {
 } __va_elem;
 
 typedef __va_elem va_list[1];
+
+int vsprintf(char *buf, char *fmt, va_list ap);
 
 char *fmt(char *buf, char *fmt, ...) {
     va_list ap;

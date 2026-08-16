@@ -402,6 +402,10 @@ std::shared_ptr<Type> Parser::functionParameters(Token*& token, std::shared_ptr<
         current = &paramType->next;
     }
 
+    if (current == &head) {
+        isVariadic = true;
+    }
+
     type = type::functionType(type);
     type->parameters = head;
     type->isVariadic = isVariadic;

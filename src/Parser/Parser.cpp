@@ -1186,6 +1186,11 @@ ParseResult Parser::parseFunctionCall(Token* token) {
         auto [arg, rest] = parseAssignment(token);
         type::addType(arg.get());
 
+        if (!parameterType && !type->isVariadic) {
+            Log::error("Too many arguments", token);
+            return {};
+        }
+
         if (parameterType) {
             if (parameterType->kind == TypeKind::STRUCT || parameterType->kind == TypeKind::UNION) {
                 Log::error("Passing struct/union is not supported yet"sv, token);
@@ -1199,6 +1204,11 @@ ParseResult Parser::parseFunctionCall(Token* token) {
         current = current->next.get();
         token = rest;
         type::addType(current);
+    }
+
+    if (parameterType) {
+        Log::error("Too few arguments", token);
+        return {};
     }
 
     token = token::skipIf(token, ")");
