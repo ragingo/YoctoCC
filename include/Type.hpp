@@ -151,6 +151,7 @@ inline bool isTypeName(const Token* token) {
         to_string_view(STATIC),
         to_string_view(EXTERN),
         to_string_view(ALIGNAS),
+        to_string_view(SIGNED),
     };
     return TYPE_NAMES.contains(token->originalValue);
 }

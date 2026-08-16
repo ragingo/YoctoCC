@@ -177,6 +177,7 @@ std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
 
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //             | "typedef" | "static" | "extern"
+//             | "signed"
 //             | struct-decl | union-decl | typedef-name
 //             | enum-specifier)+
 std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
@@ -188,6 +189,7 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
         INT = 1 << 8,
         LONG = 1 << 10,
         OTHER = 1 << 12,
+        SIGNED = 1 << 13,
     };
     auto type = type::intType();
     int counter = 0;
@@ -268,6 +270,8 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
             counter += INT;
         } else if (token::is(token, Keyword::LONG)) {
             counter += LONG;
+        } else if (token::is(token, Keyword::SIGNED)) {
+            counter |= SIGNED;
         } else {
             Log::unreachable();
             return nullptr;
@@ -281,19 +285,28 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
                 type = type::boolType();
                 break;
             case CHAR:
+            case SIGNED + CHAR:
                 type = type::charType();
                 break;
             case SHORT:
             case SHORT + INT:
+            case SIGNED + SHORT:
+            case SIGNED + SHORT + INT:
                 type = type::shortType();
                 break;
             case INT:
+            case SIGNED:
+            case SIGNED + INT:
                 type = type::intType();
                 break;
             case LONG:
             case LONG + INT:
             case LONG + LONG:
             case LONG + LONG + INT:
+            case SIGNED + LONG:
+            case SIGNED + LONG + INT:
+            case SIGNED + LONG + LONG:
+            case SIGNED + LONG + LONG + INT:
                 type = type::longType();
                 break;
             default:

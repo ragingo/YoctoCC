@@ -38,6 +38,7 @@ private:
     std::shared_ptr<Type> enumSpecifier(Token*& token);
     // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
     //             | "typedef" | "static" | "extern"
+    //             | "signed"
     //             | struct-decl | union-decl | typedef-name
     //             | enum-specifier)+
     std::shared_ptr<Type> declSpec(Token*& token, VariableAttribute* attr);
