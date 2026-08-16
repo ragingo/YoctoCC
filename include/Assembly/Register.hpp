@@ -5,6 +5,16 @@
 namespace yoctocc {
 
 enum class Register {
+    // 128ビット
+    XMM0,
+    XMM1,
+    XMM2,
+    XMM3,
+    XMM4,
+    XMM5,
+    XMM6,
+    XMM7,
+
     // 64ビット
     RAX,
     RBX,
@@ -130,6 +140,22 @@ static constexpr std::array ARG_REGISTERS64 = {
 
 inline constexpr std::string to_string(Register reg) {
     switch (reg) {
+        case XMM0:
+            return "xmm0";
+        case XMM1:
+            return "xmm1";
+        case XMM2:
+            return "xmm2";
+        case XMM3:
+            return "xmm3";
+        case XMM4:
+            return "xmm4";
+        case XMM5:
+            return "xmm5";
+        case XMM6:
+            return "xmm6";
+        case XMM7:
+            return "xmm7";
         case RAX:
             return "rax";
         case RBX:
