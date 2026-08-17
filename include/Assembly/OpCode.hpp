@@ -10,7 +10,9 @@ enum class OpCode {
     MOVSWQ,
     MOVSXD,
     MOVSBL,
+    MOVZBL,
     MOVSWL,
+    MOVZWL,
     MOVQ,
     MOVSD,
     MOVL,
@@ -20,6 +22,7 @@ enum class OpCode {
     SUB,
     MUL,
     IMUL,
+    DIV,
     IDIV,
     INC,
     DEC,
@@ -31,14 +34,19 @@ enum class OpCode {
     OR,
     XOR,
     SHL,
+    SHR,
     SAR,
     CMP,
     SETE,
     SETNE,
     SETL,
+    SETB,
     SETLE,
+    SETBE,
     SETG,
+    SETA,
     SETGE,
+    SETAE,
     PUSH,
     POP,
     CALL,
@@ -69,7 +77,11 @@ constexpr std::string to_string(OpCode op) {
             return "movsxd";
         case MOVSBL:
             return "movsx";
+        case MOVZBL:
+            return "movsx";
         case MOVSWL:
+            return "movsx";
+        case MOVZWL:
             return "movsx";
         case MOVQ:
             return "movq";
@@ -89,6 +101,8 @@ constexpr std::string to_string(OpCode op) {
             return "mul";
         case IMUL:
             return "imul";
+        case DIV:
+            return "div";
         case IDIV:
             return "idiv";
         case INC:
@@ -111,6 +125,8 @@ constexpr std::string to_string(OpCode op) {
             return "xor";
         case SHL:
             return "shl";
+        case SHR:
+            return "shr";
         case SAR:
             return "sar";
         case CMP:
@@ -121,12 +137,20 @@ constexpr std::string to_string(OpCode op) {
             return "setne";
         case SETL:
             return "setl";
+        case SETB:
+            return "setb";
         case SETLE:
             return "setle";
+        case SETBE:
+            return "setbe";
         case SETG:
             return "setg";
+        case SETA:
+            return "seta";
         case SETGE:
             return "setge";
+        case SETAE:
+            return "setae";
         case PUSH:
             return "push";
         case POP:
