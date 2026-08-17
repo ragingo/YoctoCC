@@ -177,7 +177,7 @@ std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
 
 // declspec = ("void" | "_Bool" | "char" | "short" | "int" | "long"
 //             | "typedef" | "static" | "extern"
-//             | "signed"
+//             | "signed" | "unsigned"
 //             | struct-decl | union-decl | typedef-name
 //             | enum-specifier)+
 std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
@@ -190,6 +190,7 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
         LONG = 1 << 10,
         OTHER = 1 << 12,
         SIGNED = 1 << 13,
+        UNSIGNED = 1 << 14,
     };
     auto type = type::intType();
     int counter = 0;
@@ -272,6 +273,8 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
             counter += LONG;
         } else if (token::is(token, Keyword::SIGNED)) {
             counter |= SIGNED;
+        } else if (token::is(token, Keyword::UNSIGNED)) {
+            counter |= UNSIGNED;
         } else {
             Log::unreachable();
             return nullptr;
@@ -288,16 +291,27 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
             case SIGNED + CHAR:
                 type = type::charType();
                 break;
+            case UNSIGNED + CHAR:
+                type = type::ucharType();
+                break;
             case SHORT:
             case SHORT + INT:
             case SIGNED + SHORT:
             case SIGNED + SHORT + INT:
                 type = type::shortType();
                 break;
+            case UNSIGNED + SHORT:
+            case UNSIGNED + SHORT + INT:
+                type = type::ushortType();
+                break;
             case INT:
             case SIGNED:
             case SIGNED + INT:
                 type = type::intType();
+                break;
+            case UNSIGNED:
+            case UNSIGNED + INT:
+                type = type::uintType();
                 break;
             case LONG:
             case LONG + INT:
@@ -308,6 +322,12 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
             case SIGNED + LONG + LONG:
             case SIGNED + LONG + LONG + INT:
                 type = type::longType();
+                break;
+            case UNSIGNED + LONG:
+            case UNSIGNED + LONG + INT:
+            case UNSIGNED + LONG + LONG:
+            case UNSIGNED + LONG + LONG + INT:
+                type = type::ulongType();
                 break;
             default:
                 Log::error("Invalid type specifier"sv, token);

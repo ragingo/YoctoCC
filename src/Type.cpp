@@ -14,10 +14,24 @@ std::shared_ptr<Type> getCommonType(const std::shared_ptr<Type>& type1, const st
     if (type1->base) {
         return type::pointerTo(type1->base);
     }
-    if (type1->size == 8 || type2->size == 8) {
-        return type::longType();
+
+    auto newType1 = type1;
+    auto newType2 = type2;
+
+    if (type1->size < 4) {
+        newType1 = type::intType();
     }
-    return type::intType();
+    if (type2->size < 4) {
+        newType2 = type::intType();
+    }
+
+    if (newType1->size != newType2->size) {
+        return newType1->size < newType2->size ? newType2 : newType1;
+    }
+    if (newType2->isUnsigned) {
+        return newType2;
+    }
+    return newType1;
 }
 
 std::tuple<std::unique_ptr<Node>, std::unique_ptr<Node>> convertUsualArithmetic(std::unique_ptr<Node> lhs,

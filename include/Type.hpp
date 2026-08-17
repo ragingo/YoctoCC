@@ -34,6 +34,7 @@ struct Type {
     int size;
 
     int alignment;
+    bool isUnsigned;
 
     // array type
     int arraySize;
@@ -54,8 +55,8 @@ struct Type {
     bool isVariadic = false;
     std::shared_ptr<Type> next;
 
-    Type(TypeKind kind, int size = 0, int alignment = 0)
-        : kind(kind), size(size), alignment(alignment), arraySize(0), base(nullptr) {
+    Type(TypeKind kind, int size = 0, int alignment = 0, bool isUnsigned = false)
+        : kind(kind), size(size), alignment(alignment), isUnsigned(isUnsigned), arraySize(0), base(nullptr) {
     }
 };
 
@@ -75,16 +76,32 @@ inline std::shared_ptr<Type> charType() {
     return std::make_shared<Type>(CHAR, 1, 1);
 }
 
+inline std::shared_ptr<Type> ucharType() {
+    return std::make_shared<Type>(CHAR, 1, 1, true);
+}
+
 inline std::shared_ptr<Type> shortType() {
     return std::make_shared<Type>(SHORT, 2, 2);
+}
+
+inline std::shared_ptr<Type> ushortType() {
+    return std::make_shared<Type>(SHORT, 2, 2, true);
 }
 
 inline std::shared_ptr<Type> intType() {
     return std::make_shared<Type>(INT, 4, 4);
 }
 
+inline std::shared_ptr<Type> uintType() {
+    return std::make_shared<Type>(INT, 4, 4, true);
+}
+
 inline std::shared_ptr<Type> longType() {
     return std::make_shared<Type>(LONG, 8, 8);
+}
+
+inline std::shared_ptr<Type> ulongType() {
+    return std::make_shared<Type>(LONG, 8, 8, true);
 }
 
 inline std::shared_ptr<Type> enumType() {
@@ -152,6 +169,7 @@ inline bool isTypeName(const Token* token) {
         to_string_view(EXTERN),
         to_string_view(ALIGNAS),
         to_string_view(SIGNED),
+        to_string_view(UNSIGNED),
     };
     return TYPE_NAMES.contains(token->originalValue);
 }

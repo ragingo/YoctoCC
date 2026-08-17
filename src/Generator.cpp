@@ -29,34 +29,50 @@ enum TypeID {
     I8,
     I16,
     I32,
-    I64
+    I64,
+    U8,
+    U16,
+    U32,
+    U64
 };
 
 TypeID getTypeID(const Type* type) {
     using enum TypeKind;
     switch (type->kind) {
         case CHAR:
-            return I8;
+            return type->isUnsigned ? U8 : I8;
         case SHORT:
-            return I16;
+            return type->isUnsigned ? U16 : I16;
         case INT:
-            return I32;
+            return type->isUnsigned ? U32 : I32;
+        case LONG:
+            return type->isUnsigned ? U64 : I64;
         default:
-            return I64;
+            return U64;
     }
 }
 
 const std::string i32i8 = movsbl(EAX, AL);
+const std::string i32u8 = movzbl(EAX, AL);
 const std::string i32i16 = movswl(EAX, AX);
+const std::string i32u16 = movzwl(EAX, AX);
 const std::string i32i64 = movsxd(RAX, EAX);
+const std::string u32i64 = mov(EAX, EAX);
 
 // cast_table[from][to]
-const std::string castTable[4][4] = {
-    {"", "", "", i32i64},
-    {i32i8, "", "", i32i64},
-    {i32i8, i32i16, "", i32i64},
-    {i32i8, i32i16, "", ""},
+// clang-format off
+const std::string castTable[8][8] = {
+    // i8   i16     i32 i64     u8     u16     u32 u64
+    {"",    "",     "", i32i64, i32u8, i32u16, "", i32i64}, // i8
+    {i32i8, "",     "", i32i64, i32u8, i32u16, "", i32i64}, // i16
+    {i32i8, i32i16, "", i32i64, i32u8, i32u16, "", i32i64}, // i32
+    {i32i8, i32i16, "", "",     i32u8, i32u16, "", ""},     // i64
+    {i32i8, "",     "", i32i64, "",    "",     "", i32i64}, // u8
+    {i32i8, i32i16, "", i32i64, i32u8, "",     "", i32i64}, // u16
+    {i32i8, i32i16, "", u32i64, i32u8, i32u16, "", u32i64}, // u32
+    {i32i8, i32i16, "", "",     i32u8, i32u16, "", ""},     // u64
 };
+// clang-format on
 
 std::string compareZero(const Type* type) {
     if (type::isInteger(type) && type->size <= 4) {
@@ -110,9 +126,17 @@ void Generator::load(const Type* type) {
         return;
     }
     if (type->size == 1) {
-        addCode(movsbl(EAX, byte_ptr(Address{RAX})));
+        if (type->isUnsigned) {
+            addCode(movzbl(EAX, byte_ptr(Address{RAX})));
+        } else {
+            addCode(movsbl(EAX, byte_ptr(Address{RAX})));
+        }
     } else if (type->size == 2) {
-        addCode(movswl(EAX, word_ptr(Address{RAX})));
+        if (type->isUnsigned) {
+            addCode(movzwl(EAX, word_ptr(Address{RAX})));
+        } else {
+            addCode(movswl(EAX, word_ptr(Address{RAX})));
+        }
     } else if (type->size == 4) {
         addCode(movsxd(RAX, Address{RAX}));
     } else {
@@ -414,10 +438,18 @@ void Generator::generateExpression(const Node* node) {
                     addCode(movzx(EAX, AL));
                     return;
                 case TypeKind::CHAR:
-                    addCode(movsbl(EAX, AL));
+                    if (node->type->isUnsigned) {
+                        addCode(movzbl(EAX, AL));
+                    } else {
+                        addCode(movsbl(EAX, AL));
+                    }
                     return;
                 case TypeKind::SHORT:
-                    addCode(movswl(EAX, AX));
+                    if (node->type->isUnsigned) {
+                        addCode(movzwl(EAX, AX));
+                    } else {
+                        addCode(movswl(EAX, AX));
+                    }
                     return;
                 default:
                     return;
@@ -494,13 +526,16 @@ void Generator::generateExpression(const Node* node) {
 
     Register ax;
     Register di;
+    Register dx;
 
     if (node->type->kind == TypeKind::LONG || node->left->type->base) {
         ax = RAX;
         di = RDI;
+        dx = RDX;
     } else {
         ax = EAX;
         di = EDI;
+        dx = EDX;
     }
 
     switch (node->nodeType) {
@@ -515,12 +550,16 @@ void Generator::generateExpression(const Node* node) {
             return;
         case NodeType::DIV:
         case NodeType::MOD: {
-            if (node->left->type->size == 8) {
-                addCode(cqo());
+            if (node->type->isUnsigned) {
+                addCode(mov(dx, 0), div(di));
             } else {
-                addCode(cdq());
+                if (node->left->type->size == 8) {
+                    addCode(cqo());
+                } else {
+                    addCode(cdq());
+                }
+                addCode(idiv(di));
             }
-            addCode(idiv(di));
 
             if (node->nodeType == NodeType::MOD) {
                 addCode(mov(RAX, RDX));
@@ -537,28 +576,62 @@ void Generator::generateExpression(const Node* node) {
             addCode(xor_(RAX, RDI));
             return;
         case NodeType::EQUAL:
-            addCode(cmp(ax, di), sete(AL), movzx(RAX, AL));
-            return;
         case NodeType::NOT_EQUAL:
-            addCode(cmp(ax, di), setne(AL), movzx(RAX, AL));
-            return;
         case NodeType::LESS:
-            addCode(cmp(ax, di), setl(AL), movzx(RAX, AL));
-            return;
         case NodeType::LESS_EQUAL:
-            addCode(cmp(ax, di), setle(AL), movzx(RAX, AL));
-            return;
         case NodeType::GREATER:
-            addCode(cmp(ax, di), setg(AL), movzx(RAX, AL));
-            return;
         case NodeType::GREATER_EQUAL:
-            addCode(cmp(ax, di), setge(AL), movzx(RAX, AL));
+            addCode(cmp(ax, di));
+            switch (node->nodeType) {
+                case NodeType::EQUAL:
+                    addCode(sete(AL));
+                    break;
+                case NodeType::NOT_EQUAL:
+                    addCode(setne(AL));
+                    break;
+                case NodeType::LESS:
+                    if (node->left->type->isUnsigned) {
+                        addCode(setb(AL));
+                    } else {
+                        addCode(setl(AL));
+                    }
+                    break;
+                case NodeType::LESS_EQUAL:
+                    if (node->left->type->isUnsigned) {
+                        addCode(setbe(AL));
+                    } else {
+                        addCode(setle(AL));
+                    }
+                    break;
+                case NodeType::GREATER:
+                    if (node->left->type->isUnsigned) {
+                        addCode(seta(AL));
+                    } else {
+                        addCode(setg(AL));
+                    }
+                    break;
+                case NodeType::GREATER_EQUAL:
+                    if (node->left->type->isUnsigned) {
+                        addCode(setae(AL));
+                    } else {
+                        addCode(setge(AL));
+                    }
+                    break;
+                default:
+                    std::unreachable();
+            }
+            addCode(movzx(RAX, AL));
             return;
         case NodeType::SHL:
             addCode(mov(RCX, RDI), shl(ax, CL));
             return;
         case NodeType::SHR:
-            addCode(mov(RCX, RDI), sar(ax, CL));
+            addCode(mov(RCX, RDI));
+            if (node->left->type->isUnsigned) {
+                addCode(shr(ax, CL));
+            } else {
+                addCode(sar(ax, CL));
+            }
             return;
         default:
             break;

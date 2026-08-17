@@ -12,6 +12,7 @@ enum class Keyword {
     INT,
     LONG,
     SIGNED,
+    UNSIGNED,
     RETURN,
     IF,
     ELSE,
@@ -52,6 +53,8 @@ inline constexpr std::string_view to_string_view(Keyword keyword) {
             return "long";
         case SIGNED:
             return "signed";
+        case UNSIGNED:
+            return "unsigned";
         case RETURN:
             return "return";
         case IF:
@@ -107,6 +110,7 @@ inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
     {to_string_view(Keyword::INT), Keyword::INT},
     {to_string_view(Keyword::LONG), Keyword::LONG},
     {to_string_view(Keyword::SIGNED), Keyword::SIGNED},
+    {to_string_view(Keyword::UNSIGNED), Keyword::UNSIGNED},
     {to_string_view(Keyword::RETURN), Keyword::RETURN},
     {to_string_view(Keyword::IF), Keyword::IF},
     {to_string_view(Keyword::ELSE), Keyword::ELSE},
