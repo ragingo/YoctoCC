@@ -78,11 +78,11 @@ constexpr std::string to_string(OpCode op) {
         case MOVSBL:
             return "movsx";
         case MOVZBL:
-            return "movsx";
+            return "movzx";
         case MOVSWL:
             return "movsx";
         case MOVZWL:
-            return "movsx";
+            return "movzx";
         case MOVQ:
             return "movq";
         case MOVSD:
