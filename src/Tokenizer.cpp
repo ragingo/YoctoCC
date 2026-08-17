@@ -5,6 +5,7 @@
 #include "String/String.hpp"
 #include "Token.hpp"
 #include "Type.hpp"
+#include <algorithm>
 #include <cstdint>
 #include <format>
 #include <fstream>
@@ -58,23 +59,91 @@ bool parseBlockComment(ParseContext& context) {
     return true;
 }
 
+constexpr std::tuple<bool, bool> checkIntegerSuffix(std::string_view s) {
+    // static_assert(!s.empty());
+    switch (s.size()) {
+        case 3: {
+            std::array<std::string_view, 8> suffixes {
+                "ull", "uLL", "Ull", "ULL",
+                "llu", "llU", "LLu", "LLU"
+            };
+            return std::ranges::contains(suffixes, s) ? std::make_tuple(true, true) : std::make_tuple(false, false);
+        }
+       case 2: {
+            std::array<std::string_view, 8> suffixes1 {
+                "ul", "uL", "Ul", "UL",
+                "lu", "lU", "Lu", "LU"
+            };
+            if (std::ranges::contains(suffixes1, s)) {
+                return {true, true};
+            }
+            std::array<std::string_view, 2> suffixes2 {
+               "ll", "LL"
+            };
+            if (std::ranges::contains(suffixes2, s)) {
+                return {true, false};
+            }
+            return {false, false};
+        }
+        case 1: {
+            std::array<std::string_view, 2> suffixes1 {
+                "u", "U"
+            };
+            if (std::ranges::contains(suffixes1, s)) {
+                return {false, true};
+            }
+            std::array<std::string_view, 2> suffixes2 {
+                "l", "L"
+            };
+            if (std::ranges::contains(suffixes2, s)) {
+                return {true, false};
+            }
+            return {false, false};
+        }
+        default:
+           std::unreachable();
+    }
+}
+static_assert(checkIntegerSuffix("u") == std::make_tuple(false, true));
+static_assert(checkIntegerSuffix("U") == std::make_tuple(false, true));
+static_assert(checkIntegerSuffix("l") == std::make_tuple(true, false));
+static_assert(checkIntegerSuffix("L") == std::make_tuple(true, false));
+static_assert(checkIntegerSuffix("ll") == std::make_tuple(true, false));
+static_assert(checkIntegerSuffix("LL") == std::make_tuple(true, false));
+static_assert(checkIntegerSuffix("ul") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("uL") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("Ul") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("UL") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("lu") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("lU") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("Lu") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("LU") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("ull") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("uLL") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("Ull") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("ULL") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("llu") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("llU") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("LLu") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("LLU") == std::make_tuple(true, true));
+
 std::unique_ptr<Token> parseNumber(ParseContext& context) {
     int base = 10;
-    std::string number;
+    std::string numberStr;
     auto prefix2 = std::string_view(context.it, context.it + 2);
     auto prefix1 = std::string_view(context.it, context.it + 1);
     if (prefix2 == "0x"sv || prefix2 == "0X"sv) {
         base = 16;
         context.it += 2;
-        number += "0x";
+        numberStr += "0x";
     } else if (prefix2 == "0b"sv || prefix2 == "0B"sv) {
         base = 2;
         context.it += 2;
-        number += "0b";
+        numberStr += "0b";
     } else if (prefix1 == "0"sv) {
         base = 8;
         ++context.it;
-        number += "0";
+        numberStr += "0";
     }
 
     while (hasNext(context)) {
@@ -90,12 +159,68 @@ std::unique_ptr<Token> parseNumber(ParseContext& context) {
         if (base == 2 && *context.it != '0' && *context.it != '1') {
             break;
         }
-        number += *context.it;
+        numberStr += *context.it;
         ++context.it;
     }
+
+    auto value = static_cast<int64_t>(std::stoull(numberStr, nullptr, base));
+    bool hasL = false;
+    bool hasU = false;
+
+    std::string_view suffix(context.it, context.it + 3);
+    if (auto [l, r] = checkIntegerSuffix(suffix); l && r) {
+        hasL = l;
+        hasU = r;
+        context.it += 3;
+    }
+
+    suffix = std::string_view(context.it, context.it + 2);
+    if (auto [l, r] = checkIntegerSuffix(suffix); l || r) {
+        hasL = l;
+        hasU = r;
+        context.it += 2;
+    }
+
+    suffix = std::string_view(context.it, context.it + 1);
+    if (auto [l, r] = checkIntegerSuffix(suffix); l || r) {
+        hasL = l;
+        hasU = r;
+        context.it++;
+    }
+
+    std::shared_ptr<Type> type;
+    if (base == 10) {
+        if (hasL && hasU) {
+            type = type::ulongType();
+        } else if (hasL) {
+            type = type::longType();
+        } else if (hasU) {
+            type = value >> 32 ? type::ulongType() : type::uintType();
+        } else {
+            type = value >> 31 ? type::longType() : type::intType();
+        }
+    } else {
+        if (hasL && hasU) {
+            type = type::ulongType();
+        } else if (hasL) {
+            type = value >> 63 ? type::ulongType() : type::longType();
+        } else if (hasU) {
+            type = value >> 32 ? type::ulongType() : type::uintType();
+        } else if (value >> 63) {
+            type = type::ulongType();
+        } else if (value >> 32) {
+            type = type::longType();
+        } else if (value >> 31) {
+            type = type::uintType();
+        } else {
+            type = type::intType();
+        }
+    }
+
     auto token = std::make_unique<Token>(TokenKind::DIGIT);
-    token->originalValue = number;
-    token->numberValue = std::stoll(number, nullptr, base);
+    token->originalValue = numberStr;
+    token->numberValue = value;
+    token->type = type;
     token->location = std::distance(context.begin, context.it - token->originalValue.size());
     token->line = context.line;
     return token;
@@ -225,7 +350,7 @@ std::unique_ptr<Token> parseCharacterLiteral(ParseContext& context) {
     ++context.it; // 最後の ' をスキップ
 
     auto token = std::make_unique<Token>(TokenKind::DIGIT);
-    token->type = type::charType();
+    token->type = type::intType();
     token->numberValue = value;
     token->location = std::distance(context.begin, context.it - 2);
     token->line = context.line;

@@ -87,8 +87,7 @@ void addType(Node* node) {
 
     switch (node->nodeType) {
         case NodeType::NUMBER:
-            node->type = (node->value == static_cast<int64_t>(static_cast<int32_t>(node->value))) ? type::intType()
-                                                                                                  : type::longType();
+            node->type = type::intType();
             return;
         case NodeType::ADD:
         case NodeType::SUB:

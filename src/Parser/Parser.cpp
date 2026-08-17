@@ -1394,7 +1394,9 @@ ParseResult Parser::parsePrimary(Token* token) {
     }
 
     if (token->kind == TokenKind::DIGIT) {
-        return {createNumberNode(token, token->numberValue), token->next.get()};
+        auto node = createNumberNode(token, token->numberValue);
+        node->type = token->type;
+        return {std::move(node), token->next.get()};
     }
 
     Log::error("Expected an expression"sv, token, false);
