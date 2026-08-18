@@ -40,11 +40,15 @@ private:
     //             | "typedef" | "static" | "extern"
     //             | "signed" | "unsigned"
     //             | struct-decl | union-decl | typedef-name
-    //             | enum-specifier)+
+    //             | enum-specifier
+    //             | "const" | "volatile" | "auto" | "register" | "restrict"
+    //             | "__restrict" | "__restrict__" | "_Noreturn")+
     std::shared_ptr<Type> declSpec(Token*& token, VariableAttribute* attr);
-    // abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
+    // abstract-declarator = pointers ("(" abstract-declarator ")")? type-suffix
     std::shared_ptr<Type> abstractDeclarator(Token*& token, std::shared_ptr<Type>& type);
-    // declarator = "*"* ident type-suffix
+    // pointers = ("*" ("const" | "volatile" | "restrict")*)*
+    std::shared_ptr<Type> pointers(Token*& token, const std::shared_ptr<Type>& baseType);
+    // declarator = pointers ("(" ident ")" | "(" declarator ")" | ident) type-suffix
     std::shared_ptr<Type> declarator(Token*& token, const std::shared_ptr<Type>& baseType);
     // type-name = declspec abstract-declarator
     std::shared_ptr<Type> typeName(Token*& token);

@@ -103,6 +103,14 @@ inline bool consume(Token*& token, std::string_view originalValue) {
     return false;
 }
 
+inline bool consume(Token*& token, Keyword keyword) {
+    if (is(token, keyword)) {
+        token = token->next.get();
+        return true;
+    }
+    return false;
+}
+
 inline const std::string& getIdentifier(const Token* token) {
     assert(token && token->kind == TokenKind::IDENTIFIER);
     return token->originalValue;

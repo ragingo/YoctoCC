@@ -1,5 +1,6 @@
 #include "Parser/Parser.hpp"
 
+#include <algorithm>
 #include "Logger.hpp"
 #include "Node/Keywords.hpp"
 #include "Node/Node.hpp"
@@ -179,7 +180,9 @@ std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
 //             | "typedef" | "static" | "extern"
 //             | "signed" | "unsigned"
 //             | struct-decl | union-decl | typedef-name
-//             | enum-specifier)+
+//             | enum-specifier
+//             | "const" | "volatile" | "auto" | "register" | "restrict"
+//             | "__restrict" | "__restrict__" | "_Noreturn")+
 std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
     enum {
         VOID = 1 << 0,
@@ -213,6 +216,20 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
                 return nullptr;
             }
             token = token->next.get();
+            continue;
+        }
+
+        std::array comsumedIgnreKeywords {
+            token::consume(token, Keyword::CONST),
+            token::consume(token, Keyword::VOLATILE),
+            token::consume(token, Keyword::AUTO),
+            token::consume(token, Keyword::REGISTER),
+            token::consume(token, Keyword::RESTRICT),
+            token::consume(token, Keyword::__RESTRICT),
+            token::consume(token, Keyword::__RESTRICT__),
+            token::consume(token, Keyword::NORETURN),
+        };
+        if (std::ranges::contains(comsumedIgnreKeywords, true)) {
             continue;
         }
 
@@ -340,12 +357,9 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
     return type;
 }
 
-// abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
+// abstract-declarator = pointers ("(" abstract-declarator ")")? type-suffix
 std::shared_ptr<Type> Parser::abstractDeclarator(Token*& token, std::shared_ptr<Type>& type) {
-    while (token::is(token, "*")) {
-        type = type::pointerTo(type);
-        token = token->next.get();
-    }
+    type = pointers(token, type);
 
     if (token::is(token, "(")) {
         auto start = token;
@@ -363,12 +377,33 @@ std::shared_ptr<Type> Parser::abstractDeclarator(Token*& token, std::shared_ptr<
     return type;
 }
 
-// declarator = "*"* ("(" ident ")" | "(" declarator ")" | ident) type-suffix
-std::shared_ptr<Type> Parser::declarator(Token*& token, const std::shared_ptr<Type>& baseType) {
+// pointers = ("*" ("const" | "volatile" | "restrict")*)*
+std::shared_ptr<Type> Parser::pointers(Token*& token, const std::shared_ptr<Type>& baseType) {
     auto type = baseType;
     while (token::consume(token, "*")) {
         type = type::pointerTo(type);
+
+        while (true) {
+            std::array results {
+                token::is(token, Keyword::CONST),
+                token::is(token, Keyword::VOLATILE),
+                token::is(token, Keyword::RESTRICT),
+                token::is(token, Keyword::__RESTRICT),
+                token::is(token, Keyword::__RESTRICT__)
+            };
+            if (std::ranges::contains(results, true)) {
+                token = token->next.get();
+            } else {
+                break;
+            }
+        }
     }
+    return type;
+}
+
+// declarator = pointers ("(" ident ")" | "(" declarator ")" | ident) type-suffix
+std::shared_ptr<Type> Parser::declarator(Token*& token, const std::shared_ptr<Type>& baseType) {
+    auto type = pointers(token, baseType);
 
     if (token::is(token, "(")) {
         auto start = token;

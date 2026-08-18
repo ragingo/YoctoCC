@@ -170,6 +170,14 @@ inline bool isTypeName(const Token* token) {
         to_string_view(ALIGNAS),
         to_string_view(SIGNED),
         to_string_view(UNSIGNED),
+        to_string_view(CONST),
+        to_string_view(VOLATILE),
+        to_string_view(AUTO),
+        to_string_view(REGISTER),
+        to_string_view(RESTRICT),
+        to_string_view(__RESTRICT),
+        to_string_view(__RESTRICT__),
+        to_string_view(NORETURN),
     };
     return TYPE_NAMES.contains(token->originalValue);
 }

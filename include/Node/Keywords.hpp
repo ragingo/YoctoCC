@@ -34,6 +34,14 @@ enum class Keyword {
     DEFAULT,
     ALIGNOF,
     ALIGNAS,
+    CONST,
+    VOLATILE,
+    AUTO,
+    REGISTER,
+    RESTRICT,
+    __RESTRICT,
+    __RESTRICT__,
+    NORETURN,
 };
 
 inline constexpr std::string_view to_string_view(Keyword keyword) {
@@ -97,6 +105,22 @@ inline constexpr std::string_view to_string_view(Keyword keyword) {
             return "_Alignof";
         case ALIGNAS:
             return "_Alignas";
+        case CONST:
+            return "const";
+        case VOLATILE:
+            return "volatile";
+        case AUTO:
+            return "auto";
+        case REGISTER:
+            return "register";
+        case RESTRICT:
+            return "restrict";
+        case __RESTRICT:
+            return "__restrict";
+        case __RESTRICT__:
+            return "__restrict__";
+        case NORETURN:
+            return "_Noreturn";
     }
     return "";
 }
@@ -132,6 +156,14 @@ inline const std::unordered_map<std::string_view, Keyword> KEYWORDS = {
     {to_string_view(Keyword::DEFAULT), Keyword::DEFAULT},
     {to_string_view(Keyword::ALIGNOF), Keyword::ALIGNOF},
     {to_string_view(Keyword::ALIGNAS), Keyword::ALIGNAS},
+    {to_string_view(Keyword::CONST), Keyword::CONST},
+    {to_string_view(Keyword::VOLATILE), Keyword::VOLATILE},
+    {to_string_view(Keyword::AUTO), Keyword::AUTO},
+    {to_string_view(Keyword::REGISTER), Keyword::REGISTER},
+    {to_string_view(Keyword::RESTRICT), Keyword::RESTRICT},
+    {to_string_view(Keyword::__RESTRICT), Keyword::__RESTRICT},
+    {to_string_view(Keyword::__RESTRICT__), Keyword::__RESTRICT__},
+    {to_string_view(Keyword::NORETURN), Keyword::NORETURN},
 };
 
 } // namespace yoctocc
