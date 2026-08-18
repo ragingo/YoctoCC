@@ -48,6 +48,7 @@ namespace yoctocc::type {
 std::shared_ptr<Type> pointerTo(const std::shared_ptr<Type>& base) {
     auto type = std::make_shared<Type>(TypeKind::POINTER, 8, 8);
     type->base = base;
+    type->isUnsigned = true;
     return type;
 }
 
