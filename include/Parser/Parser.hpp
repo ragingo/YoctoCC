@@ -55,7 +55,7 @@ private:
     // func-params = ("void" | param ("," param)* ("," "...")?)? ")"
     // param       = declspec declarator
     std::shared_ptr<Type> functionParameters(Token*& token, std::shared_ptr<Type>& type);
-    // array-dimensions = num? "]" type-suffix
+    // array-dimensions = ("static" | "restrict")* const-expr? "]" type-suffix
     std::shared_ptr<Type> arrayDimensions(Token*& token, std::shared_ptr<Type>& type);
     // type-suffix = "(" func-params
     //             | "[" array-dimensions

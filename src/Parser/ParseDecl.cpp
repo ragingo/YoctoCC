@@ -482,8 +482,19 @@ std::shared_ptr<Type> Parser::functionParameters(Token*& token, std::shared_ptr<
     return type;
 }
 
-// array-dimensions = const-expr? "]" type-suffix
+// array-dimensions = ("static" | "restrict")* const-expr? "]" type-suffix
 std::shared_ptr<Type> Parser::arrayDimensions(Token*& token, std::shared_ptr<Type>& type) {
+    while (true) {
+        std::array results {
+            token::is(token, Keyword::STATIC),
+            token::is(token, Keyword::RESTRICT)
+        };
+        if (std::ranges::contains(results, true)) {
+            token = token->next.get();
+        } else {
+            break;
+        }
+    }
     if (token::is(token, "]")) {
         token = token->next.get();
         type = typeSuffix(token, type);
