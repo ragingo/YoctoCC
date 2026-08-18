@@ -132,6 +132,7 @@ struct Object {
     int stackSize = 0;
 
     std::unique_ptr<Object> next;
+    Token* token;
 };
 
 struct Relocation {

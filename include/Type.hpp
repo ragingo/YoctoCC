@@ -44,6 +44,7 @@ struct Type {
 
     // declaration
     const Token* name = nullptr;
+    const Token* namePos = nullptr;
 
     // struct type
     std::shared_ptr<Member> members;

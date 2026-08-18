@@ -106,6 +106,11 @@ ParseResult Parser::declaration(Token* token, const std::shared_ptr<Type>& baseT
             return {};
         }
 
+        if (!varType->name) {
+            Log::error("variable name omitted"sv, varType->namePos);
+            return {};
+        }
+
         if (attr && attr->isStatic) {
             auto var = createGlobalAnonymousVariable(varType);
             _parseScope.pushVariableScope(token::getIdentifier(varType->name))->variable = var;
@@ -1231,6 +1236,12 @@ Token* Parser::parseTypeDef(Token* token, std::shared_ptr<Type>& baseType) {
         }
         isFirst = false;
         auto type = declarator(token, baseType);
+
+        if (!type->name) {
+            Log::error("typedef name omitted"sv, type->namePos);
+            return nullptr;
+        }
+
         auto name = token::getIdentifier(type->name);
         _parseScope.pushVariableScope(name)->typeDef = type;
     }
@@ -1240,6 +1251,12 @@ Token* Parser::parseTypeDef(Token* token, std::shared_ptr<Type>& baseType) {
 
 Token* Parser::parseFunction(Token* token, std::shared_ptr<Type>& baseType, const VariableAttribute& attr) {
     auto funcType = declarator(token, baseType);
+
+    if (!funcType->name) {
+        Log::error("function name omitted"sv, funcType->namePos);
+        return nullptr;
+    }
+
     auto name = token::getIdentifier(funcType->name);
     auto func = makeFunction(name, funcType);
     func->isDefinition = !token::consume(token, ";");
@@ -1291,6 +1308,12 @@ Token* Parser::parseGlobalVariable(Token* token, std::shared_ptr<Type>& baseType
         isFirst = false;
 
         auto varType = declarator(token, baseType);
+
+        if (!varType->name) {
+            Log::error("variable name omitted"sv, varType->namePos);
+            return nullptr;
+        }
+
         auto varName = token::getIdentifier(varType->name);
         auto var = createGlobalVariable(varName, varType);
         var->isDefinition = !attr.isExtern;
@@ -1406,6 +1429,11 @@ ParseResult Parser::parsePrimary(Token* token) {
 void Parser::applyParamLVars(const std::shared_ptr<Type>& parameter) {
     if (parameter) {
         applyParamLVars(parameter->next);
+
+        if (!parameter->name) {
+            Log::error("parameter name omitted"sv, parameter->namePos);
+        }
+
         createLocalVariable(token::getIdentifier(parameter->name), parameter);
     }
 }

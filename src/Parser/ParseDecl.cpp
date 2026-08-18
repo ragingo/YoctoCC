@@ -417,14 +417,17 @@ std::shared_ptr<Type> Parser::declarator(Token*& token, const std::shared_ptr<Ty
         return type;
     }
 
+    Token* name = nullptr;
+    Token* namePos = token;
+
     if (token->kind == TokenKind::IDENTIFIER) {
-        auto name = token;
+        name = token;
         token = token->next.get();
-        type = typeSuffix(token, type);
-        type->name = name;
-    } else {
-        Log::error("Expected an identifier"sv, token);
     }
+
+    type = typeSuffix(token, type);
+    type->name = name;
+    type->namePos = namePos;
 
     return type;
 }
