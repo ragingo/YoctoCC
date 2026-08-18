@@ -60,42 +60,35 @@ bool parseBlockComment(ParseContext& context) {
 }
 
 constexpr std::tuple<bool, bool> checkIntegerSuffix(std::string_view s) {
-    // static_assert(!s.empty());
     switch (s.size()) {
         case 3: {
-            std::array<std::string_view, 8> suffixes {
-                "ull", "uLL", "Ull", "ULL",
-                "llu", "llU", "LLu", "LLU"
+            std::array suffixes {
+                "ull"sv, "uLL"sv, "Ull"sv, "ULL"sv,
+                "llu"sv, "llU"sv, "LLu"sv, "LLU"sv
             };
-            return std::ranges::contains(suffixes, s) ? std::make_tuple(true, true) : std::make_tuple(false, false);
-        }
-       case 2: {
-            std::array<std::string_view, 8> suffixes1 {
-                "ul", "uL", "Ul", "UL",
-                "lu", "lU", "Lu", "LU"
-            };
-            if (std::ranges::contains(suffixes1, s)) {
+            if (std::ranges::contains(suffixes, s)) {
                 return {true, true};
             }
-            std::array<std::string_view, 2> suffixes2 {
-               "ll", "LL"
+            return {false, false};
+        }
+       case 2: {
+            std::array suffixes {
+                "ul"sv, "uL"sv, "Ul"sv, "UL"sv,
+                "lu"sv, "lU"sv, "Lu"sv, "LU"sv
             };
-            if (std::ranges::contains(suffixes2, s)) {
+            if (std::ranges::contains(suffixes, s)) {
+                return {true, true};
+            }
+            if (std::ranges::contains(std::array{"ll"sv, "LL"sv}, s)) {
                 return {true, false};
             }
             return {false, false};
         }
         case 1: {
-            std::array<std::string_view, 2> suffixes1 {
-                "u", "U"
-            };
-            if (std::ranges::contains(suffixes1, s)) {
+            if (std::ranges::contains(std::array{"u"sv, "U"sv}, s)) {
                 return {false, true};
             }
-            std::array<std::string_view, 2> suffixes2 {
-                "l", "L"
-            };
-            if (std::ranges::contains(suffixes2, s)) {
+            if (std::ranges::contains(std::array{"l"sv, "L"sv}, s)) {
                 return {true, false};
             }
             return {false, false};
@@ -126,6 +119,10 @@ static_assert(checkIntegerSuffix("llu") == std::make_tuple(true, true));
 static_assert(checkIntegerSuffix("llU") == std::make_tuple(true, true));
 static_assert(checkIntegerSuffix("LLu") == std::make_tuple(true, true));
 static_assert(checkIntegerSuffix("LLU") == std::make_tuple(true, true));
+static_assert(checkIntegerSuffix("a") == std::make_tuple(false, false));
+static_assert(checkIntegerSuffix("Ll") == std::make_tuple(false, false));
+static_assert(checkIntegerSuffix("ULU") == std::make_tuple(false, false));
+static_assert(checkIntegerSuffix("LUL") == std::make_tuple(false, false));
 
 std::unique_ptr<Token> parseNumber(ParseContext& context) {
     int base = 10;
@@ -166,26 +163,15 @@ std::unique_ptr<Token> parseNumber(ParseContext& context) {
     auto value = static_cast<int64_t>(std::stoull(numberStr, nullptr, base));
     bool hasL = false;
     bool hasU = false;
-
-    std::string_view suffix(context.it, context.it + 3);
-    if (auto [l, r] = checkIntegerSuffix(suffix); l && r) {
-        hasL = l;
-        hasU = r;
-        context.it += 3;
-    }
-
-    suffix = std::string_view(context.it, context.it + 2);
-    if (auto [l, r] = checkIntegerSuffix(suffix); l || r) {
-        hasL = l;
-        hasU = r;
-        context.it += 2;
-    }
-
-    suffix = std::string_view(context.it, context.it + 1);
-    if (auto [l, r] = checkIntegerSuffix(suffix); l || r) {
-        hasL = l;
-        hasU = r;
-        context.it++;
+    int count = 3;
+    while (count > 0) {
+        std::string_view suffix(context.it, context.it + count);
+        if (auto [l, r] = checkIntegerSuffix(suffix); l || r) {
+            hasL = l;
+            hasU = r;
+            context.it += count;
+        }
+        count--;
     }
 
     std::shared_ptr<Type> type;
