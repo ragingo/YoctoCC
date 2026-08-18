@@ -242,10 +242,16 @@ int64_t eval2(Node* node, std::string& label) {
     case MUL:
         return eval(node->left.get()) * eval(node->right.get());
     case DIV:
+        if (node->type->isUnsigned) {
+            return static_cast<uint64_t>(eval(node->left.get())) / eval(node->right.get());
+        }
         return eval(node->left.get()) / eval(node->right.get());
     case NEGATE:
         return -eval(node->left.get());
     case MOD:
+        if (node->type->isUnsigned) {
+            return static_cast<uint64_t>(eval(node->left.get())) % eval(node->right.get());
+        }
         return eval(node->left.get()) % eval(node->right.get());
     case BIT_AND:
         return eval(node->left.get()) & eval(node->right.get());
@@ -256,18 +262,33 @@ int64_t eval2(Node* node, std::string& label) {
     case SHL:
         return eval(node->left.get()) << eval(node->right.get());
     case SHR:
+        if (node->type->isUnsigned && node->type->size == 8) {
+            return static_cast<uint64_t>(eval(node->left.get())) >> eval(node->right.get());
+        }
         return eval(node->left.get()) >> eval(node->right.get());
     case EQUAL:
         return eval(node->left.get()) == eval(node->right.get());
     case NOT_EQUAL:
         return eval(node->left.get()) != eval(node->right.get());
     case LESS:
+        if (node->type->isUnsigned) {
+            return static_cast<uint64_t>(eval(node->left.get())) < static_cast<uint64_t>(eval(node->right.get()));
+        }
         return eval(node->left.get()) < eval(node->right.get());
     case LESS_EQUAL:
+        if (node->type->isUnsigned) {
+            return static_cast<uint64_t>(eval(node->left.get())) <= static_cast<uint64_t>(eval(node->right.get()));
+        }
         return eval(node->left.get()) <= eval(node->right.get());
     case GREATER:
+        if (node->type->isUnsigned) {
+            return static_cast<uint64_t>(eval(node->left.get())) > static_cast<uint64_t>(eval(node->right.get()));
+        }
         return eval(node->left.get()) > eval(node->right.get());
     case GREATER_EQUAL:
+        if (node->type->isUnsigned) {
+            return static_cast<uint64_t>(eval(node->left.get())) >= static_cast<uint64_t>(eval(node->right.get()));
+        }
         return eval(node->left.get()) >= eval(node->right.get());
     case CONDITIONAL:
         return eval(node->condition.get()) ? eval2(node->then.get(), label) : eval2(node->els.get(), label);
@@ -285,13 +306,11 @@ int64_t eval2(Node* node, std::string& label) {
         int64_t value = eval2(node->left.get(), label);
         if (type::isInteger(node->type.get())) {
             if (node->type->size == 1) {
-                return static_cast<int64_t>(static_cast<uint8_t>(value));
+                return node->type->isUnsigned ? static_cast<uint8_t>(value) : static_cast<int8_t>(value);
             } else if (node->type->size == 2) {
-                return static_cast<int64_t>(static_cast<uint16_t>(value));
+                return node->type->isUnsigned ? static_cast<uint16_t>(value) : static_cast<int16_t>(value);
             } else if (node->type->size == 4) {
-                return static_cast<int64_t>(static_cast<uint32_t>(value));
-            } else if (node->type->size == 8) {
-                return static_cast<int64_t>(static_cast<uint64_t>(value));
+                return node->type->isUnsigned ? static_cast<uint32_t>(value) : static_cast<int32_t>(value);
             }
         }
         return eval2(node->left.get(), label);
