@@ -45,6 +45,13 @@ std::unique_ptr<Node> createLongNode(const Token* token, int64_t value) {
     return node;
 }
 
+std::unique_ptr<Node> createULongNode(const Token* token, int64_t value) {
+    auto node = std::make_unique<Node>(NodeType::NUMBER, token);
+    node->value = value;
+    node->type = type::ulongType();
+    return node;
+}
+
 std::unique_ptr<Node> createUnaryNode(NodeType type, const Token* token, std::unique_ptr<Node> operand) {
     auto node = std::make_unique<Node>(type, token);
     node->left = std::move(operand);
@@ -123,7 +130,7 @@ std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> le
     if (left->type->base && right->type->base) {
         int baseSize = left->type->base->size;
         auto node = createBinaryNode(NodeType::SUB, token, std::move(left), std::move(right));
-        node->type = std::make_shared<Type>(TypeKind::INT);
+        node->type = type::longType();
         return createBinaryNode(NodeType::DIV, token, std::move(node), createNumberNode(token, baseSize));
     }
 

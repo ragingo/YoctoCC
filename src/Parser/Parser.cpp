@@ -1341,13 +1341,13 @@ ParseResult Parser::parsePrimary(Token* token) {
             return {};
         }
         token = token::skipIf(token, ")");
-        return {createNumberNode(start, type->size), token};
+        return {createULongNode(start, type->size), token};
     }
 
     if (token::is(token, Keyword::SIZEOF)) {
         auto [operand, rest] = parseUnary(token->next.get());
         type::addType(operand.get());
-        return {createNumberNode(token, operand->type->size), rest};
+        return {createULongNode(token, operand->type->size), rest};
     }
 
     if (token::is(token, Keyword::ALIGNOF)) {
@@ -1355,11 +1355,11 @@ ParseResult Parser::parsePrimary(Token* token) {
             token = token->next->next.get();
             auto type = typeName(token);
             auto rest = token::skipIf(token, ")");
-            return {createNumberNode(token, type->alignment), rest};
+            return {createULongNode(token, type->alignment), rest};
         }
         auto [node, rest] = parseUnary(token->next.get());
         type::addType(node.get());
-        return {createNumberNode(token, node->type->alignment), rest};
+        return {createULongNode(token, node->type->alignment), rest};
     }
 
     if (token->kind == TokenKind::IDENTIFIER) {
