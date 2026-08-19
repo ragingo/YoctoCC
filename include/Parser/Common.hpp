@@ -11,10 +11,10 @@ struct Token;
 struct Type;
 
 struct VariableAttribute {
-    bool isTypeDef;
-    bool isStatic;
-    bool isExtern;
-    int alignment;
+    bool isTypeDef = false;
+    bool isStatic = false;
+    bool isExtern = false;
+    int alignment = 0;
 };
 
 struct Initializer {
