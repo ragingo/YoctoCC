@@ -68,13 +68,13 @@ struct Type;
 struct Token {
     TokenKind kind;
     std::string originalValue;
-    int64_t numberValue;
+    int64_t integerValue;
     size_t location;
     size_t line;
     std::shared_ptr<Type> type;
     std::unique_ptr<Token> next;
 
-    Token(TokenKind kind = TokenKind::UNKNOWN) : kind(kind), numberValue(0), location(0), line(0) {
+    Token(TokenKind kind = TokenKind::UNKNOWN) : kind(kind), integerValue(0), location(0), line(0) {
     }
 };
 

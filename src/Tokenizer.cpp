@@ -205,7 +205,7 @@ std::unique_ptr<Token> parseNumber(ParseContext& context) {
 
     auto token = std::make_unique<Token>(TokenKind::DIGIT);
     token->originalValue = numberStr;
-    token->numberValue = value;
+    token->integerValue = value;
     token->type = type;
     token->location = std::distance(context.begin, context.it - token->originalValue.size());
     token->line = context.line;
@@ -337,7 +337,7 @@ std::unique_ptr<Token> parseCharacterLiteral(ParseContext& context) {
 
     auto token = std::make_unique<Token>(TokenKind::DIGIT);
     token->type = type::intType();
-    token->numberValue = value;
+    token->integerValue = value;
     token->location = std::distance(context.begin, context.it - 2);
     token->line = context.line;
     return token;
