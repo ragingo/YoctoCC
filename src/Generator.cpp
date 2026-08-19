@@ -304,9 +304,9 @@ void Generator::generateStatement(const Node* node) {
 
         for (const Node* caseNode = node->cases; caseNode; caseNode = caseNode->cases) {
             if (node->condition->type->size == 8) {
-                addCode(cmp(RAX, caseNode->value));
+                addCode(cmp(RAX, caseNode->integerValue));
             } else {
-                addCode(cmp(EAX, static_cast<int32_t>(caseNode->value)));
+                addCode(cmp(EAX, static_cast<int32_t>(caseNode->integerValue)));
             }
             addCode(je(labels::label(caseNode->label).ref()));
         }
@@ -370,7 +370,7 @@ void Generator::generateExpression(const Node* node) {
         case NodeType::NULL_EXPRESSION:
             return;
         case NodeType::NUMBER:
-            addCode(mov(RAX, node->value));
+            addCode(mov(RAX, node->integerValue));
             return;
         case NodeType::NEGATE:
             generateExpression(node->left.get());

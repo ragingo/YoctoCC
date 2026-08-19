@@ -666,7 +666,7 @@ ParseResult Parser::parseStatement(Token* token) {
 
         auto node = std::make_unique<Node>(NodeType::CASE, token);
         token = token->next.get();
-        node->value = constExpression(token);
+        node->integerValue = constExpression(token);
         token = token::skipIf(token, ":");
         node->label = makeUniqueName();
 

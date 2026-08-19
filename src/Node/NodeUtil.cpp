@@ -34,20 +34,20 @@ using enum TypeKind;
 
 std::unique_ptr<Node> createNumberNode(const Token* token, int64_t value) {
     auto node = std::make_unique<Node>(NodeType::NUMBER, token);
-    node->value = value;
+    node->integerValue = value;
     return node;
 }
 
 std::unique_ptr<Node> createLongNode(const Token* token, int64_t value) {
     auto node = std::make_unique<Node>(NodeType::NUMBER, token);
-    node->value = value;
+    node->integerValue = value;
     node->type = type::longType();
     return node;
 }
 
 std::unique_ptr<Node> createULongNode(const Token* token, int64_t value) {
     auto node = std::make_unique<Node>(NodeType::NUMBER, token);
-    node->value = value;
+    node->integerValue = value;
     node->type = type::ulongType();
     return node;
 }
@@ -331,7 +331,7 @@ int64_t eval2(Node* node, std::string& label) {
         label = node->variable->name;
         return 0;
     case NUMBER:
-        return node->value;
+        return node->integerValue;
     default:
         // TODO: 列挙体の文字列表現
         Log::error(std::format("token::eval: unsupported node type: {}", std::to_underlying(node->nodeType)));
