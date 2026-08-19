@@ -69,6 +69,7 @@ struct Token {
     TokenKind kind;
     std::string originalValue;
     int64_t integerValue;
+    double floatValue;
     size_t location;
     size_t line;
     std::shared_ptr<Type> type;

@@ -6,6 +6,7 @@
 #include "Token.hpp"
 #include "Type.hpp"
 #include <algorithm>
+#include <charconv>
 #include <cstdint>
 #include <format>
 #include <fstream>
@@ -124,7 +125,7 @@ static_assert(checkIntegerSuffix("Ll") == std::make_tuple(false, false));
 static_assert(checkIntegerSuffix("ULU") == std::make_tuple(false, false));
 static_assert(checkIntegerSuffix("LUL") == std::make_tuple(false, false));
 
-std::unique_ptr<Token> parseNumber(ParseContext& context) {
+std::unique_ptr<Token> parseIntegerNumber(ParseContext& context) {
     int base = 10;
     std::string numberStr;
     auto prefix2 = std::string_view(context.it, context.it + 2);
@@ -158,6 +159,10 @@ std::unique_ptr<Token> parseNumber(ParseContext& context) {
         }
         numberStr += *context.it;
         ++context.it;
+    }
+
+    if (numberStr.empty()) {
+        numberStr = "0";
     }
 
     auto value = static_cast<int64_t>(std::stoull(numberStr, nullptr, base));
@@ -209,6 +214,61 @@ std::unique_ptr<Token> parseNumber(ParseContext& context) {
     token->type = type;
     token->location = std::distance(context.begin, context.it - token->originalValue.size());
     token->line = context.line;
+    return token;
+}
+
+std::unique_ptr<Token> parseNumber(ParseContext& context) {
+    auto start = context.it;
+
+    auto token = parseIntegerNumber(context);
+    if (!hasNext(context)) {
+        return token;
+    }
+
+    // strtod は 0x/0X に対応しているが、 std::from_chars は非対応。
+    std::string_view str(start, context.end);
+    bool isHex = str.starts_with("0x") || str.starts_with("0X");
+    bool isFloat = isHex
+        ? std::ranges::contains(std::array{'.', 'p', 'P'}, *context.it)
+        : std::ranges::contains(std::array{'.', 'e', 'E', 'f', 'F'}, *context.it);
+
+    if (!isFloat) {
+        return token;
+    }
+
+    double value = 0.0;
+    auto [ptr, result] = std::from_chars(
+        str.data() + (isHex ? 2 : 0), // 0x/0X を飛ばす
+        str.data() + str.size(),
+        value,
+        isHex ? std::chars_format::hex : std::chars_format::general
+    );
+    if (result != std::errc{}) {
+        return token;
+    }
+
+    std::shared_ptr<Type> type;
+    std::ptrdiff_t suffixLength = 0;
+    if (*ptr == 'f' || *ptr == 'F') {
+        type = type::floatType();
+        suffixLength = 1;
+    } else if (*ptr == 'l' || *ptr == 'L') {
+        type = type::doubleType();
+        suffixLength = 1;
+    } else {
+        type = type::doubleType();
+    }
+
+    auto offset = std::distance(str.begin(), ptr) + suffixLength;
+    context.it = start + offset;
+
+    token = std::make_unique<Token>(TokenKind::DIGIT);
+    token->originalValue = std::string(start, start + offset);
+    token->floatValue = value;
+    token->type = type;
+    token->location = std::distance(context.begin, start);
+    token->line = context.line;
+
     return token;
 }
 
@@ -420,7 +480,7 @@ std::unique_ptr<Token> tokenize(std::ifstream& ifs) {
 
         std::unique_ptr<Token> next;
 
-        if (std::isdigit(ch)) {
+        if (std::isdigit(ch) || (ch == '.' && std::isdigit(*std::next(it)))) {
             next = parseNumber(context);
         } else if (ch == '"') {
             next = parseStringLiteral(context);

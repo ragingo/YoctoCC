@@ -1417,7 +1417,12 @@ ParseResult Parser::parsePrimary(Token* token) {
     }
 
     if (token->kind == TokenKind::DIGIT) {
-        auto node = createNumberNode(token, token->integerValue);
+        std::unique_ptr<Node> node;
+        if (type::isFloat(token->type.get())) {
+            node = createNumberNode(token, token->floatValue);
+        } else {
+            node = createNumberNode(token, token->integerValue);
+        }
         node->type = token->type;
         return {std::move(node), token->next.get()};
     }

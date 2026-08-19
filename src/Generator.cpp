@@ -370,8 +370,23 @@ void Generator::generateExpression(const Node* node) {
         case NodeType::NULL_EXPRESSION:
             return;
         case NodeType::NUMBER:
-            addCode(mov(RAX, node->integerValue));
-            return;
+            switch (node->type->kind) {
+                case TypeKind::FLOAT: {
+                    auto u32 = std::bit_cast<uint32_t>(static_cast<float>(node->floatValue));
+                    addCode(mov(EAX, u32));
+                    addCode(movq(XMM0, RAX));
+                    return;
+                }
+                case TypeKind::DOUBLE: {
+                    auto u64 = std::bit_cast<uint64_t>(node->floatValue);
+                    addCode(mov(EAX, u64));
+                    addCode(movq(XMM0, RAX));
+                    return;
+                }
+                default:
+                    addCode(mov(RAX, node->integerValue));
+                    return;
+            }
         case NodeType::NEGATE:
             generateExpression(node->left.get());
             addCode(neg(RAX));

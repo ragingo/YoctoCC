@@ -18,6 +18,8 @@ enum class TypeKind {
     SHORT,
     INT,
     LONG,
+    FLOAT,
+    DOUBLE,
     ENUM,
     POINTER,
     FUNCTION,
@@ -105,6 +107,14 @@ inline std::shared_ptr<Type> ulongType() {
     return std::make_shared<Type>(LONG, 8, 8, true);
 }
 
+inline std::shared_ptr<Type> floatType() {
+    return std::make_shared<Type>(FLOAT, 4, 4);
+}
+
+inline std::shared_ptr<Type> doubleType() {
+    return std::make_shared<Type>(DOUBLE, 8, 8);
+}
+
 inline std::shared_ptr<Type> enumType() {
     return std::make_shared<Type>(ENUM, 4, 4);
 }
@@ -150,6 +160,12 @@ inline bool isInteger(const Type* type) {
     });
 }
 
+inline bool isFloat(const Type* type) {
+    return is(type, [](TypeKind kind) {
+        return kind == FLOAT || kind == DOUBLE;
+    });
+}
+
 inline bool isTypeName(const Token* token) {
     if (!token) {
         return false;
@@ -162,6 +178,8 @@ inline bool isTypeName(const Token* token) {
         to_string_view(SHORT),
         to_string_view(INT),
         to_string_view(LONG),
+        to_string_view(FLOAT),
+        to_string_view(DOUBLE),
         to_string_view(STRUCT),
         to_string_view(UNION),
         to_string_view(ENUM),

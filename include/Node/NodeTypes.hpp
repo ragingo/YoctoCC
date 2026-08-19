@@ -73,6 +73,7 @@ enum class NodeType {
 struct Node {
     NodeType nodeType;
     int64_t integerValue = 0;
+    double floatValue = 0.0;
     std::shared_ptr<Type> type;
     const Token* token = nullptr;
     std::unique_ptr<Node> left;

@@ -38,6 +38,12 @@ std::unique_ptr<Node> createNumberNode(const Token* token, int64_t value) {
     return node;
 }
 
+std::unique_ptr<Node> createNumberNode(const Token* token, double value) {
+    auto node = std::make_unique<Node>(NodeType::NUMBER, token);
+    node->floatValue = value;
+    return node;
+}
+
 std::unique_ptr<Node> createLongNode(const Token* token, int64_t value) {
     auto node = std::make_unique<Node>(NodeType::NUMBER, token);
     node->integerValue = value;
@@ -131,7 +137,7 @@ std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> le
         int baseSize = left->type->base->size;
         auto node = createBinaryNode(NodeType::SUB, token, std::move(left), std::move(right));
         node->type = type::longType();
-        return createBinaryNode(NodeType::DIV, token, std::move(node), createNumberNode(token, baseSize));
+        return createBinaryNode(NodeType::DIV, token, std::move(node), createNumberNode(token, static_cast<int64_t>(baseSize)));
     }
 
     Log::error("Invalid subtraction involving pointers"sv, token);
@@ -178,7 +184,7 @@ std::unique_ptr<Node> createInitDesignetorExpressionNode(const Token* token, con
     }
 
     auto left = createInitDesignetorExpressionNode(token, initDesignator->next);
-    auto right = createNumberNode(token, initDesignator->index);
+    auto right = createNumberNode(token, static_cast<int64_t>(initDesignator->index));
     auto addNode = createAddNode(token, std::move(left), std::move(right));
     auto unaryNode = createUnaryNode(NodeType::DEREFERENCE, token, std::move(addNode));
     return unaryNode;
