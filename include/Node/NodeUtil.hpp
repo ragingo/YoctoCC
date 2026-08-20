@@ -11,6 +11,7 @@ struct Initializer;
 struct InitDesignator;
 
 std::unique_ptr<Node> createNumberNode(const Token* token, int64_t value);
+std::unique_ptr<Node> createNumberNode(const Token* token, double value);
 std::unique_ptr<Node> createLongNode(const Token* token, int64_t value);
 std::unique_ptr<Node> createULongNode(const Token* token, int64_t value);
 std::unique_ptr<Node> createUnaryNode(NodeType type, const Token* token, std::unique_ptr<Node> operand);

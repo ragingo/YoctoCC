@@ -33,7 +33,9 @@ enum TypeID {
     U8,
     U16,
     U32,
-    U64
+    U64,
+    F32,
+    F64,
 };
 
 TypeID getTypeID(const Type* type) {
@@ -47,6 +49,10 @@ TypeID getTypeID(const Type* type) {
             return type->isUnsigned ? U32 : I32;
         case LONG:
             return type->isUnsigned ? U64 : I64;
+        case FLOAT:
+            return F32;
+        case DOUBLE:
+            return F64;
         default:
             return U64;
     }
@@ -54,26 +60,76 @@ TypeID getTypeID(const Type* type) {
 
 using CastCode = std::span<const std::string>;
 
-constexpr std::array<std::string, 0> empty{};
-constexpr std::array i32i8  = {movsbl(EAX, AL)};
-constexpr std::array i32u8  = {movzbl(EAX, AL)};
-constexpr std::array i32i16 = {movswl(EAX, AX)};
-constexpr std::array i32u16 = {movzwl(EAX, AX)};
-constexpr std::array i32i64 = {movsxd(RAX, EAX)};
-constexpr std::array u32i64 = {mov(EAX, EAX)};
+const std::array<std::string, 0> empty{};
+const std::array i32i8  = {movsbl(EAX, AL)};
+const std::array i32u8  = {movzbl(EAX, AL)};
+const std::array i32i16 = {movswl(EAX, AX)};
+const std::array i32u16 = {movzwl(EAX, AX)};
+const std::array i32f32 = {cvtsi2ss(XMM0, EAX)};
+const std::array i32i64 = {movsxd(RAX, EAX)};
+const std::array i32f64 = {cvtsi2sd(XMM0, EAX)};
+
+const std::array u32f32 = {mov(EAX, EAX), cvtsi2ss(XMM0, RAX)};
+const std::array u32i64 = {mov(EAX, EAX)};
+const std::array u32f64 = {mov(EAX, EAX), cvtsi2sd(XMM0, RAX)};
+
+const std::array i64f32 = {cvtsi2ss(XMM0, RAX)};
+const std::array i64f64 = {cvtsi2sd(XMM0, RAX)};
+
+const std::array u64f32 = {cvtsi2ss(XMM0, RAX)};
+const std::array u64f64 = {
+    test(RAX, RAX),
+    js(labels::label("1").ref(Label::Direction::FORWARD)),
+    pxor(XMM0, XMM0),
+    cvtsi2sd(XMM0, RAX),
+    jmp(labels::label("2").ref(Label::Direction::FORWARD)),
+    labels::label("1").def(),
+    mov(RDI, RAX),
+    and_(RAX, 1),
+    pxor(XMM0, XMM0),
+    shr(RDI),
+    or_(RDI, RAX),
+    cvtsi2sd(XMM0, RDI),
+    addsd(XMM0, XMM0),
+    labels::label("2").def(),
+};
+
+const std::array f32i8  = {cvttss2si(EAX, XMM0), movsbl(EAX, AL)};
+const std::array f32u8  = {cvttss2si(EAX, XMM0), movzbl(EAX, AL)};
+const std::array f32i16 = {cvttss2si(EAX, XMM0), movswl(EAX, AX)};
+const std::array f32u16 = {cvttss2si(EAX, XMM0), movzwl(EAX, AX)};
+const std::array f32i32 = {cvttss2si(EAX, XMM0)};
+const std::array f32u32 = {cvttss2si(RAX, XMM0)};
+const std::array f32i64 = {cvttss2si(RAX, XMM0)};
+const std::array f32u64 = {cvttss2si(RAX, XMM0)};
+const std::array f32f64 = {cvtss2sd(XMM0, XMM0)};
+
+const std::array f64i8  = {cvttsd2si(EAX, XMM0), movsbl(EAX, AL)};
+const std::array f64u8  = {cvttsd2si(EAX, XMM0), movzbl(EAX, AL)};
+const std::array f64i16 = {cvttsd2si(EAX, XMM0), movswl(EAX, AX)};
+const std::array f64u16 = {cvttsd2si(EAX, XMM0), movzwl(EAX, AX)};
+const std::array f64i32 = {cvttsd2si(EAX, XMM0)};
+const std::array f64u32 = {cvttsd2si(RAX, XMM0)};
+const std::array f64f32 = {cvtsd2ss(XMM0, XMM0)};
+const std::array f64i64 = {cvttsd2si(RAX, XMM0)};
+const std::array f64u64 = {cvttsd2si(RAX, XMM0)};
 
 // castTable[from][to]
 // clang-format off
-constexpr std::array<std::array<CastCode, 8>, 8> castTable = {{
-    // i8     i16    i32     i64     u8     u16     u32    u64
-    {{ empty, empty,  empty, i32i64, i32u8, i32u16, empty, i32i64 }}, // i8
-    {{ i32i8, empty,  empty, i32i64, i32u8, i32u16, empty, i32i64 }}, // i16
-    {{ i32i8, i32i16, empty, i32i64, i32u8, i32u16, empty, i32i64 }}, // i32
-    {{ i32i8, i32i16, empty, empty,  i32u8, i32u16, empty, empty  }}, // i64
-    {{ i32i8, empty,  empty, i32i64, empty, empty,  empty, i32i64 }}, // u8
-    {{ i32i8, i32i16, empty, i32i64, i32u8, empty,  empty, i32i64 }}, // u16
-    {{ i32i8, i32i16, empty, u32i64, i32u8, i32u16, empty, u32i64 }}, // u32
-    {{ i32i8, i32i16, empty, empty,  i32u8, i32u16, empty, empty  }}, // u64
+constexpr std::array<std::array<CastCode, 10>, 10> castTable = {{
+    // i8     i16     i32     i64     u8     u16     u32     u64     f32     f64
+    {{ empty, empty,  empty,  i32i64, i32u8, i32u16, empty,  i32i64, i32f32, i32f64 }}, // i8
+    {{ i32i8, empty,  empty,  i32i64, i32u8, i32u16, empty,  i32i64, i32f32, i32f64 }}, // i16
+    {{ i32i8, i32i16, empty,  i32i64, i32u8, i32u16, empty,  i32i64, i32f32, i32f64 }}, // i32
+    {{ i32i8, i32i16, empty,  empty,  i32u8, i32u16, empty,  empty,  i64f32, i64f64 }}, // i64
+
+    {{ i32i8, empty,  empty,  i32i64, empty, empty,  empty,  i32i64, i32f32, i32f64 }}, // u8
+    {{ i32i8, i32i16, empty,  i32i64, i32u8, empty,  empty,  i32i64, i32f32, i32f64 }}, // u16
+    {{ i32i8, i32i16, empty,  u32i64, i32u8, i32u16, empty,  u32i64, u32f32, u32f64 }}, // u32
+    {{ i32i8, i32i16, empty,  empty,  i32u8, i32u16, empty,  empty,  u64f32, u64f64 }}, // u64
+
+    {{ f32i8, f32i16, f32i32, f32i64, f32u8, f32u16, f32u32, f32u64, empty,  f32f64 }}, // f32
+    {{ f64i8, f64i16, f64i32, f64i64, f64u8, f64u16, f64u32, f64u64, f64f32, empty  }}, // f64
 }};
 // clang-format on
 
@@ -110,7 +166,7 @@ void Generator::cast(const Node* node) {
         return;
     }
 
-    if (type::is(from, BOOL)) {
+    if (type::is(to, BOOL)) {
         addCode(compareZero(from), setne(AL), movzx(EAX, AL));
         return;
     }
@@ -124,10 +180,23 @@ void Generator::cast(const Node* node) {
 void Generator::load(const Type* type) {
     using enum TypeKind;
     assert(type);
-    if (type::is(type, ARRAY) || type::is(type, STRUCT) || type::is(type, UNION)) {
-        // 何もしない
-        return;
+
+    switch (type->kind) {
+        case ARRAY:
+        case STRUCT:
+        case UNION:
+            // 何もしない
+            return;
+        case FLOAT:
+            addCode(movss(XMM0, Address{RAX}));
+            return;
+        case DOUBLE:
+            addCode(movsd(XMM0, Address{RAX}));
+            return;
+        default:
+          break;
     }
+
     if (type->size == 1) {
         if (type->isUnsigned) {
             addCode(movzbl(EAX, byte_ptr(Address{RAX})));
@@ -152,19 +221,30 @@ void Generator::store(const Type* type) {
     assert(type);
     addCode(pop_reg(RDI));
 
-    if (type::is(type, STRUCT) || type::is(type, UNION)) {
-        int i = 0;
-        // 8 バイトずつコピー
-        for (; i + 8 <= type->size; i += 8) {
-            addCode(mov(R8, Address{RAX, i}));
-            addCode(mov(Address{RDI, i}, R8));
+    switch (type->kind) {
+        case STRUCT:
+        case UNION: {
+            int i = 0;
+            // 8 バイトずつコピー
+            for (; i + 8 <= type->size; i += 8) {
+                addCode(mov(R8, Address{RAX, i}));
+                addCode(mov(Address{RDI, i}, R8));
+            }
+            // 残りのバイトをコピー
+            for (; i < type->size; i++) {
+                addCode(mov(R8B, Address{RAX, i}));
+                addCode(mov(Address{RDI, i}, R8B));
+            }
+            return;
         }
-        // 残りのバイトをコピー
-        for (; i < type->size; i++) {
-            addCode(mov(R8B, Address{RAX, i}));
-            addCode(mov(Address{RDI, i}, R8B));
-        }
-        return;
+        case FLOAT:
+            addCode(movss(Address{RDI}, XMM0));
+            return;
+        case DOUBLE:
+            addCode(movsd(Address{RDI}, XMM0));
+            return;
+        default:
+          break;
     }
 
     if (type->size == 1) {
@@ -382,7 +462,7 @@ void Generator::generateExpression(const Node* node) {
                 }
                 case TypeKind::DOUBLE: {
                     auto u64 = std::bit_cast<uint64_t>(node->floatValue);
-                    addCode(mov(EAX, u64));
+                    addCode(mov(RAX, u64));
                     addCode(movq(XMM0, RAX));
                     return;
                 }

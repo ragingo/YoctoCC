@@ -191,7 +191,8 @@ void Parser::stringInitializer(Token*& token, std::unique_ptr<Initializer>& init
     int length = std::min(initializer->type->arraySize, token->type->arraySize);
 
     for (int i = 0; i < length; i++) {
-        initializer->children[i]->expression = createNumberNode(token, *(token->originalValue.data() + i));
+        auto value = *(token->originalValue.data() + i);
+        initializer->children[i]->expression = createNumberNode(token, static_cast<int64_t>(value));
     }
 
     token = token->next.get();
@@ -411,10 +412,10 @@ std::unique_ptr<Node> Parser::toAssign(std::unique_ptr<Node>&& binary) {
 std::unique_ptr<Node> Parser::createIncDecNode(const Token* token, std::unique_ptr<Node> node, bool isInc) {
     type::addType(node.get());
     auto nodeType = node->type;
-    auto number = createNumberNode(token, isInc ? 1 : -1);
+    auto number = createNumberNode(token, isInc ? 1L : -1L);
     auto add = createAddNode(token, std::move(node), std::move(number));
     auto assign = toAssign(std::move(add));
-    auto add2 = createAddNode(token, std::move(assign), createNumberNode(token, isInc ? -1 : 1));
+    auto add2 = createAddNode(token, std::move(assign), createNumberNode(token, isInc ? -1L : 1L));
     auto cast = createCastNode(std::move(add2), nodeType);
     return cast;
 }
@@ -1090,13 +1091,13 @@ ParseResult Parser::parseUnary(Token* token) {
     if (token::is(token, "++")) {
         auto start = token;
         auto [operand, rest] = parseUnary(token->next.get());
-        auto binary = createAddNode(start, std::move(operand), createNumberNode(token, 1));
+        auto binary = createAddNode(start, std::move(operand), createNumberNode(token, 1L));
         return {toAssign(std::move(binary)), rest};
     }
     if (token::is(token, "--")) {
         auto start = token;
         auto [operand, rest] = parseUnary(token->next.get());
-        auto binary = createSubNode(start, std::move(operand), createNumberNode(token, 1));
+        auto binary = createSubNode(start, std::move(operand), createNumberNode(token, 1L));
         return {toAssign(std::move(binary)), rest};
     }
     return parsePostfix(token);
@@ -1403,7 +1404,7 @@ ParseResult Parser::parsePrimary(Token* token) {
         }
 
         if (variableScope->enumType) {
-            return {createNumberNode(token, variableScope->enumValue), token->next.get()};
+            return {createNumberNode(token, static_cast<int64_t>(variableScope->enumValue)), token->next.get()};
         }
 
         std::unreachable();

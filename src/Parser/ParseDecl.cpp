@@ -184,17 +184,21 @@ std::shared_ptr<Type> Parser::enumSpecifier(Token*& token) {
 //             | "const" | "volatile" | "auto" | "register" | "restrict"
 //             | "__restrict" | "__restrict__" | "_Noreturn")+
 std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
+    // clang-format off
     enum {
-        VOID = 1 << 0,
-        BOOL = 1 << 2,
-        CHAR = 1 << 4,
-        SHORT = 1 << 6,
-        INT = 1 << 8,
-        LONG = 1 << 10,
-        OTHER = 1 << 12,
-        SIGNED = 1 << 13,
-        UNSIGNED = 1 << 14,
+        VOID     = 1 << 0,
+        BOOL     = 1 << 2,
+        CHAR     = 1 << 4,
+        SHORT    = 1 << 6,
+        INT      = 1 << 8,
+        LONG     = 1 << 10,
+        FLOAT    = 1 << 12,
+        DOUBLE   = 1 << 14,
+        OTHER    = 1 << 16,
+        SIGNED   = 1 << 17,
+        UNSIGNED = 1 << 18,
     };
+    // clang-format on
     auto type = type::intType();
     int counter = 0;
 
@@ -288,6 +292,10 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
             counter += INT;
         } else if (token::is(token, Keyword::LONG)) {
             counter += LONG;
+        } else if (token::is(token, Keyword::FLOAT)) {
+            counter += FLOAT;
+        } else if (token::is(token, Keyword::DOUBLE)) {
+            counter += DOUBLE;
         } else if (token::is(token, Keyword::SIGNED)) {
             counter |= SIGNED;
         } else if (token::is(token, Keyword::UNSIGNED)) {
@@ -345,6 +353,12 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
             case UNSIGNED + LONG + LONG:
             case UNSIGNED + LONG + LONG + INT:
                 type = type::ulongType();
+                break;
+            case FLOAT:
+                type = type::floatType();
+                break;
+            case DOUBLE:
+                type = type::doubleType();
                 break;
             default:
                 Log::error("Invalid type specifier"sv, token);
