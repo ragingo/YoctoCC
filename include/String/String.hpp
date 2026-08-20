@@ -22,6 +22,10 @@ constexpr bool isIdentifierChar(char ch, bool isFirstChar) {
     }
 }
 
+constexpr bool isDigit(char ch) {
+    return ch >= '0' && ch <= '9';
+}
+
 constexpr bool isOctalDigit(char ch) {
     return ch >= '0' && ch <= '7';
 }
@@ -49,6 +53,23 @@ constexpr int hexCharToInt(char ch) {
         return -1;
     }
 }
+
+constexpr bool isNumberString(std::string_view sv) {
+    if (sv.empty()) {
+        return false;
+    }
+    for (auto ch : sv) {
+        if (!isDigit(ch)) {
+            return false;
+        }
+    }
+    return true;
+}
+static_assert(!isNumberString(""));
+static_assert(isNumberString("0"));
+static_assert(isNumberString("9"));
+static_assert(isNumberString("1234567890"));
+static_assert(!isNumberString("12345678901a23"));
 
 template <std::integral T>
 constexpr std::string to_string(T value) {
