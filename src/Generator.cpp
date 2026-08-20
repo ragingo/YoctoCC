@@ -52,26 +52,29 @@ TypeID getTypeID(const Type* type) {
     }
 }
 
-const std::string i32i8 = movsbl(EAX, AL);
-const std::string i32u8 = movzbl(EAX, AL);
-const std::string i32i16 = movswl(EAX, AX);
-const std::string i32u16 = movzwl(EAX, AX);
-const std::string i32i64 = movsxd(RAX, EAX);
-const std::string u32i64 = mov(EAX, EAX);
+using CastCode = std::span<const std::string>;
 
-// cast_table[from][to]
+constexpr std::array<std::string, 0> empty{};
+constexpr std::array i32i8  = {movsbl(EAX, AL)};
+constexpr std::array i32u8  = {movzbl(EAX, AL)};
+constexpr std::array i32i16 = {movswl(EAX, AX)};
+constexpr std::array i32u16 = {movzwl(EAX, AX)};
+constexpr std::array i32i64 = {movsxd(RAX, EAX)};
+constexpr std::array u32i64 = {mov(EAX, EAX)};
+
+// castTable[from][to]
 // clang-format off
-const std::string castTable[8][8] = {
-    // i8   i16     i32 i64     u8     u16     u32 u64
-    {"",    "",     "", i32i64, i32u8, i32u16, "", i32i64}, // i8
-    {i32i8, "",     "", i32i64, i32u8, i32u16, "", i32i64}, // i16
-    {i32i8, i32i16, "", i32i64, i32u8, i32u16, "", i32i64}, // i32
-    {i32i8, i32i16, "", "",     i32u8, i32u16, "", ""},     // i64
-    {i32i8, "",     "", i32i64, "",    "",     "", i32i64}, // u8
-    {i32i8, i32i16, "", i32i64, i32u8, "",     "", i32i64}, // u16
-    {i32i8, i32i16, "", u32i64, i32u8, i32u16, "", u32i64}, // u32
-    {i32i8, i32i16, "", "",     i32u8, i32u16, "", ""},     // u64
-};
+constexpr std::array<std::array<CastCode, 8>, 8> castTable = {{
+    // i8     i16    i32     i64     u8     u16     u32    u64
+    {{ empty, empty,  empty, i32i64, i32u8, i32u16, empty, i32i64 }}, // i8
+    {{ i32i8, empty,  empty, i32i64, i32u8, i32u16, empty, i32i64 }}, // i16
+    {{ i32i8, i32i16, empty, i32i64, i32u8, i32u16, empty, i32i64 }}, // i32
+    {{ i32i8, i32i16, empty, empty,  i32u8, i32u16, empty, empty  }}, // i64
+    {{ i32i8, empty,  empty, i32i64, empty, empty,  empty, i32i64 }}, // u8
+    {{ i32i8, i32i16, empty, i32i64, i32u8, empty,  empty, i32i64 }}, // u16
+    {{ i32i8, i32i16, empty, u32i64, i32u8, i32u16, empty, u32i64 }}, // u32
+    {{ i32i8, i32i16, empty, empty,  i32u8, i32u16, empty, empty  }}, // u64
+}};
 // clang-format on
 
 std::string compareZero(const Type* type) {
@@ -112,9 +115,9 @@ void Generator::cast(const Node* node) {
         return;
     }
 
-    auto code = castTable[getTypeID(from)][getTypeID(to)];
-    if (!code.empty()) {
-        addCode(code);
+    const CastCode& code = castTable[getTypeID(from)][getTypeID(to)];
+    for (const auto& line : code) {
+        addCode(line);
     }
 }
 
