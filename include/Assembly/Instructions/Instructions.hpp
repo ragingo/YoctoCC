@@ -124,6 +124,12 @@ inline constexpr Instruction<JE> je;
 inline constexpr Instruction<JNE> jne;
 inline constexpr Instruction<CALL> call;
 inline constexpr Instruction<REP_STOSB> rep_stosb;
+inline constexpr Instruction<CVTSD2SS> cvtsd2ss;
+inline constexpr Instruction<CVTSI2SD> cvtsi2sd;
+inline constexpr Instruction<CVTSI2SS> cvtsi2ss;
+inline constexpr Instruction<CVTSS2SD> cvtss2sd;
+inline constexpr Instruction<CVTTSD2SI> cvttsd2si;
+inline constexpr Instruction<CVTTSS2SI> cvttss2si;
 
 static_assert(mov(RAX, 42) == "mov rax, 42");
 static_assert(add(Address{RAX}, 42) == "add [rax], 42");

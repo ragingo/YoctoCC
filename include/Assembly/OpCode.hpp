@@ -60,7 +60,13 @@ enum class OpCode {
     JG,
     JGE,
     SYSCALL,
-    REP_STOSB
+    REP_STOSB,
+    CVTSD2SS,
+    CVTSI2SD,
+    CVTSI2SS,
+    CVTSS2SD,
+    CVTTSD2SI,
+    CVTTSS2SI,
 };
 
 constexpr std::string to_string(OpCode op) {
@@ -180,6 +186,18 @@ constexpr std::string to_string(OpCode op) {
             return "syscall";
         case REP_STOSB:
             return "rep stosb";
+        case CVTSD2SS:
+            return "cvtsd2ss";
+        case CVTSI2SD:
+            return "cvtsi2sd";
+        case CVTSI2SS:
+            return "cvtsi2ss";
+        case CVTSS2SD:
+            return "cvtss2sd";
+        case CVTTSD2SI:
+            return "cvttsd2si";
+        case CVTTSS2SI:
+            return "cvttss2si";
         default:
             return "???";
     }
