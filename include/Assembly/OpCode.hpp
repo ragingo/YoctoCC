@@ -20,6 +20,7 @@ enum class OpCode {
     LEA,
     ADD,
     ADDQ,
+    ADDSD,
     SUB,
     MUL,
     IMUL,
@@ -59,6 +60,8 @@ enum class OpCode {
     JLE,
     JG,
     JGE,
+    JS,
+    TEST,
     SYSCALL,
     REP_STOSB,
     CVTSD2SS,
@@ -67,6 +70,7 @@ enum class OpCode {
     CVTSS2SD,
     CVTTSD2SI,
     CVTTSS2SI,
+    PXOR,
 };
 
 constexpr std::string to_string(OpCode op) {
@@ -104,6 +108,8 @@ constexpr std::string to_string(OpCode op) {
             return "add";
         case ADDQ:
             return "addq";
+        case ADDSD:
+            return "addsd";
         case SUB:
             return "sub";
         case MUL:
@@ -182,6 +188,10 @@ constexpr std::string to_string(OpCode op) {
             return "jg";
         case JGE:
             return "jge";
+        case JS:
+            return "js";
+        case TEST:
+            return "test";
         case SYSCALL:
             return "syscall";
         case REP_STOSB:
@@ -198,6 +208,8 @@ constexpr std::string to_string(OpCode op) {
             return "cvttsd2si";
         case CVTTSS2SI:
             return "cvttss2si";
+        case PXOR:
+            return "pxor";
         default:
             return "???";
     }
