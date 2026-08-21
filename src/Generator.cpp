@@ -896,15 +896,21 @@ void Generator::generateFunction(const Object* obj) {
     }
 
     if (obj->vaArea) {
-        int argCount = 0;
+        int i = 0;
+        int f = 0;
         for (auto param = obj->parameters; param; param = param->next.get()) {
-            argCount++;
+            if (type::isFloat(param->type.get())) {
+                f++;
+            } else {
+                i++;
+            }
         }
         int offset = obj->vaArea->offset;
+        const int fpOffset = 48;
         addCode(
             // va_elem
-            movl(dword_ptr(Address{RBP, offset}), argCount * 8),
-            movl(dword_ptr(Address{RBP, offset + 4}), 0),
+            movl(dword_ptr(Address{RBP, offset}), i * 8),
+            movl(dword_ptr(Address{RBP, offset + 4}), f * 8 + fpOffset),
             movq(Address{RBP, offset + 16}, RBP),
             addq(Address{RBP, offset + 16}, offset + 24),
             // __reg_save_area__
