@@ -138,6 +138,17 @@ static constexpr std::array ARG_REGISTERS64 = {
     R9,
 };
 
+static constexpr std::array ARG_REGISTERS128 = {
+    XMM0,
+    XMM1,
+    XMM2,
+    XMM3,
+    XMM4,
+    XMM5,
+    XMM6,
+    XMM7,
+};
+
 inline constexpr std::string to_string(Register reg) {
     switch (reg) {
         case XMM0:

@@ -22,6 +22,7 @@ private:
     void assignLocalVariableOffsets(Object* obj);
     void generateAddress(const Node* node);
     void generateStatement(const Node* node);
+    void pushArgs(const Node* node);
     void generateExpression(const Node* node);
     void generateFunction(const Object* obj);
     void emitData(const Object* obj);

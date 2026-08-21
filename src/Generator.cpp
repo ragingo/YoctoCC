@@ -468,6 +468,19 @@ void Generator::generateStatement(const Node* node) {
     Log::error("Invalid statement"sv, node->token);
 }
 
+void Generator::pushArgs(const Node* node) {
+    if (!node) {
+        return;
+    }
+    pushArgs(node->next.get());
+    generateExpression(node);
+    if (type::isFloat(node->type.get())) {
+        addCode(pushf());
+    } else {
+        addCode(push_rax());
+    }
+}
+
 void Generator::generateExpression(const Node* node) {
     assert(node);
     emitLocation(node);
@@ -548,17 +561,18 @@ void Generator::generateExpression(const Node* node) {
             addCode(rep_stosb());
             return;
         case NodeType::FUNCTION_CALL: {
-            int argCount = 0;
+            pushArgs(node->arguments.get());
+
+            int gp = 0;
+            int fp = 0;
             for (const Node* arg = node->arguments.get(); arg; arg = arg->next.get()) {
-                generateExpression(arg);
-                addCode(push_rax());
-                argCount++;
+                if (type::isFloat(arg->type.get())) {
+                    addCode(popf(ARG_REGISTERS128[fp++]));
+                } else {
+                    addCode(pop_reg(ARG_REGISTERS64[gp++]));
+                }
             }
-            assert(std::cmp_less_equal(argCount, ARG_REGISTERS64.size()));
-            for (int i = argCount - 1; i >= 0; i--) {
-                addCode(pop_reg(ARG_REGISTERS64[i]));
-            }
-            addCode(mov(RAX, 0));
+
             if (depth % 2 == 0) {
                 addCode(call(node->functionName));
             } else {
