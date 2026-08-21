@@ -941,14 +941,14 @@ ParseResult Parser::parseRelational(Token* token) {
         if (token::is(token, ">")) {
             auto start = token;
             auto [right, rest2] = parseShift(token->next.get());
-            node = createBinaryNode(NodeType::GREATER, start, std::move(node), std::move(right));
+            node = createBinaryNode(NodeType::LESS, start, std::move(right), std::move(node));
             token = rest2;
             continue;
         }
         if (token::is(token, ">=")) {
             auto start = token;
             auto [right, rest2] = parseShift(token->next.get());
-            node = createBinaryNode(NodeType::GREATER_EQUAL, start, std::move(node), std::move(right));
+            node = createBinaryNode(NodeType::LESS_EQUAL, start, std::move(right), std::move(node));
             token = rest2;
             continue;
         }

@@ -758,20 +758,6 @@ void Generator::generateExpression(const Node* node) {
                         addCode(setle(AL));
                     }
                     break;
-                case NodeType::GREATER:
-                    if (node->left->type->isUnsigned) {
-                        addCode(seta(AL));
-                    } else {
-                        addCode(setg(AL));
-                    }
-                    break;
-                case NodeType::GREATER_EQUAL:
-                    if (node->left->type->isUnsigned) {
-                        addCode(setae(AL));
-                    } else {
-                        addCode(setge(AL));
-                    }
-                    break;
                 default:
                     std::unreachable();
             }

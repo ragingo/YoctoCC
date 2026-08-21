@@ -131,15 +131,13 @@ void addType(Node* node) {
         case NodeType::EQUAL:
         case NodeType::NOT_EQUAL:
         case NodeType::LESS:
-        case NodeType::LESS_EQUAL:
-        case NodeType::GREATER:
-        case NodeType::GREATER_EQUAL: {
+        case NodeType::LESS_EQUAL: {
             auto [newLhsNode, newRhsNode] = convertUsualArithmetic(std::move(node->left), std::move(node->right));
             node->left = std::move(newLhsNode);
             node->right = std::move(newRhsNode);
-        }
             node->type = type::intType();
             break;
+        }
         case NodeType::FUNCTION_CALL:
             node->type = type::longType();
             return;

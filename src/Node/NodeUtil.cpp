@@ -286,16 +286,6 @@ int64_t eval2(Node* node, std::string& label) {
             return static_cast<uint64_t>(eval(node->left.get())) <= static_cast<uint64_t>(eval(node->right.get()));
         }
         return eval(node->left.get()) <= eval(node->right.get());
-    case GREATER:
-        if (node->type->isUnsigned) {
-            return static_cast<uint64_t>(eval(node->left.get())) > static_cast<uint64_t>(eval(node->right.get()));
-        }
-        return eval(node->left.get()) > eval(node->right.get());
-    case GREATER_EQUAL:
-        if (node->type->isUnsigned) {
-            return static_cast<uint64_t>(eval(node->left.get())) >= static_cast<uint64_t>(eval(node->right.get()));
-        }
-        return eval(node->left.get()) >= eval(node->right.get());
     case CONDITIONAL:
         return eval(node->condition.get()) ? eval2(node->then.get(), label) : eval2(node->els.get(), label);
     case COMMA:

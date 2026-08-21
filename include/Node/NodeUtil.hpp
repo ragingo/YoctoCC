@@ -52,7 +52,7 @@ Relocation* writeGlobalVariableData(
 inline bool isComparison(const Node* node) {
     using enum NodeType;
     auto type = node->nodeType;
-    return type == EQUAL || type == NOT_EQUAL || type == LESS || type == LESS_EQUAL || type == GREATER || type == GREATER_EQUAL;
+    return type == EQUAL || type == NOT_EQUAL || type == LESS || type == LESS_EQUAL;
 }
 
 } // namespace yoctocc

@@ -42,8 +42,6 @@ enum class NodeType {
     NOT_EQUAL,     // !=
     LESS,          // <
     LESS_EQUAL,    // <=
-    GREATER,       // >
-    GREATER_EQUAL, // >=
     ASSIGN,        // =
     CONDITIONAL,   // ?:
     COMMA,         // ,
