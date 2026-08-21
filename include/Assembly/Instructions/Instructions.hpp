@@ -116,6 +116,8 @@ inline constexpr Instruction<SETG> setg;
 inline constexpr Instruction<SETA> seta;
 inline constexpr Instruction<SETGE> setge;
 inline constexpr Instruction<SETAE> setae;
+inline constexpr Instruction<SETP> setp;
+inline constexpr Instruction<SETNP> setnp;
 inline constexpr Instruction<SYSCALL> syscall_;
 inline constexpr Instruction<PUSH> push;
 inline constexpr Instruction<POP> pop;
@@ -134,6 +136,8 @@ inline constexpr Instruction<CVTSS2SD> cvtss2sd;
 inline constexpr Instruction<CVTTSD2SI> cvttsd2si;
 inline constexpr Instruction<CVTTSS2SI> cvttss2si;
 inline constexpr Instruction<PXOR> pxor;
+inline constexpr Instruction<UCOMISS> ucomiss;
+inline constexpr Instruction<UCOMISD> ucomisd;
 
 static_assert(mov(RAX, 42) == "mov rax, 42");
 static_assert(add(Address{RAX}, 42) == "add [rax], 42");

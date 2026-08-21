@@ -49,6 +49,8 @@ enum class OpCode {
     SETA,
     SETGE,
     SETAE,
+    SETP,
+    SETNP,
     PUSH,
     POP,
     CALL,
@@ -71,6 +73,8 @@ enum class OpCode {
     CVTTSD2SI,
     CVTTSS2SI,
     PXOR,
+    UCOMISS,
+    UCOMISD
 };
 
 constexpr std::string to_string(OpCode op) {
@@ -166,6 +170,10 @@ constexpr std::string to_string(OpCode op) {
             return "setge";
         case SETAE:
             return "setae";
+        case SETP:
+            return "setp";
+        case SETNP:
+            return "setnp";
         case PUSH:
             return "push";
         case POP:
@@ -210,6 +218,10 @@ constexpr std::string to_string(OpCode op) {
             return "cvttss2si";
         case PXOR:
             return "pxor";
+        case UCOMISS:
+            return "ucomiss";
+        case UCOMISD:
+            return "ucomisd";
         default:
             return "???";
     }
