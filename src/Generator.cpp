@@ -281,6 +281,40 @@ void Generator::store(const Type* type) {
     }
 }
 
+void Generator::storeIntegerArgs(int reg, int offset, int size) {
+    switch (size) {
+        case 1:
+            addCode(mov(Address{RBP, offset}, ARG_REGISTERS8[reg]));
+            break;
+        case 2:
+            addCode(mov(Address{RBP, offset}, ARG_REGISTERS16[reg]));
+            break;
+        case 4:
+            addCode(mov(Address{RBP, offset}, ARG_REGISTERS32[reg]));
+            break;
+        case 8:
+            addCode(mov(Address{RBP, offset}, ARG_REGISTERS64[reg]));
+            break;
+        default:
+            Log::unreachable();
+            break;
+    }
+}
+
+void Generator::storeFloatArgs(int reg, int offset, int size) {
+    switch (size) {
+        case 4:
+            addCode(movss(Address{RBP, offset}, ARG_REGISTERS128[reg]));
+            break;
+        case 8:
+            addCode(movsd(Address{RBP, offset}, ARG_REGISTERS128[reg]));
+            break;
+        default:
+            Log::unreachable();
+            break;
+    }
+}
+
 void Generator::assignLocalVariableOffsets(Object* obj) {
     assert(obj);
 
@@ -891,24 +925,13 @@ void Generator::generateFunction(const Object* obj) {
         );
     }
 
+    int f = 0;
     int i = 0;
     for (const Object* param = obj->parameters; param; param = param->next.get()) {
-        switch (param->type->size) {
-            case 1:
-                addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS8[i++]));
-                break;
-            case 2:
-                addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS16[i++]));
-                break;
-            case 4:
-                addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS32[i++]));
-                break;
-            case 8:
-                addCode(mov(Address{RBP, param->offset}, ARG_REGISTERS64[i++]));
-                break;
-            default:
-                Log::unreachable();
-                break;
+        if (type::isFloat(param->type.get())) {
+            storeFloatArgs(f++, param->offset, param->type->size);
+        } else {
+            storeIntegerArgs(i++, param->offset, param->type->size);
         }
     }
 

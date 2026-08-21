@@ -19,6 +19,8 @@ private:
     void cast(const Node* node);
     void load(const Type* type);
     void store(const Type* type);
+    void storeIntegerArgs(int reg, int offset, int size);
+    void storeFloatArgs(int reg, int offset, int size);
     void assignLocalVariableOffsets(Object* obj);
     void generateAddress(const Node* node);
     void generateStatement(const Node* node);
