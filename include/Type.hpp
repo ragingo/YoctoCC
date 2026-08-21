@@ -166,6 +166,10 @@ inline bool isFloat(const Type* type) {
     });
 }
 
+inline bool isNumeric(const Type* type) {
+    return isInteger(type) || isFloat(type);
+}
+
 inline bool isTypeName(const Token* token) {
     if (!token) {
         return false;

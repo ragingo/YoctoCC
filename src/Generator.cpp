@@ -488,6 +488,19 @@ void Generator::generateExpression(const Node* node) {
             }
         case NodeType::NEGATE:
             generateExpression(node->left.get());
+            if (type::isFloat(node->type.get())) {
+                if (node->type->kind== TypeKind::FLOAT) {
+                    addCode(mov(RAX, 1));
+                    addCode(shl(RAX, 31));
+                    addCode(movq(XMM1, RAX));
+                    addCode(xorps(XMM0, XMM1));
+                } else if (node->type->kind == TypeKind::DOUBLE) {
+                    addCode(mov(RAX, 1));
+                    addCode(shl(RAX, 63));
+                    addCode(movq(XMM1, RAX));
+                    addCode(xorpd(XMM0, XMM1));
+                }
+            }
             addCode(neg(RAX));
             return;
         case NodeType::VARIABLE:
@@ -638,39 +651,66 @@ void Generator::generateExpression(const Node* node) {
         generateExpression(node->left.get());
         addCode(popf(XMM1));
 
-        if (isComparison(node)) {
-            if (node->left->type->kind == TypeKind::FLOAT) {
-                addCode(ucomiss(XMM1, XMM0));
-            } else {
-                addCode(ucomisd(XMM1, XMM0));
-            }
-            switch (node->nodeType) {
-                case NodeType::EQUAL:
-                    addCode(sete(AL), setnp(DL), and_(AL, DL));
-                    break;
-                case NodeType::NOT_EQUAL:
-                    addCode(setne(AL), setp(DL), or_(AL, DL));
-                    break;
-                case NodeType::LESS:
-                    addCode(seta(AL));
-                    break;
-                case NodeType::LESS_EQUAL:
-                    addCode(setae(AL));
-                    break;
-                case NodeType::GREATER:
-                    addCode(setb(AL));
-                    break;
-                case NodeType::GREATER_EQUAL:
-                    addCode(setbe(AL));
-                    break;
-                default:
-                   std::unreachable();
-            }
-            addCode(and_(AL, 1), movzx(RAX, AL));
-            return;
+        switch (node->nodeType) {
+            case NodeType::ADD:
+                if (node->left->type->kind == TypeKind::FLOAT) {
+                    addCode(addss(XMM0, XMM1));
+                } else {
+                    addCode(addsd(XMM0, XMM1));
+                }
+                return;
+            case NodeType::SUB:
+                if (node->left->type->kind == TypeKind::FLOAT) {
+                    addCode(subss(XMM0, XMM1));
+                } else {
+                    addCode(subsd(XMM0, XMM1));
+                }
+                return;
+            case NodeType::MUL:
+                if (node->left->type->kind == TypeKind::FLOAT) {
+                    addCode(mulss(XMM0, XMM1));
+                } else {
+                    addCode(mulsd(XMM0, XMM1));
+                }
+                return;
+            case NodeType::DIV:
+                if (node->left->type->kind == TypeKind::FLOAT) {
+                    addCode(divss(XMM0, XMM1));
+                } else {
+                    addCode(divsd(XMM0, XMM1));
+                }
+                return;
+            case NodeType::EQUAL:
+            case NodeType::NOT_EQUAL:
+            case NodeType::LESS:
+            case NodeType::LESS_EQUAL:
+                if (node->left->type->kind == TypeKind::FLOAT) {
+                    addCode(ucomiss(XMM1, XMM0));
+                } else {
+                    addCode(ucomisd(XMM1, XMM0));
+                }
+                switch (node->nodeType) {
+                    case NodeType::EQUAL:
+                        addCode(sete(AL), setnp(DL), and_(AL, DL));
+                        break;
+                    case NodeType::NOT_EQUAL:
+                        addCode(setne(AL), setp(DL), or_(AL, DL));
+                        break;
+                    case NodeType::LESS:
+                        addCode(seta(AL));
+                        break;
+                    case NodeType::LESS_EQUAL:
+                        addCode(setae(AL));
+                        break;
+                    default:
+                    std::unreachable();
+                }
+                addCode(and_(AL, 1), movzx(RAX, AL));
+                return;
+            default:
+                Log::error("invalid expression", node->token);
+                std::unreachable();
         }
-        Log::error("invalid expression", node->token);
-        std::unreachable();
     }
 
     generateExpression(node->right.get());
@@ -722,20 +762,18 @@ void Generator::generateExpression(const Node* node) {
         }
             return;
         case NodeType::BIT_AND:
-            addCode(and_(RAX, RDI));
+            addCode(and_(ax, di));
             return;
         case NodeType::BIT_OR:
-            addCode(or_(RAX, RDI));
+            addCode(or_(ax, di));
             return;
         case NodeType::BIT_XOR:
-            addCode(xor_(RAX, RDI));
+            addCode(xor_(ax, di));
             return;
         case NodeType::EQUAL:
         case NodeType::NOT_EQUAL:
         case NodeType::LESS:
         case NodeType::LESS_EQUAL:
-        case NodeType::GREATER:
-        case NodeType::GREATER_EQUAL:
             addCode(cmp(ax, di));
             switch (node->nodeType) {
                 case NodeType::EQUAL:

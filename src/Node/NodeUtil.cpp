@@ -91,7 +91,7 @@ std::unique_ptr<Node> createAddNode(const Token* token, std::unique_ptr<Node> le
     type::addType(right.get());
 
     // number + number
-    if (type::isInteger(left->type.get()) && type::isInteger(right->type.get())) {
+    if (type::isNumeric(left->type.get()) && type::isNumeric(right->type.get())) {
         return createBinaryNode(NodeType::ADD, token, std::move(left), std::move(right));
     }
 
@@ -117,7 +117,7 @@ std::unique_ptr<Node> createSubNode(const Token* token, std::unique_ptr<Node> le
     type::addType(right.get());
 
     // number - number
-    if (type::isInteger(left->type.get()) && type::isInteger(right->type.get())) {
+    if (type::isNumeric(left->type.get()) && type::isNumeric(right->type.get())) {
         return createBinaryNode(NodeType::SUB, token, std::move(left), std::move(right));
     }
 
