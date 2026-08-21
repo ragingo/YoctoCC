@@ -175,5 +175,7 @@ int main() {
     ASSERT(7, add_float3(2.5, 2.5, 2.5));
     ASSERT(7, add_double3(2.5, 2.5, 2.5));
 
+    ASSERT(0, ({ char buf[100]; sprintf(buf, "%.1f", (float)3.5); strcmp(buf, "3.5"); }));
+
     return 0;
 }

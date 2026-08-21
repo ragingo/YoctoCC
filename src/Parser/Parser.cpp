@@ -1204,6 +1204,8 @@ ParseResult Parser::parseFunctionCall(Token* token) {
             }
             arg = createCastNode(std::move(arg), parameterType);
             parameterType = parameterType->next;
+        } else if (arg->type->kind == TypeKind::FLOAT) {
+            arg = createCastNode(std::move(arg), type::doubleType());
         }
 
         current->next = std::move(arg);
