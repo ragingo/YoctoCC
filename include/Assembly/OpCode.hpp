@@ -20,7 +20,6 @@ enum class OpCode {
     LEA,
     ADD,
     ADDQ,
-    ADDSD,
     SUB,
     MUL,
     IMUL,
@@ -74,7 +73,17 @@ enum class OpCode {
     CVTTSS2SI,
     PXOR,
     UCOMISS,
-    UCOMISD
+    UCOMISD,
+    XORPS,
+    XORPD,
+    ADDSS,
+    ADDSD,
+    SUBSS,
+    SUBSD,
+    MULSS,
+    MULSD,
+    DIVSS,
+    DIVSD,
 };
 
 constexpr std::string to_string(OpCode op) {
@@ -112,8 +121,6 @@ constexpr std::string to_string(OpCode op) {
             return "add";
         case ADDQ:
             return "addq";
-        case ADDSD:
-            return "addsd";
         case SUB:
             return "sub";
         case MUL:
@@ -222,6 +229,26 @@ constexpr std::string to_string(OpCode op) {
             return "ucomiss";
         case UCOMISD:
             return "ucomisd";
+        case XORPS:
+            return "xorps";
+        case XORPD:
+            return "xorpd";
+        case ADDSS:
+            return "addss";
+        case ADDSD:
+            return "addsd";
+        case SUBSS:
+            return "subss";
+        case SUBSD:
+            return "subsd";
+        case MULSS:
+            return "mulss";
+        case MULSD:
+            return "mulsd";
+        case DIVSS:
+            return "divss";
+        case DIVSD:
+            return "divsd";
         default:
             return "???";
     }
