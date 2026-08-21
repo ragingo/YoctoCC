@@ -149,11 +149,17 @@ constexpr std::array<std::array<CastCode, 10>, 10> castTable = {{
 }};
 // clang-format on
 
-std::string compareZero(const Type* type) {
+std::vector<std::string> compareZero(const Type* type) {
+    if (type->kind == TypeKind::FLOAT) {
+        return {xorps(XMM1, XMM1), ucomiss(XMM0, XMM1)};
+    } else if (type->kind == TypeKind::DOUBLE) {
+        return {xorpd(XMM1, XMM1), ucomisd(XMM0, XMM1)};
+    }
+
     if (type::isInteger(type) && type->size <= 4) {
-        return cmp(EAX, 0);
+        return {cmp(EAX, 0)};
     } else {
-        return cmp(RAX, 0);
+        return {cmp(RAX, 0)};
     }
 }
 } // namespace
@@ -183,7 +189,8 @@ void Generator::cast(const Node* node) {
     }
 
     if (type::is(to, BOOL)) {
-        addCode(compareZero(from), setne(AL), movzx(EAX, AL));
+        addCode(compareZero(from));
+        addCode(setne(AL), movzx(EAX, AL));
         return;
     }
 
@@ -339,7 +346,7 @@ void Generator::generateStatement(const Node* node) {
 
         generateExpression(node->condition.get());
         // if
-        addCode(cmp(RAX, 0));
+        addCode(compareZero(node->condition->type.get()));
         addCode(je(elseLabel.ref()));
         // then
         generateStatement(node->then.get());
@@ -365,7 +372,7 @@ void Generator::generateStatement(const Node* node) {
         addCode(beginLabel.def());
         if (node->condition) {
             generateExpression(node->condition.get());
-            addCode(cmp(RAX, 0));
+            addCode(compareZero(node->condition->type.get()));
             addCode(je(breakLabel.ref()));
         }
         generateStatement(node->then.get());
@@ -392,7 +399,7 @@ void Generator::generateStatement(const Node* node) {
         if (node->condition) {
             generateExpression(node->condition.get());
         }
-        addCode(cmp(RAX, 0));
+        addCode(compareZero(node->condition->type.get()));
         addCode(jne(beginLabel.ref()));
         addCode(breakLabel.def());
         return;
@@ -588,7 +595,7 @@ void Generator::generateExpression(const Node* node) {
             auto elseLabel = labels::else_(count);
             auto endLabel = labels::end(count);
             generateExpression(node->condition.get());
-            addCode(cmp(RAX, 0));
+            addCode(compareZero(node->condition->type.get()));
             addCode(je(elseLabel.ref()));
             generateExpression(node->then.get());
             addCode(jmp(endLabel.ref()));
@@ -612,10 +619,10 @@ void Generator::generateExpression(const Node* node) {
             auto falseLabel = labels::false_(count);
             auto endLabel = labels::end(count);
             generateExpression(node->left.get());
-            addCode(cmp(RAX, 0));
+            addCode(compareZero(node->left->type.get()));
             addCode(je(falseLabel.ref()));
             generateExpression(node->right.get());
-            addCode(cmp(RAX, 0));
+            addCode(compareZero(node->right->type.get()));
             addCode(je(falseLabel.ref()));
             addCode(mov(RAX, 1));
             addCode(jmp(endLabel.ref()));
@@ -629,10 +636,10 @@ void Generator::generateExpression(const Node* node) {
             auto trueLabel = labels::true_(count);
             auto endLabel = labels::end(count);
             generateExpression(node->left.get());
-            addCode(cmp(RAX, 0));
+            addCode(compareZero(node->left->type.get()));
             addCode(jne(trueLabel.ref()));
             generateExpression(node->right.get());
-            addCode(cmp(RAX, 0));
+            addCode(compareZero(node->right->type.get()));
             addCode(jne(trueLabel.ref()));
             addCode(mov(RAX, 0));
             addCode(jmp(endLabel.ref()));
