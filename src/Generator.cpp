@@ -25,6 +25,22 @@ std::string pop_reg(Register reg) {
     return pop(reg);
 }
 
+std::vector<std::string> pushf() {
+    depth++;
+    std::vector<std::string> ret;
+    ret.emplace_back(sub(RSP, 8));
+    ret.emplace_back(movsd(Address{RSP}, XMM0));
+    return ret;
+}
+
+std::vector<std::string> popf(Register reg) {
+    depth--;
+    std::vector<std::string> ret;
+    ret.emplace_back(movsd(reg, Address{RSP}));
+    ret.emplace_back(add(RSP, 8));
+    return ret;
+}
+
 enum TypeID {
     I8,
     I16,
@@ -614,6 +630,47 @@ void Generator::generateExpression(const Node* node) {
         }
         default:
             break;
+    }
+
+    if (type::isFloat(node->left->type.get())) {
+        generateExpression(node->right.get());
+        addCode(pushf());
+        generateExpression(node->left.get());
+        addCode(popf(XMM1));
+
+        if (isComparison(node)) {
+            if (node->left->type->kind == TypeKind::FLOAT) {
+                addCode(ucomiss(XMM1, XMM0));
+            } else {
+                addCode(ucomisd(XMM1, XMM0));
+            }
+            switch (node->nodeType) {
+                case NodeType::EQUAL:
+                    addCode(sete(AL), setnp(DL), and_(AL, DL));
+                    break;
+                case NodeType::NOT_EQUAL:
+                    addCode(setne(AL), setp(DL), or_(AL, DL));
+                    break;
+                case NodeType::LESS:
+                    addCode(seta(AL));
+                    break;
+                case NodeType::LESS_EQUAL:
+                    addCode(setae(AL));
+                    break;
+                case NodeType::GREATER:
+                    addCode(setb(AL));
+                    break;
+                case NodeType::GREATER_EQUAL:
+                    addCode(setbe(AL));
+                    break;
+                default:
+                   std::unreachable();
+            }
+            addCode(and_(AL, 1), movzx(RAX, AL));
+            return;
+        }
+        Log::error("invalid expression", node->token);
+        std::unreachable();
     }
 
     generateExpression(node->right.get());

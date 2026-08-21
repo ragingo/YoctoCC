@@ -15,6 +15,14 @@ std::shared_ptr<Type> getCommonType(const std::shared_ptr<Type>& type1, const st
         return type::pointerTo(type1->base);
     }
 
+    if (type1->kind == TypeKind::DOUBLE || type2->kind == TypeKind::DOUBLE) {
+        return type::doubleType();
+    }
+
+    if (type1->kind == TypeKind::FLOAT || type2->kind == TypeKind::FLOAT) {
+        return type::floatType();
+    }
+
     auto newType1 = type1;
     auto newType2 = type2;
 

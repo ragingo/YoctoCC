@@ -36,6 +36,20 @@ private:
         (lines.emplace_back(std::forward<Args>(args)), ...);
     }
 
+    template <typename T>
+    void addCode(const std::vector<T>& vec) {
+        lines.insert(lines.end(), vec.begin(), vec.end());
+    }
+
+    template <typename T>
+    void addCode(std::vector<T>&& vec) {
+        lines.insert(
+            lines.end(),
+            std::make_move_iterator(vec.begin()),
+            std::make_move_iterator(vec.end())
+        );
+    }
+
     void emitLocation(const Node* node);
 
 private:
