@@ -358,6 +358,7 @@ std::shared_ptr<Type> Parser::declSpec(Token*& token, VariableAttribute* attr) {
                 type = type::floatType();
                 break;
             case DOUBLE:
+            case LONG + DOUBLE:
                 type = type::doubleType();
                 break;
             default:
