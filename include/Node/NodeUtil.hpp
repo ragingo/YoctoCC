@@ -41,6 +41,7 @@ int64_t eval_rvalue(Node* node, std::string& label)
 #else
 #endif
 ;
+double evalDouble(Node* node);
 Relocation* writeGlobalVariableData(
     Relocation* relocations,
     const Initializer* initializer,

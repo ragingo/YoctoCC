@@ -240,6 +240,10 @@ int64_t eval2(Node* node, std::string& label) {
     assert(node);
     type::addType(node);
 
+    if (type::isFloat(node->type.get())) {
+        return evalDouble(node);
+    }
+
     switch (node->nodeType) {
     case ADD:
         return eval2(node->left.get(), label) + eval(node->right.get());
@@ -354,6 +358,38 @@ int64_t eval_rvalue(Node* node, std::string& label) {
     }
 }
 
+double evalDouble(Node* node) {
+    type::addType(node);
+
+    if (type::isInteger(node->type.get())) {
+        return node->type->isUnsigned ? static_cast<uint64_t>(eval(node)) : eval(node);
+    }
+
+    switch (node->nodeType) {
+        case NodeType::ADD:
+            return evalDouble(node->left.get()) + evalDouble(node->right.get());
+        case NodeType::SUB:
+            return evalDouble(node->left.get()) - evalDouble(node->right.get());
+        case NodeType::MUL:
+            return evalDouble(node->left.get()) * evalDouble(node->right.get());
+        case NodeType::DIV:
+            return evalDouble(node->left.get()) / evalDouble(node->right.get());
+        case NodeType::NEGATE:
+            return -evalDouble(node);
+        case NodeType::CONDITIONAL:
+            return evalDouble(node->condition.get()) ? evalDouble(node->then.get()) : evalDouble(node->els.get());
+        case NodeType::COMMA:
+            return evalDouble(node->right.get());
+        case NodeType::CAST:
+            return type::isFloat(node->left->type.get()) ? evalDouble(node->left.get()) : eval(node->left.get());
+        case NodeType::NUMBER:
+            return node->floatValue;
+        default:
+            Log::error(std::format("eval_double: unsupported node type: {}", std::to_underlying(node->nodeType)));
+            return 0;
+    }
+}
+
 Relocation* writeGlobalVariableData(Relocation* relocations, const Initializer* initializer, const std::shared_ptr<Type>& type, std::vector<char>& buf, size_t offset) {
     if (type->kind == TypeKind::ARRAY) {
         for (int i = 0; i < type->arraySize; i++) {
@@ -375,6 +411,16 @@ Relocation* writeGlobalVariableData(Relocation* relocations, const Initializer* 
     }
 
     if (!initializer->expression) {
+        return relocations;
+    }
+
+    if (type->kind == TypeKind::FLOAT) {
+        *reinterpret_cast<float*>(&buf[offset]) = static_cast<float>(evalDouble(initializer->expression.get()));
+        return relocations;
+    }
+
+    if (type->kind == TypeKind::DOUBLE) {
+        *reinterpret_cast<double*>(&buf[offset]) = evalDouble(initializer->expression.get());
         return relocations;
     }
 
