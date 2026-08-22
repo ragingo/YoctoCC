@@ -2,10 +2,11 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "Build with Make",
+            "label": "Build (Clang)",
             "command": "make",
             "args": [
-                "all"
+                "all",
+                "-j"
             ],
             "options": {
                 "cwd": "${workspaceFolder}",
@@ -25,10 +26,11 @@
         },
         {
             "type": "shell",
-            "label": "Build with GCC",
+            "label": "Build (GCC)",
             "command": "make",
             "args": [
-                "all"
+                "all",
+                "-j"
             ],
             "options": {
                 "cwd": "${workspaceFolder}",
@@ -48,7 +50,8 @@
             "label": "Run Tests",
             "command": "make",
             "args": [
-                "test"
+                "test",
+                "-j"
             ],
             "options": {
                 "cwd": "${workspaceFolder}",
