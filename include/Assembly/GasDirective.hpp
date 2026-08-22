@@ -22,7 +22,9 @@ enum class GasDirective {
     ASCIZ,
     LOC,
     FILE,
-    ALIGN
+    ALIGN,
+    INTEL_SYNTAX,
+    SECTION,
 };
 
 constexpr std::string to_string(GasDirective directive) {
@@ -60,6 +62,10 @@ constexpr std::string to_string(GasDirective directive) {
             return ".file";
         case ALIGN:
             return ".align";
+        case INTEL_SYNTAX:
+            return ".intel_syntax";
+        case SECTION:
+            return ".section";
         default:
             return "???";
     }
@@ -68,13 +74,13 @@ constexpr std::string to_string(GasDirective directive) {
 namespace directive {
 using enum GasDirective;
 
-namespace section {
+namespace sections {
 
 inline constexpr std::string text = to_string(TEXT);
 inline constexpr std::string data = to_string(DATA);
 inline constexpr std::string bss = to_string(BSS);
 
-} // namespace section
+} // namespace sections
 
 inline constexpr std::string extern_(const std::string& symbol) {
     return to_string(EXTERN) + " " + symbol;
@@ -131,6 +137,14 @@ inline constexpr std::string file(int fileNumber, const std::string& filename) {
 
 inline constexpr std::string align(int size) {
     return to_string(ALIGN) + " " + to_string(size);
+}
+
+inline constexpr std::string intelSyntax(bool prefix) {
+    return to_string(INTEL_SYNTAX) + " " + (prefix ? " prefix" : " noprefix");
+}
+
+inline constexpr std::string section(const std::string& name, const std::string& flag, const std::string& type) {
+    return to_string(SECTION) + " " + name + "," + flag + "," + type;
 }
 
 } // namespace directive

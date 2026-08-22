@@ -885,7 +885,7 @@ void Generator::generateFunction(const Object* obj) {
         addCode(global(obj->name));
     }
 
-    addCode(section::text);
+    addCode(sections::text);
     addCode(labels::label(obj->name).def(),
             // Prologue
             push(RBP),
@@ -964,7 +964,7 @@ void Generator::emitData(const Object* obj) {
         if (!var->initialData.empty()) {
             assert((var->initialData.size()) == static_cast<size_t>(var->type->size));
 
-            addCode(section::data);
+            addCode(sections::data);
             addCode(labels::label(var->name).def());
 
             auto relocation = var->relocations.get();
@@ -984,7 +984,7 @@ void Generator::emitData(const Object* obj) {
             continue;
         }
 
-        addCode(section::bss);
+        addCode(sections::bss);
         addCode(labels::label(var->name).def());
         addCode(zero(var->type->size));
     }
